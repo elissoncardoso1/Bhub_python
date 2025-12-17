@@ -2,12 +2,16 @@
 Rotas de IA (classificação e tradução).
 """
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, Field
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai import get_ai_manager
+from app.core.rate_limiting import get_user_id_for_rate_limit
 from app.database import get_async_session
+from app.main import limiter
 from app.ml import EmbeddingClassifier, HeuristicClassifier
 from app.services.translation_cache_service import (
     TranslationCacheService,
@@ -50,13 +54,14 @@ class TranslateResponse(BaseModel):
 
 
 @router.post("/classify", response_model=ClassifyResponse)
-async def classify_text(request: ClassifyRequest):
+@limiter.limit("10/minute", key_func=get_user_id_for_rate_limit)
+async def classify_text(request: Request, classify_request: ClassifyRequest):
     """Classifica texto em uma categoria."""
     
-    if request.use_external:
+    if classify_request.use_external:
         # Usar IA externa
         ai_manager = get_ai_manager()
-        category, confidence, provider = await ai_manager.classify(request.text)
+        category, confidence, provider = await ai_manager.classify(classify_request.text)
         
         return ClassifyResponse(
             category=category,
@@ -68,11 +73,11 @@ async def classify_text(request: ClassifyRequest):
     classifier = EmbeddingClassifier()
     
     if classifier.is_initialized():
-        category, confidence = await classifier.classify(request.text)
+        category, confidence = await classifier.classify(classify_request.text)
         provider = "local_ml"
     else:
         # Fallback para heurística
-        category, confidence = HeuristicClassifier.classify(request.text)
+        category, confidence = HeuristicClassifier.classify(classify_request.text)
         provider = "heuristic"
     
     return ClassifyResponse(
@@ -83,7 +88,9 @@ async def classify_text(request: ClassifyRequest):
 
 
 @router.post("/translate", response_model=TranslateResponse)
+@limiter.limit("10/minute", key_func=get_user_id_for_rate_limit)
 async def translate_text(
+    http_request: Request,
     request: TranslateRequest,
     session: AsyncSession = Depends(get_async_session),
 ):

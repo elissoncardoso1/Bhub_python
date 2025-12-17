@@ -8,6 +8,7 @@ from pathlib import Path
 from loguru import logger
 
 from app.config import settings
+from app.core.log_sanitizer import sanitize_for_logging
 
 
 def setup_logging() -> None:
@@ -75,5 +76,24 @@ def get_logger(name: str = "bhub"):
     return logger.bind(name=name)
 
 
+def safe_log(level: str, message: str, *args, **kwargs):
+    """
+    Função helper para logging seguro com sanitização automática.
+    
+    Uso:
+        safe_log("info", "Login attempt: {email}", email=user.email)
+    """
+    # Sanitizar mensagem e argumentos
+    sanitized_message = sanitize_for_logging(message)
+    sanitized_kwargs = sanitize_for_logging(kwargs) if kwargs else {}
+    
+    # Chamar logger apropriado
+    log_func = getattr(logger, level.lower(), logger.info)
+    log_func(sanitized_message, *args, **sanitized_kwargs)
+
+
 # Logger pré-configurado para uso direto
 log = get_logger()
+
+# Adicionar método safe_log ao logger
+log.safe = lambda level, msg, *args, **kwargs: safe_log(level, msg, *args, **kwargs)

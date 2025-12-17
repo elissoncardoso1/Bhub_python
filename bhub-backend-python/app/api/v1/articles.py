@@ -4,11 +4,13 @@ Rotas públicas de artigos.
 
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, Request, status
+from slowapi.util import get_remote_address
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import DBSession, Pagination
+from app.main import limiter
 from app.models import Article, Author, Category, SourceType
 from app.schemas import (
     ArticleListResponse,
@@ -23,7 +25,9 @@ router = APIRouter(prefix="/articles", tags=["Articles"])
 
 
 @router.get("", response_model=ArticleListResponse)
+@limiter.limit("100/minute")
 async def list_articles(
+    request: Request,
     db: DBSession,
     pagination: Pagination,
     search: str | None = Query(default=None, min_length=2, max_length=200),

@@ -200,27 +200,56 @@ class SearchService:
 
     def _sanitize_query(self, query: str) -> str:
         """
-        Sanitiza query para uso com FTS5.
-        Remove caracteres especiais e formata para match.
+        Sanitiza query para uso com FTS5 de forma segura.
+        Previne SQL injection e manipulação do índice FTS5.
         """
-        # Remover caracteres especiais do FTS5
-        sanitized = re.sub(r'[*"\'():\-]', " ", query)
-
+        # Limitar tamanho máximo
+        if len(query) > 200:
+            query = query[:200]
+        
+        # Whitelist approach: apenas permitir caracteres alfanuméricos, espaços e acentos
+        # Remover todos os caracteres especiais perigosos
+        sanitized = re.sub(r'[^a-zA-Z0-9\s\u00C0-\u017F]', '', query)
+        
         # Remover espaços extras
         sanitized = " ".join(sanitized.split())
-
+        
         if not sanitized:
             return ""
-
-        # Converter para formato de busca
+        
+        # Remover palavras reservadas do FTS5 que podem ser exploradas
+        fts5_reserved = ['AND', 'OR', 'NOT', 'MATCH', 'NEAR', 'rebuild', 'DELETE']
         terms = sanitized.split()
-
-        # Se apenas um termo, usar prefix matching
-        if len(terms) == 1:
-            return f"{terms[0]}*"
-
-        # Múltiplos termos: usar AND implícito
-        return " ".join(f"{term}*" for term in terms)
+        
+        # Filtrar termos reservados e validar cada termo
+        safe_terms = []
+        for term in terms[:10]:  # Limitar número de termos
+            term_upper = term.upper()
+            # Pular palavras reservadas
+            if term_upper in fts5_reserved:
+                continue
+            
+            # Remover qualquer caractere especial restante
+            clean_term = re.sub(r'[^a-zA-Z0-9\u00C0-\u017F]', '', term)
+            
+            # Validar tamanho mínimo e máximo
+            if len(clean_term) >= 2 and len(clean_term) <= 50:
+                safe_terms.append(clean_term)
+        
+        if not safe_terms:
+            return ""
+        
+        # Usar escape do FTS5 com aspas para prevenir injeção
+        # FTS5 trata strings entre aspas como literais
+        escaped_terms = []
+        for term in safe_terms:
+            # Escapar aspas duplas dentro do termo
+            escaped_term = term.replace('"', '""')
+            # Usar aspas para tornar literal e adicionar wildcard
+            escaped_terms.append(f'"{escaped_term}"*')
+        
+        # Retornar termos unidos com espaço (AND implícito no FTS5)
+        return " ".join(escaped_terms)
 
     async def rebuild_fts_index(self):
         """Reconstrói o índice FTS5."""

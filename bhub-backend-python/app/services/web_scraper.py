@@ -3,6 +3,7 @@ Serviço de web scraping para extração de artigos.
 """
 
 import hashlib
+import ipaddress
 import re
 from datetime import datetime
 from urllib.parse import urljoin, urlparse
@@ -92,9 +93,12 @@ class WebScrapingService:
     ]
 
     def __init__(self):
+        # Timeout reduzido para prevenir DoS
+        # Limitar redirects para prevenir loops
         self.client = httpx.AsyncClient(
-            timeout=30.0,
+            timeout=10.0,  # Reduzido de 30s para 10s
             follow_redirects=True,
+            max_redirects=5,  # Limitar número de redirects
             headers=self.BROWSER_HEADERS,
         )
 
@@ -102,6 +106,73 @@ class WebScrapingService:
         """Fecha o cliente HTTP."""
         await self.client.aclose()
 
+    def _validate_url(self, url: str) -> None:
+        """
+        Valida URL para prevenir SSRF (Server-Side Request Forgery).
+        Bloqueia IPs privados, localhost e esquemas perigosos.
+        """
+        parsed = urlparse(url)
+        
+        # Validar esquema - apenas HTTP/HTTPS permitidos
+        if parsed.scheme not in ['http', 'https']:
+            raise ValueError(
+                f"Esquema '{parsed.scheme}' não permitido. Apenas HTTP/HTTPS são permitidos."
+            )
+        
+        if not parsed.netloc:
+            raise ValueError("URL inválida: sem hostname")
+        
+        hostname = parsed.hostname.lower()
+        
+        # Bloquear localhost e variações
+        blocked_hosts = [
+            'localhost',
+            '127.0.0.1',
+            '0.0.0.0',
+            '::1',
+            '[::1]',
+            'localhost.localdomain',
+        ]
+        
+        if hostname in blocked_hosts:
+            raise ValueError(f"Hostname '{hostname}' bloqueado por segurança (SSRF prevention)")
+        
+        # Bloquear IPs privados (RFC 1918)
+        if hostname:
+            # Verificar se é um IP
+            try:
+                ip = ipaddress.ip_address(hostname)
+                
+                # Bloquear IPs privados
+                if ip.is_private:
+                    raise ValueError(
+                        f"IP privado '{hostname}' bloqueado por segurança (SSRF prevention)"
+                    )
+                
+                # Bloquear IPs de loopback
+                if ip.is_loopback:
+                    raise ValueError(
+                        f"IP de loopback '{hostname}' bloqueado por segurança"
+                    )
+                
+                # Bloquear IPs de link-local
+                if ip.is_link_local:
+                    raise ValueError(
+                        f"IP link-local '{hostname}' bloqueado por segurança"
+                    )
+                
+            except ValueError:
+                # Não é um IP válido, verificar se é hostname bloqueado
+                if any(blocked in hostname for blocked in blocked_hosts):
+                    raise ValueError(f"Hostname '{hostname}' bloqueado por segurança")
+        
+        # Validar que não há caracteres perigosos no path
+        if parsed.path:
+            dangerous_chars = ['../', '..\\', '%2e%2e', '%2f']
+            path_lower = parsed.path.lower()
+            if any(dangerous in path_lower for dangerous in dangerous_chars):
+                raise ValueError("Path contém caracteres perigosos")
+    
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=2, max=10),
@@ -115,14 +186,21 @@ class WebScrapingService:
         """
         log.info(f"Iniciando scraping: {url}")
 
-        # Validar URL
+        # Validar URL (prevenir SSRF)
+        self._validate_url(url)
+        
         parsed = urlparse(url)
         if not parsed.scheme or not parsed.netloc:
             raise ValueError("URL inválida")
 
-        # Fazer requisição
-        response = await self.client.get(url)
-        response.raise_for_status()
+        # Fazer requisição com timeout curto
+        try:
+            response = await self.client.get(url, timeout=10.0)  # Timeout de 10 segundos
+            response.raise_for_status()
+        except httpx.TimeoutException:
+            raise ValueError("Timeout ao acessar URL (máximo 10 segundos)")
+        except httpx.RequestError as e:
+            raise ValueError(f"Erro ao acessar URL: {e}")
 
         html = response.text
         base_url = f"{parsed.scheme}://{parsed.netloc}"

@@ -85,7 +85,10 @@ class PDFService:
         }
 
     def _validate_pdf(self, content: bytes, filename: str):
-        """Valida o arquivo PDF."""
+        """
+        Valida o arquivo PDF de forma robusta.
+        Previne uploads maliciosos com JavaScript, objetos perigosos, etc.
+        """
         # Verificar tamanho
         if len(content) > self.MAX_FILE_SIZE:
             raise PDFProcessingError(
@@ -100,14 +103,53 @@ class PDFService:
         if not filename.lower().endswith(".pdf"):
             raise PDFProcessingError("Extensão do arquivo deve ser .pdf")
 
+        # Validações de segurança: verificar conteúdo perigoso
+        content_lower = content.lower()
+        
+        # Bloquear JavaScript embutido
+        if b'/javascript' in content_lower or b'/js' in content_lower:
+            raise PDFProcessingError("PDF contém JavaScript, não permitido por segurança")
+        
+        # Bloquear ações perigosas
+        dangerous_actions = [b'/launch', b'/gotor', b'/uri', b'/submitform', b'/resetform']
+        for action in dangerous_actions:
+            if action in content_lower:
+                raise PDFProcessingError(
+                    f"PDF contém ações perigosas ({action.decode('utf-8', errors='ignore')}), não permitido"
+                )
+        
+        # Limitar complexidade: contar objetos
+        object_count = content.count(b'obj')
+        if object_count > 10000:
+            raise PDFProcessingError(
+                f"PDF muito complexo ({object_count} objetos). Máximo permitido: 10000"
+            )
+        
+        # Verificar se não é um zip bomb (PDFs podem conter streams comprimidos)
+        # Limitar tamanho após descompressão estimada (PDFs geralmente comprimem 2-3x)
+        estimated_decompressed = len(content) * 3
+        if estimated_decompressed > self.MAX_FILE_SIZE * 10:
+            raise PDFProcessingError("PDF pode ser um zip bomb (tamanho descomprimido estimado muito grande)")
+
         # Tentar abrir para validar estrutura
         try:
             doc = fitz.open(stream=content, filetype="pdf")
             if doc.page_count == 0:
                 raise PDFProcessingError("PDF não contém páginas")
+            
+            # Validar que não há páginas excessivas (possível DoS)
+            if doc.page_count > 1000:
+                raise PDFProcessingError(
+                    f"PDF contém muitas páginas ({doc.page_count}). Máximo permitido: 1000"
+                )
+            
             doc.close()
         except fitz.FileDataError as e:
             raise PDFProcessingError(f"PDF corrompido ou inválido: {e}")
+        except Exception as e:
+            # Capturar outros erros de processamento
+            log.warning(f"Erro ao validar PDF: {e}")
+            raise PDFProcessingError(f"Erro ao processar PDF: {e}")
 
     def _extract_metadata(self, content: bytes) -> dict:
         """Extrai metadados do PDF usando PyMuPDF."""

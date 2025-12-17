@@ -67,7 +67,8 @@ class Settings(BaseSettings):
     # Security
     secret_key: str = Field(default="change-this-secret-key-in-production")
     algorithm: str = "HS256"
-    access_token_expire_minutes: int = 60 * 24  # 24 horas
+    access_token_expire_minutes: int = 15  # 15 minutos (reduzido de 24h para segurança)
+    refresh_token_expire_days: int = 7  # 7 dias para refresh tokens
 
     @field_validator("secret_key")
     @classmethod

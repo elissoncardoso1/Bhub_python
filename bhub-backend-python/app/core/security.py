@@ -35,18 +35,23 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
     verification_token_secret = settings.secret_key
 
     async def on_after_register(self, user: User, request=None):
-        log.info(f"Usuário registrado: {user.email}")
+        from app.core.log_sanitizer import sanitize_log_message
+        log.info(sanitize_log_message(f"Usuário registrado: {user.email}"))
 
     async def on_after_login(self, user: User, request=None, response=None):
-        log.info(f"Login realizado: {user.email}")
+        from app.core.log_sanitizer import sanitize_log_message
+        log.info(sanitize_log_message(f"Login realizado: {user.email}"))
         # Atualizar último login
         user.last_login_at = datetime.utcnow()
 
     async def on_after_forgot_password(self, user: User, token: str, request=None):
-        log.info(f"Solicitação de reset de senha: {user.email}")
+        from app.core.log_sanitizer import sanitize_log_message
+        # Não logar o token de reset
+        log.info(sanitize_log_message(f"Solicitação de reset de senha: {user.email}"))
 
     async def on_after_reset_password(self, user: User, request=None):
-        log.info(f"Senha resetada: {user.email}")
+        from app.core.log_sanitizer import sanitize_log_message
+        log.info(sanitize_log_message(f"Senha resetada: {user.email}"))
 
 
 async def get_user_manager(user_db: Annotated[SQLAlchemyUserDatabase, Depends(get_user_db)]):
@@ -62,13 +67,14 @@ def get_jwt_strategy() -> JWTStrategy:
     )
 
 
-# Bearer Transport
-bearer_transport = BearerTransport(tokenUrl="/api/v1/auth/login")
+# Bearer Transport (compatível com frontend atual)
+# Cookies HttpOnly são adicionados via middleware (AuthCookieMiddleware)
+auth_transport = BearerTransport(tokenUrl="/api/v1/auth/login")
 
 # Authentication Backend
 auth_backend = AuthenticationBackend(
     name="jwt",
-    transport=bearer_transport,
+    transport=auth_transport,
     get_strategy=get_jwt_strategy,
 )
 
