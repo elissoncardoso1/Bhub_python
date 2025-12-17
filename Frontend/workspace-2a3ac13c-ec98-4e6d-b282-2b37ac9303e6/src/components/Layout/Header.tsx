@@ -33,11 +33,21 @@ export function Header() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <h1 className="font-display font-bold text-2xl text-bhub-navy-dark dark:text-bhub-teal-primary">
-                BHub
-              </h1>
-            </div>
+            <a href="/" className="flex-shrink-0 flex items-center">
+              {mounted ? (
+                <img
+                  src={isDark ? "/Dark_logo.svg" : "/Light_logo.svg"}
+                  alt="BHub"
+                  className="h-7 w-auto"
+                />
+              ) : (
+                <img
+                  src="/Light_logo.svg"
+                  alt="BHub"
+                  className="h-7 w-auto"
+                />
+              )}
+            </a>
           </div>
 
           {/* Desktop Navigation */}

@@ -16,6 +16,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+
 export const metadata: Metadata = {
   title: "BHub - Repositório de Análise do Comportamento",
   description: "Repositório científico dedicado à análise do comportamento, conectando pesquisadores e promovendo o conhecimento científico.",

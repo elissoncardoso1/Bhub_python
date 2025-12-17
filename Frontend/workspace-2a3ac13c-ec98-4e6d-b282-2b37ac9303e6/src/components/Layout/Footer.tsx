@@ -35,9 +35,13 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="lg:col-span-1">
-            <h3 className="font-display font-bold text-2xl text-bhub-teal-primary mb-4">
-              BHub
-            </h3>
+            <a href="/" className="inline-block mb-4">
+              <img
+                src="/Dark_logo.svg"
+                alt="BHub"
+                className="h-7 w-auto"
+              />
+            </a>
             <p className="font-body font-light text-sm text-gray-300 mb-6 leading-relaxed">
               Repositório científico dedicado à análise do comportamento, 
               conectando pesquisadores e promovendo o conhecimento científico.
@@ -136,10 +140,32 @@ export function Footer() {
 
         {/* Bottom section */}
         <div className="mt-12 pt-8 border-t border-gray-700">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <p className="font-body font-light text-sm text-gray-400">
-              © {currentYear} BHub. Todos os direitos reservados.
-            </p>
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <div className="flex flex-col items-center md:items-start gap-2">
+              <p className="font-body font-light text-sm text-gray-400">
+                © {currentYear} BHub. Todos os direitos reservados.
+              </p>
+              {/* Powered by DeepSeek - Discreto */}
+              <div className="flex items-center gap-1.5 opacity-40 hover:opacity-60 transition-opacity">
+                <span className="font-body font-light text-[10px]" style={{ color: '#D8FFDB' }}>
+                  Powered by
+                </span>
+                <a
+                  href="https://www.deepseek.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center"
+                  aria-label="DeepSeek AI"
+                >
+                  <img
+                    src="/icons/deepseek-text.svg"
+                    alt="DeepSeek"
+                    className="h-3.5 w-auto"
+                    style={{ filter: 'brightness(0) invert(1)' }}
+                  />
+                </a>
+              </div>
+            </div>
             <div className="flex space-x-6 mt-4 md:mt-0">
               <a
                 href="/privacy"
