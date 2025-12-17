@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useTheme } from '@/components/Theme/ThemeProvider';
 import { Badge } from '@/components/Badge/Badge';
 import { Icon } from '@/components/Icon/Icon';
 import { cn, formatDate, getCategoryColor } from '@/lib/utils';
@@ -22,9 +23,16 @@ interface ShareableArticleHeaderProps {
  * - Funciona como card visual standalone
  */
 export function ShareableArticleHeader({ article, className }: ShareableArticleHeaderProps) {
+  const { isDark } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const categoryLabel = article.category?.name || 'Sem categoria';
   const publicationDate = formatDate(article.publication_date || undefined) || 'Data não disponível';
   const journalName = article.journal_name || article.feed_name || 'Fonte não especificada';
+
+  // Prevent hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <header 
@@ -45,14 +53,34 @@ export function ShareableArticleHeader({ article, className }: ShareableArticleH
       role="banner"
       aria-label="Cabeçalho do artigo científico"
     >
-      {/* BHub Watermark - Sutil, canto inferior direito */}
-      <div 
-        className={cn(
-          "absolute bottom-4 right-4 md:bottom-6 md:right-6",
-          "pointer-events-none",
-          "select-none"
-        )}
-      >
+      {/* BHub Logo e Watermark - Topo, mesma linha */}
+      <div className="mb-4 md:mb-6 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          {mounted ? (
+            <img
+              src={isDark ? "/Dark_logo.svg" : "/Light_logo.svg"}
+              alt="BHub"
+              className="h-6 w-auto"
+              style={{
+                filter: isDark 
+                  ? 'brightness(0) saturate(100%) invert(65%) sepia(50%) saturate(500%) hue-rotate(140deg) brightness(95%) contrast(90%)'
+                  : 'brightness(0) saturate(100%) invert(35%) sepia(60%) saturate(800%) hue-rotate(140deg) brightness(90%) contrast(85%)'
+              }}
+            />
+          ) : (
+            <img
+              src="/Light_logo.svg"
+              alt="BHub"
+              className="h-6 w-auto"
+              style={{
+                filter: 'brightness(0) saturate(100%) invert(35%) sepia(60%) saturate(800%) hue-rotate(140deg) brightness(90%) contrast(85%)'
+              }}
+            />
+          )}
+          <span className="font-body text-xs md:text-sm text-gray-600 dark:text-gray-400 font-light">
+            Repositório Científico
+          </span>
+        </div>
         <span className="font-body text-xs font-light text-gray-500 dark:text-gray-400">
           bhub.online
         </span>
@@ -105,7 +133,7 @@ export function ShareableArticleHeader({ article, className }: ShareableArticleH
           "font-display font-bold",
           "text-2xl md:text-3xl lg:text-4xl",
           "text-bhub-navy-dark dark:text-white",
-          "mb-4 md:mb-6",
+          "mb-3 md:mb-4",
           "leading-tight",
           // Largura máxima para legibilidade em screenshots
           "max-w-4xl"
@@ -114,12 +142,32 @@ export function ShareableArticleHeader({ article, className }: ShareableArticleH
         {article.title}
       </h1>
 
+      {/* Autores - Sutil e harmonioso */}
+      {article.authors && article.authors.length > 0 && (
+        <div className="mb-4 md:mb-5">
+          <p className="font-body text-xs md:text-sm text-gray-500 dark:text-gray-400 font-light italic">
+            {article.authors.length === 1 
+              ? article.authors[0].name
+              : article.authors.length <= 3
+              ? article.authors.map(a => a.name).join(', ')
+              : `${article.authors[0].name} et al.`
+            }
+          </p>
+        </div>
+      )}
+
       {/* Source/Journal - Contexto científico */}
       <div className="flex items-center gap-2 mb-4 md:mb-6" role="group" aria-label="Informações da publicação">
         <div className="flex items-center gap-2">
           <div className="w-1 h-1 rounded-full bg-bhub-teal-primary" aria-hidden="true" />
           <span className="font-body text-sm md:text-base text-gray-600 dark:text-gray-400 font-medium">
-            {journalName}
+            {article.source_category === 'journal' && article.journal_name ? (
+              <>
+                <span className="font-light text-xs md:text-sm" style={{ fontFamily: 'Quicksand, sans-serif' }}>Periódico Científico:</span> {journalName}
+              </>
+            ) : (
+              journalName
+            )}
           </span>
         </div>
         {article.doi && (

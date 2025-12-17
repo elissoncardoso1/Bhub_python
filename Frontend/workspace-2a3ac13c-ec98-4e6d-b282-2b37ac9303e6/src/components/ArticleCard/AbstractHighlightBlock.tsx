@@ -60,7 +60,7 @@ export function AbstractHighlightBlock({
           className={cn(
             "absolute -top-2 -left-2",
             "text-4xl md:text-5xl",
-            "text-bhub-teal-primary/10 dark:text-bhub-teal-primary/5",
+            "text-bhub-teal-primary/40 dark:text-bhub-teal-primary/30",
             "font-display font-bold",
             "leading-none",
             "select-none pointer-events-none"
