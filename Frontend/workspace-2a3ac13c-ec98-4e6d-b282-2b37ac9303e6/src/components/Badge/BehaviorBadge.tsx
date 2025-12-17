@@ -1,0 +1,1 @@
+export { BehaviorBadge } from './Badge';

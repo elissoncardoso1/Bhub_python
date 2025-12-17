@@ -1,0 +1,226 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import url("https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@300;400;500;600;700;800&family=Raleway:wght@100;200;300;400;500;600;700;800;900&family=Fira+Code:wght@300;400;500;600;700&display=swap");
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  /* BHub Colors */
+  --color-bhub-dark-gray: #272727;
+  --color-bhub-light-gray: #f7f7f7;
+  --color-bhub-teal-primary: #41b5a3;
+  --color-bhub-teal-light: #b7ece4;
+  --color-bhub-navy-dark: #1c3159;
+  --color-bhub-navy-light: #d6e0ec;
+  --color-bhub-red-accent: #ba213d;
+  --color-bhub-red-light: #faeded;
+  --color-bhub-yellow-primary: #fabd4a;
+  --color-bhub-yellow-light: #fde6ba;
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* 
+  SCREENSHOT-FRIENDLY LAYOUT UTILITIES
+  ====================================
+  Classes utilitárias para otimizar layouts para screenshots
+  em diferentes proporções (1:1, 4:5, 9:16)
+*/
+@layer utilities {
+  /* Safe area para cropping - garante margens adequadas */
+  .screenshot-safe {
+    @apply px-4 sm:px-6 md:px-8;
+    /* Padding adicional para evitar corte de conteúdo importante */
+    padding-top: max(1rem, env(safe-area-inset-top));
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  /* Container otimizado para Instagram Feed (1:1) */
+  .screenshot-square {
+    @apply max-w-2xl mx-auto;
+    aspect-ratio: 1 / 1;
+    min-height: 500px;
+  }
+
+  /* Container otimizado para Instagram Stories (9:16) */
+  .screenshot-story {
+    @apply max-w-md mx-auto;
+    aspect-ratio: 9 / 16;
+    min-height: 600px;
+  }
+
+  /* Container otimizado para Instagram Post (4:5) */
+  .screenshot-portrait {
+    @apply max-w-xl mx-auto;
+    aspect-ratio: 4 / 5;
+    min-height: 550px;
+  }
+
+  /* Margens seguras para diferentes dispositivos */
+  .screenshot-margin {
+    margin-top: clamp(1rem, 5vh, 3rem);
+    margin-bottom: clamp(1rem, 5vh, 3rem);
+  }
+
+  /* Texto otimizado para legibilidade em screenshots */
+  .screenshot-text {
+    @apply text-base md:text-lg;
+    line-height: 1.7;
+    /* Contraste alto para screenshots */
+    @apply text-gray-900 dark:text-white;
+  }
+
+  /* Card visual standalone - funciona como imagem completa */
+  .screenshot-card {
+    @apply bg-white dark:bg-gray-900;
+    @apply rounded-2xl md:rounded-3xl;
+    @apply p-6 md:p-8 lg:p-10;
+    @apply border border-gray-200 dark:border-gray-800;
+    @apply shadow-sm;
+    /* Altura mínima para conteúdo completo */
+    min-height: 400px;
+  }
+}
+
+/* Media queries para otimização de screenshots em diferentes tamanhos */
+@media (max-width: 640px) {
+  /* Mobile - otimizado para screenshots verticais */
+  .screenshot-safe {
+    @apply px-4;
+  }
+  
+  .screenshot-card {
+    @apply p-6 rounded-xl;
+    min-height: 350px;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+  /* Tablet - balanceado */
+  .screenshot-card {
+    @apply p-8 rounded-2xl;
+    min-height: 450px;
+  }
+}
+
+@media (min-width: 1025px) {
+  /* Desktop - máximo de conteúdo */
+  .screenshot-card {
+    @apply p-10 rounded-3xl;
+    min-height: 500px;
+  }
+}

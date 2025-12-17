@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BHub - Agregador Científico em Análise do Comportamento</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@300;400;500;600;700;800&family=Raleway:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* BHub Colors - Baseado no tailwind.config.ts */
+      --bhub-dark-gray: #272727;
+      --bhub-light-gray: #F7F7F7;
+      --bhub-teal-primary: #41B5A3;
+      --bhub-teal-light: #B7ECE4;
+      --bhub-navy-dark: #1C3159;
+      --bhub-navy-light: #D6E0EC;
+      --bhub-red-accent: #BA213D;
+      --bhub-red-light: #FAEDED;
+      --bhub-yellow-primary: #FABD4A;
+      --bhub-yellow-light: #FDE6BA;
+      
+      /* Neutral Colors */
+      --surface-white: #ffffff;
+      --surface-light: #f8fafc;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --border-color: #e2e8f0;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-300: #d1d5db;
+      --gray-400: #9ca3af;
+      --gray-500: #6b7280;
+      --gray-600: #4b5563;
+      --gray-700: #374151;
+      --gray-800: #1f2937;
+      --gray-900: #111827;
+    }
+    
+    * { 
+      box-sizing: border-box; 
+      margin: 0;
+      padding: 0;
+    }
+    
+    body { 
+      margin: 0; 
+      font-family: 'Raleway', system-ui, sans-serif;
+      background: var(--surface-light); 
+      color: var(--text-main);
+      line-height: 1.6;
+    }
+    
+    /* Typography */
+    .font-display {
+      font-family: 'Roboto Slab', serif;
+    }
+    
+    .font-body {
+      font-family: 'Raleway', sans-serif;
+    }
+    
+    /* Layout */
+    .layout { 
+      display: flex; 
+      flex-direction: column; 
+      min-height: 100vh; 
+    }
+    
+    /* Header */
+    .header { 
+      height: 64px; 
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-color); 
+      display: flex; 
+      align-items: center; 
+      padding: 0 2rem; 
+      justify-content: space-between; 
+      position: sticky; 
+      top: 0; 
+      z-index: 50;
+    }
+    
+    .brand { 
+      font-family: 'Roboto Slab', serif;
+      font-weight: 800; 
+      font-size: 1.5rem; 
+      color: var(--bhub-navy-dark); 
+      letter-spacing: -0.025em; 
+    }
+    
+    .nav { 
+      display: flex; 
+      gap: 2rem; 
+      font-size: 0.875rem; 
+      font-weight: 500; 
+      color: var(--text-muted);
+    }
+    
+    .nav a {
+      color: var(--text-main);
+      text-decoration: none;
+      transition: color 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .nav a:hover {
+      color: var(--bhub-teal-primary);
+    }
+    
+    .header-actions {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+    }
+    
+    .icon-btn {
+      width: 40px;
+      height: 40px;
+      border: none;
+      background: transparent;
+      border-radius: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: all 0.2s;
+    }
+    
+    .icon-btn:hover {
+      background: var(--gray-100);
+      color: var(--bhub-teal-primary);
+    }
+    
+    /* Main Container */
+    .main-container {
+      max-width: 1280px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      display: grid;
+      grid-template-columns: 240px 1fr 280px;
+      gap: 1.5rem;
+      align-items: start;
+      flex: 1;
+    }
+    
+    @media (max-width: 1024px) {
+      .main-container { 
+        grid-template-columns: 1fr; 
+      }
+      .sidebar { 
+        display: none; 
+      }
+      .header {
+        padding: 0 1rem;
+      }
+      .nav {
+        display: none;
+      }
+    }
+
+    /* Sidebars */
+    .sidebar { 
+      background: var(--surface-white); 
+      border-radius: 0.75rem; 
+      border: 1px solid var(--border-color); 
+      padding: 1.5rem; 
+      min-height: 200px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+    
+    .sidebar-title { 
+      font-size: 0.75rem; 
+      font-weight: 700; 
+      color: var(--text-muted); 
+      text-transform: uppercase; 
+      letter-spacing: 0.05em; 
+      margin-bottom: 1rem; 
+    }
+    
+    .filter-item { 
+      display: flex; 
+      align-items: center; 
+      gap: 0.5rem; 
+      padding: 0.75rem; 
+      color: var(--text-main); 
+      font-size: 0.9rem; 
+      cursor: pointer;
+      border-radius: 0.5rem;
+      transition: all 0.2s;
+    }
+    
+    .filter-item:hover { 
+      background: var(--gray-50); 
+      color: var(--bhub-teal-primary);
+    }
+
+    /* Center Content */
+    .content-feed { 
+      display: flex; 
+      flex-direction: column; 
+      gap: 2rem; 
+    }
+
+    /* Intro Banner - Baseado no LandingIntroBanner.tsx */
+    .intro-banner {
+      background: linear-gradient(135deg, rgba(65, 181, 163, 0.05) 0%, rgba(59, 130, 246, 0.05) 100%);
+      border-left: 4px solid var(--bhub-teal-primary);
+      border-radius: 0.75rem;
+      padding: 2rem;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      gap: 2rem;
+    }
+    
+    .intro-content {
+      flex: 1;
+    }
+    
+    .intro-banner h1 { 
+      font-family: 'Roboto Slab', serif;
+      font-size: 1.5rem; 
+      margin: 0 0 0.5rem 0; 
+      font-weight: 700; 
+      color: var(--bhub-navy-dark);
+      line-height: 1.3;
+    }
+    
+    .intro-banner p { 
+      color: var(--text-muted); 
+      font-size: 0.95rem; 
+      max-width: 600px; 
+      margin: 0;
+      line-height: 1.6; 
+    }
+    
+    .intro-icon { 
+      width: 64px;
+      height: 64px;
+      background: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      border: 1px solid var(--border-color);
+      flex-shrink: 0;
+    }
+    
+    .intro-icon svg {
+      width: 32px;
+      height: 32px;
+      color: var(--bhub-teal-primary);
+    }
+
+    /* How It Works - Baseado no HowItWorksInline.tsx */
+    .how-it-works {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    
+    .step-card {
+      background: var(--surface-white);
+      border: 1px solid var(--border-color);
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      text-align: center;
+      transition: all 0.3s;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+    
+    .step-card:hover { 
+      transform: translateY(-2px); 
+      border-color: var(--bhub-teal-primary);
+      box-shadow: 0 4px 12px rgba(65, 181, 163, 0.15);
+    }
+    
+    .step-icon { 
+      width: 48px; 
+      height: 48px; 
+      background: var(--gray-50);
+      color: var(--text-muted);
+      border-radius: 50%; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      margin: 0 auto 1rem auto;
+      transition: all 0.3s;
+    }
+    
+    .step-card:hover .step-icon {
+      background: rgba(65, 181, 163, 0.1);
+      color: var(--bhub-teal-primary);
+    }
+    
+    .step-icon svg {
+      width: 24px;
+      height: 24px;
+    }
+    
+    .step-title { 
+      font-weight: 600; 
+      margin-bottom: 0.5rem; 
+      font-size: 0.95rem;
+      color: var(--text-main);
+    }
+    
+    .step-desc { 
+      font-size: 0.875rem; 
+      color: var(--text-muted); 
+      line-height: 1.5; 
+    }
+
+    /* Featured Article */
+    .featured-card {
+      background: var(--surface-white);
+      border-radius: 1rem;
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+      display: flex;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+    
+    .featured-image { 
+      width: 40%; 
+      background: linear-gradient(135deg, var(--bhub-teal-primary) 0%, var(--bhub-navy-dark) 100%);
+      min-height: 280px; 
+      object-fit: cover;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 3rem;
+    }
+    
+    .featured-content { 
+      padding: 2rem; 
+      width: 60%; 
+      display: flex; 
+      flex-direction: column; 
+      justify-content: center; 
+    }
+    
+    .badge { 
+      display: inline-block; 
+      padding: 0.375rem 0.75rem; 
+      border-radius: 9999px; 
+      font-size: 0.75rem; 
+      font-weight: 600; 
+      text-transform: uppercase; 
+      margin-bottom: 1rem; 
+      width: fit-content; 
+      letter-spacing: 0.05em;
+    }
+    
+    .badge-teal { 
+      background: var(--bhub-teal-light); 
+      color: #0f766e; 
+    }
+    
+    .featured-content h2 {
+      font-family: 'Roboto Slab', serif;
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin: 0 0 1rem 0;
+      color: var(--bhub-navy-dark);
+      line-height: 1.3;
+    }
+    
+    .featured-content p {
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+      line-height: 1.6;
+    }
+    
+    .btn-primary {
+      padding: 0.75rem 1.5rem;
+      background: var(--bhub-teal-primary);
+      color: white;
+      border: none;
+      border-radius: 0.5rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      width: fit-content;
+    }
+    
+    .btn-primary:hover {
+      background: #35a391;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(65, 181, 163, 0.3);
+    }
+
+    /* Section Headers */
+    .section-header { 
+      display: flex; 
+      align-items: center; 
+      gap: 0.75rem; 
+      margin-bottom: 1.5rem; 
+    }
+    
+    .section-icon { 
+      padding: 0.5rem; 
+      background: rgba(65, 181, 163, 0.1);
+      border-radius: 0.5rem; 
+      color: var(--bhub-teal-primary);
+    }
+    
+    .section-icon svg {
+      width: 20px;
+      height: 20px;
+    }
+    
+    .section-title { 
+      font-family: 'Roboto Slab', serif;
+      font-size: 1.25rem; 
+      font-weight: 700; 
+      color: var(--bhub-navy-dark); 
+    }
+
+    /* Article Grid (2 cols) */
+    .article-columns { 
+      display: grid; 
+      grid-template-columns: 1fr 1fr; 
+      gap: 2rem; 
+    }
+    
+    .article-list { 
+      display: flex; 
+      flex-direction: column; 
+      gap: 1rem; 
+    }
+    
+    .article-item { 
+      background: var(--surface-white); 
+      padding: 1.25rem; 
+      border-radius: 0.75rem; 
+      border: 1px solid var(--border-color);
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+    
+    .article-item:hover {
+      border-color: var(--bhub-teal-primary);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      transform: translateY(-1px);
+    }
+    
+    .article-item h3 { 
+      font-size: 1rem; 
+      font-weight: 600; 
+      margin: 0 0 0.5rem 0; 
+      line-height: 1.4;
+      color: var(--text-main);
+    }
+    
+    .article-meta { 
+      font-size: 0.75rem; 
+      color: var(--text-muted); 
+      display: flex; 
+      gap: 0.5rem; 
+      align-items: center;
+    }
+
+    /* Sources Preview - Baseado no SourcesPreview.tsx */
+    .sources-section {
+      background: linear-gradient(to bottom, var(--gray-50), white);
+      border: 1px solid var(--border-color);
+      border-radius: 0.75rem;
+      padding: 2.5rem;
+      margin-top: 1rem;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+    
+    .sources-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    
+    .sources-header h2 {
+      font-family: 'Roboto Slab', serif;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--bhub-navy-dark);
+      margin-bottom: 0.5rem;
+    }
+    
+    .sources-header p {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+    
+    .sources-grid { 
+      display: grid; 
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); 
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    
+    .source-item { 
+      background: var(--surface-white); 
+      border: 1px solid var(--border-color); 
+      border-radius: 0.75rem; 
+      padding: 1.5rem; 
+      text-align: center;
+      transition: all 0.3s;
+      cursor: pointer;
+    }
+    
+    .source-item:hover {
+      border-color: var(--bhub-teal-primary);
+      box-shadow: 0 4px 12px rgba(65, 181, 163, 0.15);
+      transform: translateY(-2px);
+    }
+    
+    .source-logo { 
+      width: 48px; 
+      height: 48px; 
+      background: var(--gray-50);
+      border-radius: 0.5rem; 
+      margin: 0 auto 0.75rem auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      transition: all 0.3s;
+    }
+    
+    .source-item:hover .source-logo {
+      background: rgba(65, 181, 163, 0.1);
+      color: var(--bhub-teal-primary);
+    }
+    
+    .source-item strong {
+      font-size: 0.875rem;
+      color: var(--text-main);
+      display: block;
+    }
+    
+    .sources-cta {
+      text-align: center;
+    }
+    
+    .btn-outline {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.625rem 1.5rem;
+      border: 1px solid rgba(65, 181, 163, 0.3);
+      border-radius: 9999px;
+      background: transparent;
+      color: var(--bhub-teal-primary);
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .btn-outline:hover {
+      background: var(--bhub-teal-primary);
+      color: white;
+      border-color: var(--bhub-teal-primary);
+    }
+
+    /* Transparency Notice - Baseado no TransparencyNotice.tsx */
+    .transparency-section {
+      background: rgba(59, 130, 246, 0.05);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      margin-top: 1rem;
+      display: flex;
+      align-items: start;
+      gap: 1rem;
+    }
+    
+    .transparency-icon {
+      flex-shrink: 0;
+      width: 24px;
+      height: 24px;
+      color: #2563eb;
+      margin-top: 0.125rem;
+    }
+    
+    .transparency-text {
+      font-size: 0.875rem;
+      color: var(--text-main);
+      line-height: 1.6;
+    }
+    
+    .transparency-text strong {
+      font-weight: 600;
+    }
+
+    /* Trending Sidebar */
+    .trending-item {
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .trending-item:last-child {
+      border-bottom: none;
+    }
+    
+    .trending-item h4 {
+      font-size: 0.9rem;
+      margin: 0 0 0.25rem 0;
+      color: var(--text-main);
+      font-weight: 500;
+    }
+    
+    .trending-stats {
+      font-size: 0.75rem;
+      color: var(--bhub-teal-primary);
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    /* Newsletter Card */
+    .newsletter-card {
+      background: var(--gray-50);
+      padding: 1.5rem;
+      border-radius: 0.5rem;
+      text-align: center;
+      margin-top: 1.5rem;
+    }
+    
+    .newsletter-card p {
+      font-size: 0.8rem;
+      margin-bottom: 1rem;
+      color: var(--text-muted);
+    }
+    
+    .btn-newsletter {
+      width: 100%;
+      padding: 0.5rem;
+      background: var(--bhub-navy-dark);
+      color: white;
+      border: none;
+      border-radius: 0.25rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .btn-newsletter:hover {
+      background: #152547;
+    }
+
+    /* Footer */
+    .footer { 
+      background: var(--bhub-navy-dark); 
+      color: #94a3b8; 
+      padding: 3rem 2rem; 
+      margin-top: auto; 
+      text-align: center; 
+    }
+    
+    .footer-links { 
+      display: flex; 
+      justify-content: center; 
+      gap: 2rem; 
+      margin-bottom: 1.5rem; 
+    }
+    
+    .footer-links a {
+      color: inherit;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    
+    .footer-links a:hover {
+      color: var(--bhub-teal-primary);
+    }
+    
+    .footer p {
+      font-size: 0.875rem;
+      margin: 0;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .intro-banner {
+        flex-direction: column;
+        text-align: center;
+      }
+      
+      .how-it-works {
+        grid-template-columns: 1fr;
+      }
+      
+      .article-columns {
+        grid-template-columns: 1fr;
+      }
+      
+      .featured-card {
+        flex-direction: column;
+      }
+      
+      .featured-image,
+      .featured-content {
+        width: 100%;
+      }
+      
+      .sources-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
+</head>
+<body class="layout">
+  
+  <header class="header">
+    <div class="brand font-display">BHub</div>
+    <nav class="nav">
+      <a href="#"><svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg> Início</a>
+      <a href="#"><svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg> Artigos</a>
+      <a href="#"><svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" /></svg> Repositório</a>
+      <a href="#"><svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg> Sobre</a>
+    </nav>
+    <div class="header-actions">
+      <button class="icon-btn" aria-label="Pesquisar">
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+      </button>
+      <button class="icon-btn" aria-label="Tema">
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+      </button>
+      <button class="icon-btn" aria-label="Notificações">
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="main-container">
+    <!-- Left Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-title">Filtros</div>
+      <div class="filter-item">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+        Terapia ABA
+      </div>
+      <div class="filter-item">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+        Autismo
+      </div>
+      <div class="filter-item">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+        Educação
+      </div>
+      <div class="filter-item">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+        Análise Funcional
+      </div>
+    </aside>
+
+    <!-- Center Content -->
+    <main class="content-feed">
+      
+      <!-- Intro Banner -->
+      <section class="intro-banner">
+        <div class="intro-content">
+          <h1>Agregador científico em Análise do Comportamento</h1>
+          <p>Centralizamos o conhecimento científico através da curadoria automática de periódicos e portais via RSS, facilitando o acesso à informação de qualidade.</p>
+        </div>
+        <div class="intro-icon">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+          </svg>
+        </div>
+      </section>
+
+      <!-- How It Works -->
+      <section class="how-it-works">
+        <div class="step-card">
+          <div class="step-icon">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </div>
+          <div class="step-title">Coleta automática via RSS</div>
+          <div class="step-desc">Agregamos feeds RSS de diversas fontes científicas automaticamente.</div>
+        </div>
+        <div class="step-card">
+          <div class="step-icon">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+            </svg>
+          </div>
+          <div class="step-title">Organização por temas e fontes</div>
+          <div class="step-desc">Filtros inteligentes para encontrar o que importa.</div>
+        </div>
+        <div class="step-card">
+          <div class="step-icon">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+          </div>
+          <div class="step-title">Links diretos para o conteúdo original</div>
+          <div class="step-desc">Acesso rápido aos PDFs e artigos completos.</div>
+        </div>
+      </section>
+
+      <!-- Featured Article -->
+      <article class="featured-card">
+        <div class="featured-image">🧬</div>
+        <div class="featured-content">
+          <span class="badge badge-teal">Destaque da Semana</span>
+          <h2>Avanços recentes na Análise do Comportamento Aplicada</h2>
+          <p>Uma revisão sistemática das novas metodologias de intervenção precoce e suas aplicações práticas em contextos clínicos e educacionais.</p>
+          <button class="btn-primary">Ler Artigo Completo</button>
+        </div>
+      </article>
+
+      <!-- Articles Columns -->
+      <div class="article-columns">
+        <!-- Journals -->
+        <section>
+          <div class="section-header">
+            <div class="section-icon">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+            </div>
+            <h2 class="section-title">Periódicos</h2>
+          </div>
+          <div class="article-list">
+            <div class="article-item">
+              <h3>Efeito do reforço diferencial em sala de aula</h3>
+              <div class="article-meta">JABA • Há 2 horas</div>
+            </div>
+            <div class="article-item">
+              <h3>Treino de pais via telessaúde</h3>
+              <div class="article-meta">BAP • Há 5 horas</div>
+            </div>
+            <div class="article-item">
+              <h3>Avaliação funcional de comportamentos disruptivos</h3>
+              <div class="article-meta">JABA • Ontem</div>
+            </div>
+            <div class="article-item">
+              <h3>Intervenções baseadas em evidências para TEA</h3>
+              <div class="article-meta">JABA • 2 dias atrás</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Portals -->
+        <section>
+          <div class="section-header">
+            <div class="section-icon">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 5c7.18 0 13 5.82 13 13M6 11a7 7 0 017 7m-6 0a1 1 0 11-2 0 1 1 0 012 0z" />
+              </svg>
+            </div>
+            <h2 class="section-title">Portais & Blogs</h2>
+          </div>
+          <div class="article-list">
+            <div class="article-item">
+              <h3>Conferência Anual da ABPMC cancelada?</h3>
+              <div class="article-meta">Comporte-se • Hoje</div>
+            </div>
+            <div class="article-item">
+              <h3>Entrevista com Dr. Skinner (Arquivo)</h3>
+              <div class="article-meta">Boletim Behaviorista • Ontem</div>
+            </div>
+            <div class="article-item">
+              <h3>Novos rumos para a psicologia baseada em evidências</h3>
+              <div class="article-meta">IBAC • 2 dias atrás</div>
+            </div>
+            <div class="article-item">
+              <h3>Ética na supervisão de analistas do comportamento</h3>
+              <div class="article-meta">Comporte-se • 3 dias atrás</div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Sources Preview -->
+      <section class="sources-section">
+        <div class="sources-header">
+          <h2>Fontes científicas monitoradas</h2>
+          <p>Acompanhamos os principais periódicos e portais da área</p>
+        </div>
+        <div class="sources-grid">
+          <div class="source-item">
+            <div class="source-logo">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+              </svg>
+            </div>
+            <strong>JABA</strong>
+          </div>
+          <div class="source-item">
+            <div class="source-logo">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+              </svg>
+            </div>
+            <strong>BAP</strong>
+          </div>
+          <div class="source-item">
+            <div class="source-logo">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+              </svg>
+            </div>
+            <strong>Comporte-se</strong>
+          </div>
+          <div class="source-item">
+            <div class="source-logo">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+              </svg>
+            </div>
+            <strong>TAC</strong>
+          </div>
+          <div class="source-item">
+            <div class="source-logo">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+              </svg>
+            </div>
+            <strong>IBAC</strong>
+          </div>
+          <div class="source-item">
+            <div class="source-logo">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+              </svg>
+            </div>
+            <strong>Boletim Behaviorista</strong>
+          </div>
+          <div class="source-item">
+            <div class="source-logo">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+              </svg>
+            </div>
+            <strong>JEP</strong>
+          </div>
+          <div class="source-item">
+            <div class="source-logo">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+              </svg>
+            </div>
+            <strong>PAIDÉIA</strong>
+          </div>
+        </div>
+        <div class="sources-cta">
+          <button class="btn-outline">
+            Ver todas as fontes
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+            </svg>
+          </button>
+        </div>
+      </section>
+
+      <!-- Transparency Notice -->
+      <section class="transparency-section">
+        <div class="transparency-icon">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <p class="transparency-text">
+          O BHub atua exclusivamente como <strong>agregador de conteúdo científico</strong>, 
+          respeitando integralmente a autoria, os direitos e os termos das fontes originais.
+        </p>
+      </section>
+
+    </main>
+
+    <!-- Right Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-title">Mais Lidos</div>
+      <div>
+        <div class="trending-item">
+          <h4>Análise funcional prática (IISCA)</h4>
+          <div class="trending-stats">
+            <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M17.657 18.657a8 8 0 01-11.314 0c-.194-.195-.51-.195-.707 0a.5.5 0 000 .707l.707.707.707-.707a.5.5 0 00.707-.707zM12 2a10 10 0 1010 10A10 10 0 0012 2z" />
+            </svg>
+            240 visualizações
+          </div>
+        </div>
+        <div class="trending-item">
+          <h4>Ética na supervisão</h4>
+          <div class="trending-stats">
+            <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M17.657 18.657a8 8 0 01-11.314 0c-.194-.195-.51-.195-.707 0a.5.5 0 000 .707l.707.707.707-.707a.5.5 0 00.707-.707zM12 2a10 10 0 1010 10A10 10 0 0012 2z" />
+            </svg>
+            185 visualizações
+          </div>
+        </div>
+        <div class="trending-item">
+          <h4>Intervenção precoce em TEA</h4>
+          <div class="trending-stats">
+            <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M17.657 18.657a8 8 0 01-11.314 0c-.194-.195-.51-.195-.707 0a.5.5 0 000 .707l.707.707.707-.707a.5.5 0 00.707-.707zM12 2a10 10 0 1010 10A10 10 0 0012 2z" />
+            </svg>
+            152 visualizações
+          </div>
+        </div>
+      </div>
+      
+      <div class="newsletter-card">
+        <div class="sidebar-title" style="margin-top:0; margin-bottom:1rem;">Newsletter</div>
+        <p>Receba o resumo semanal no seu email.</p>
+        <button class="btn-newsletter">Inscrever-se</button>
+      </div>
+    </aside>
+
+  </div>
+
+  <footer class="footer">
+    <div class="footer-links">
+      <a href="#">Termos de Uso</a>
+      <a href="#">Privacidade</a>
+      <a href="#">Contato</a>
+    </div>
+    <p>&copy; 2024 BHub - Scientific Aggregator. Todos os direitos reservados.</p>
+  </footer>
+
+</body>
+</html>

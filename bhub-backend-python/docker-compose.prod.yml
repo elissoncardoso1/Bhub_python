@@ -1,0 +1,113 @@
+# BHUB Backend - Docker Compose Production
+# Configuração otimizada para produção
+
+version: "3.8"
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    container_name: bhub-backend
+    restart: unless-stopped
+    
+    # Network configuration
+    networks:
+      - bhub-network
+    
+    # Ports (apenas interno, Nginx faz proxy)
+    expose:
+      - "8000"
+    
+    # Volumes persistentes
+    volumes:
+      - ./uploads:/app/uploads:rw
+      - ./logs:/app/logs:rw
+      - ./bhub.db:/app/bhub.db:rw
+    
+    # Environment variables
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:///./bhub.db
+      - SECRET_KEY=${SECRET_KEY}
+      - DEBUG=${DEBUG:-false}
+      - ENVIRONMENT=production
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - HUGGINGFACE_API_KEY=${HUGGINGFACE_API_KEY:-}
+      - CRON_SECRET=${CRON_SECRET:-}
+      - ENABLE_SCHEDULER=${ENABLE_SCHEDULER:-true}
+      - SYNC_INTERVAL_HOURS=${SYNC_INTERVAL_HOURS:-1}
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+    
+    # Read-only root filesystem (exceto volumes)
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/tmp
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
+    
+    # Labels
+    labels:
+      - "com.bhub.service=backend"
+      - "com.bhub.environment=production"
+
+  # Optional: Redis for caching (descomente se necessário)
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: bhub-redis
+  #   restart: unless-stopped
+  #   networks:
+  #     - bhub-network
+  #   volumes:
+  #     - redis_data:/data
+  #   command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: '0.5'
+  #         memory: 256M
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "ping"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+
+networks:
+  bhub-network:
+    driver: bridge
+    internal: false
+
+# Volumes (se usar Redis)
+# volumes:
+#   redis_data:
+#     driver: local
+
