@@ -112,13 +112,26 @@ if settings.enable_analytics:
     )
 
 # CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.allowed_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Em desenvolvimento, permitir qualquer origem local (localhost ou IP local)
+if settings.is_development:
+    # Permitir localhost e IPs locais (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
+    # Regex para match de IPs locais e localhost
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origin_regex=r"^http://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2[0-9]|3[0-1])\.\d+\.\d+):\d+$",
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+else:
+    # Em produção, usar apenas origens permitidas explicitamente
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.allowed_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 
 # Exception handlers
