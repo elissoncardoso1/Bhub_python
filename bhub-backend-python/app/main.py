@@ -16,6 +16,7 @@ from slowapi.util import get_remote_address
 from app.api import auth_router, users_router, v1_router
 from app.config import settings
 from app.core.analytics_middleware import AnalyticsMiddleware
+from app.core.auth_cookie_middleware import AuthCookieMiddleware
 from app.core.security_headers import SecurityHeadersMiddleware
 from app.core.logging import log, setup_logging
 from app.database import close_db, init_db
@@ -104,6 +105,13 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 # Security Headers Middleware (deve vir primeiro)
 app.add_middleware(SecurityHeadersMiddleware)
 
+# CSRF Middleware (gera tokens CSRF automaticamente)
+from app.core.csrf_middleware import CSRFMiddleware
+app.add_middleware(CSRFMiddleware, auto_validate=False)  # Validação manual via dependência
+
+# Auth Cookie Middleware (adiciona cookies HttpOnly em login)
+app.add_middleware(AuthCookieMiddleware)
+
 # Analytics Middleware (deve vir antes do CORS)
 if settings.enable_analytics:
     app.add_middleware(
@@ -112,6 +120,21 @@ if settings.enable_analytics:
     )
 
 # CORS
+# Headers permitidos explicitamente (segurança)
+allowed_headers = [
+    "Content-Type",
+    "Authorization",
+    "X-Requested-With",
+    "Accept",
+    "Origin",
+    "X-Session-ID",  # Para analytics
+    "X-Cron-Secret",  # Para cron endpoint
+    "X-CSRF-Token",  # Para proteção CSRF
+]
+
+# Métodos permitidos explicitamente
+allowed_methods = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+
 # Em desenvolvimento, permitir qualquer origem local (localhost ou IP local)
 if settings.is_development:
     # Permitir localhost e IPs locais (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
@@ -120,8 +143,8 @@ if settings.is_development:
         CORSMiddleware,
         allow_origin_regex=r"^http://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2[0-9]|3[0-1])\.\d+\.\d+):\d+$",
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=allowed_methods,
+        allow_headers=allowed_headers,
     )
 else:
     # Em produção, usar apenas origens permitidas explicitamente
@@ -129,8 +152,8 @@ else:
         CORSMiddleware,
         allow_origins=settings.allowed_origins,
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=allowed_methods,
+        allow_headers=allowed_headers,
     )
 
 
@@ -200,6 +223,7 @@ async def health_check():
 
 
 @app.post("/api/v1/cron/sync", tags=["Cron"])
+@limiter.limit("3/hour")  # Rate limiting muito restritivo para prevenir brute force
 async def cron_sync(request: Request):
     """Endpoint para sincronização via cron externo."""
     from app.api.deps import verify_cron_secret

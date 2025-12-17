@@ -124,12 +124,18 @@ class AnalyticsMiddleware(BaseHTTPMiddleware):
 
         # Registrar evento
         async with get_session_context() as db:
+            # Anonimizar IP para compliance LGPD/GDPR
+            from app.core.ip_anonymization import anonymize_ip, should_anonymize_ip
+            
+            raw_ip = request.client.host if request.client else None
+            ip_address = anonymize_ip(raw_ip) if should_anonymize_ip() else raw_ip
+            
             # Obter ou criar sessão
             await AnalyticsService.get_or_create_session(
                 db=db,
                 session_id=session_id,
                 user_agent=request.headers.get("user-agent"),
-                ip_address=request.client.host if request.client else None,
+                ip_address=ip_address,
             )
 
             # Registrar evento
@@ -142,7 +148,7 @@ class AnalyticsMiddleware(BaseHTTPMiddleware):
                 page_path=path,
                 referrer=referrer,
                 user_agent=request.headers.get("user-agent"),
-                ip_address=request.client.host if request.client else None,
+                ip_address=ip_address,
             )
 
             await db.commit()

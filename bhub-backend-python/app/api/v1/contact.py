@@ -6,6 +6,7 @@ from fastapi import APIRouter, Request
 from pydantic import BaseModel, EmailStr, Field
 
 from app.api.deps import DBSession
+from app.core.csrf import CSRFValid
 from app.models import ContactMessage
 from app.schemas import MessageResponse
 
@@ -27,6 +28,7 @@ async def send_contact_message(
     db: DBSession,
     request: Request,
     data: ContactRequest,
+    csrf_valid: CSRFValid = True,  # Validação CSRF
 ):
     """Envia mensagem de contato."""
     
