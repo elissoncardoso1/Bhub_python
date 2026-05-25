@@ -13,7 +13,7 @@ from app.models import Article, Category
 async def test_list_articles_empty(client: AsyncClient):
     """Testa listagem de artigos vazia."""
     response = await client.get("/api/v1/articles")
-    
+
     assert response.status_code == 200
     data = response.json()
     assert data["items"] == []
@@ -34,7 +34,7 @@ async def test_list_articles_with_data(
     )
     db_session.add(category)
     await db_session.flush()
-    
+
     # Criar artigo
     article = Article(
         title="Test Article",
@@ -44,9 +44,9 @@ async def test_list_articles_with_data(
     )
     db_session.add(article)
     await db_session.commit()
-    
+
     response = await client.get("/api/v1/articles")
-    
+
     assert response.status_code == 200
     data = response.json()
     assert data["total"] == 1
@@ -58,7 +58,7 @@ async def test_list_articles_with_data(
 async def test_get_article_not_found(client: AsyncClient):
     """Testa busca de artigo inexistente."""
     response = await client.get("/api/v1/articles/999")
-    
+
     assert response.status_code == 404
 
 
@@ -76,9 +76,9 @@ async def test_get_highlighted_articles(
     )
     db_session.add(article)
     await db_session.commit()
-    
+
     response = await client.get("/api/v1/articles/highlighted")
-    
+
     assert response.status_code == 200
     data = response.json()
     assert len(data) >= 1
@@ -104,9 +104,9 @@ async def test_search_articles(
     )
     db_session.add_all([article1, article2])
     await db_session.commit()
-    
+
     response = await client.get("/api/v1/articles", params={"search": "Behavior"})
-    
+
     assert response.status_code == 200
     # Nota: FTS5 pode não estar disponível em testes, então usamos LIKE fallback
 
@@ -122,15 +122,15 @@ async def test_filter_by_category(
     cat2 = Category(name="Educação", slug="educacao", color="#3B82F6")
     db_session.add_all([cat1, cat2])
     await db_session.flush()
-    
+
     # Criar artigos
     article1 = Article(title="Clinical Study", category_id=cat1.id, is_published=True)
     article2 = Article(title="Education Study", category_id=cat2.id, is_published=True)
     db_session.add_all([article1, article2])
     await db_session.commit()
-    
+
     response = await client.get("/api/v1/articles", params={"category_id": cat1.id})
-    
+
     assert response.status_code == 200
     data = response.json()
     assert data["total"] == 1

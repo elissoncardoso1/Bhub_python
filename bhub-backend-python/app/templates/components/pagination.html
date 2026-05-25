@@ -1,0 +1,160 @@
+{#
+  Pagination Component
+  ====================
+  Uso: {% include 'components/pagination.html' %}
+
+  Variáveis esperadas:
+    - pagination: objeto com current_page, total_pages, has_prev, has_next
+    - base_url: URL base para os links de paginação (default: request.url.path)
+    - query_params: dict com parâmetros de query a preservar (opcional)
+
+  Exemplo:
+    {% set pagination = {
+      'current_page': 3,
+      'total_pages': 10,
+      'has_prev': true,
+      'has_next': true
+    } %}
+#}
+
+{% set current = pagination.current_page | default(1) %}
+{% set total = pagination.total_pages | default(1) %}
+{% set has_prev = pagination.has_prev | default(false) %}
+{% set has_next = pagination.has_next | default(false) %}
+{% set url = base_url | default(request.url.path) %}
+
+{% if total > 1 %}
+<nav aria-label="Paginação" class="flex items-center justify-center mt-8 mb-4">
+    <ul class="flex items-center gap-1 sm:gap-2">
+        {# Previous button #}
+        <li>
+            {% if has_prev %}
+            <a
+                href="{{ url }}?page={{ current - 1 }}"
+                class="flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-primary-600 hover:border-primary-300 transition-all focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2"
+                aria-label="Página anterior"
+                hx-get="{{ url }}?page={{ current - 1 }}"
+                hx-target="#articles-grid"
+                hx-swap="innerHTML"
+                hx-push-url="true"
+            >
+                {{ icon('chevron-left', 'w-5 h-5', aria_hidden=True) | safe }}
+            </a>
+            {% else %}
+            <span
+                class="flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed"
+                aria-disabled="true"
+            >
+                {{ icon('chevron-left', 'w-5 h-5', aria_hidden=True) | safe }}
+                <span class="sr-only">Página anterior (indisponível)</span>
+            </span>
+            {% endif %}
+        </li>
+
+        {# Page numbers #}
+        {% set start_page = [1, current - 2] | max %}
+        {% set end_page = [total, current + 2] | min %}
+
+        {# First page if not in range #}
+        {% if start_page > 1 %}
+        <li>
+            <a
+                href="{{ url }}?page=1"
+                class="flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-primary-600 hover:border-primary-300 transition-all focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 font-medium"
+                aria-label="Ir para página 1"
+                hx-get="{{ url }}?page=1"
+                hx-target="#articles-grid"
+                hx-swap="innerHTML"
+                hx-push-url="true"
+            >
+                1
+            </a>
+        </li>
+        {% if start_page > 2 %}
+        <li aria-hidden="true" class="text-slate-400 px-1">
+            ...
+        </li>
+        {% endif %}
+        {% endif %}
+
+        {# Page range #}
+        {% for page in range(start_page, end_page + 1) %}
+        <li>
+            {% if page == current %}
+            <span
+                class="flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-primary-500 text-white font-semibold shadow-sm"
+                aria-current="page"
+                aria-label="Página {{ page }}, página atual"
+            >
+                {{ page }}
+            </span>
+            {% else %}
+            <a
+                href="{{ url }}?page={{ page }}"
+                class="flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-primary-600 hover:border-primary-300 transition-all focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 font-medium"
+                aria-label="Ir para página {{ page }}"
+                hx-get="{{ url }}?page={{ page }}"
+                hx-target="#articles-grid"
+                hx-swap="innerHTML"
+                hx-push-url="true"
+            >
+                {{ page }}
+            </a>
+            {% endif %}
+        </li>
+        {% endfor %}
+
+        {# Last page if not in range #}
+        {% if end_page < total %}
+        {% if end_page < total - 1 %}
+        <li aria-hidden="true" class="text-slate-400 px-1">
+            ...
+        </li>
+        {% endif %}
+        <li>
+            <a
+                href="{{ url }}?page={{ total }}"
+                class="flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-primary-600 hover:border-primary-300 transition-all focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 font-medium"
+                aria-label="Ir para página {{ total }}"
+                hx-get="{{ url }}?page={{ total }}"
+                hx-target="#articles-grid"
+                hx-swap="innerHTML"
+                hx-push-url="true"
+            >
+                {{ total }}
+            </a>
+        </li>
+        {% endif %}
+
+        {# Next button #}
+        <li>
+            {% if has_next %}
+            <a
+                href="{{ url }}?page={{ current + 1 }}"
+                class="flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-primary-600 hover:border-primary-300 transition-all focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2"
+                aria-label="Próxima página"
+                hx-get="{{ url }}?page={{ current + 1 }}"
+                hx-target="#articles-grid"
+                hx-swap="innerHTML"
+                hx-push-url="true"
+            >
+                {{ icon('chevron-right', 'w-5 h-5', aria_hidden=True) | safe }}
+            </a>
+            {% else %}
+            <span
+                class="flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed"
+                aria-disabled="true"
+            >
+                {{ icon('chevron-right', 'w-5 h-5', aria_hidden=True) | safe }}
+                <span class="sr-only">Próxima página (indisponível)</span>
+            </span>
+            {% endif %}
+        </li>
+    </ul>
+</nav>
+
+{# Page info #}
+<div class="text-center text-sm text-slate-500 mb-8">
+    Página <span class="font-medium text-slate-700">{{ current }}</span> de <span class="font-medium text-slate-700">{{ total }}</span>
+</div>
+{% endif %}

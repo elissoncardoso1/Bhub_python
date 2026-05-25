@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+
+{% block title %}Sobre - BHUB{% endblock %}
+
+{% block meta_description %}Conheça o BHUB - Behavior Hub, plataforma inteligente para agregação e análise de artigos científicos em Análise do Comportamento.{% endblock %}
+
+{% block og_title %}Sobre o BHUB - Behavior Hub{% endblock %}
+
+{% block og_description %}Conheça o BHUB - Behavior Hub, plataforma inteligente para agregação e análise de artigos científicos em Análise do Comportamento.{% endblock %}
+
+{% block twitter_title %}Sobre o BHUB{% endblock %}
+
+{% block twitter_description %}Conheça o BHUB - Behavior Hub, plataforma inteligente para agregação e análise de artigos científicos em Análise do Comportamento.{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="mb-12 sm:mb-16 text-center py-12 sm:py-16 bg-gradient-to-b from-primary-50 to-white rounded-3xl border border-primary-100 relative overflow-hidden">
+    <!-- Decorative elements -->
+    <div class="absolute top-0 left-0 w-64 h-64 bg-primary-100 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
+    <div class="absolute top-0 right-0 w-64 h-64 bg-accent-light rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
+
+    <div class="relative z-10 max-w-4xl mx-auto px-4">
+        <h1 class="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-slate-900 tracking-tight mb-6">
+            Sobre o <span class="text-primary-500 bg-clip-text text-transparent bg-gradient-to-r from-primary-500 to-primary-700">BHUB</span>
+        </h1>
+        <p class="text-lg sm:text-xl text-slate-600 mb-8 max-w-2xl mx-auto leading-relaxed">
+            Plataforma inteligente para agregação e análise de artigos científicos em <br class="hidden sm:block"> Análise do Comportamento.
+        </p>
+    </div>
+</section>
+
+<!-- Mission Section -->
+<section class="max-w-4xl mx-auto px-4 mb-16 sm:mb-24">
+    <div class="text-center mb-12">
+        <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-primary-50 text-primary-600 mb-4">
+            {{ icon('target', 'w-6 h-6', aria_hidden=True) | safe }}
+        </div>
+        <h2 class="text-2xl sm:text-3xl font-bold text-slate-900 mb-4">Nossa Missão</h2>
+        <p class="text-lg text-slate-600 leading-relaxed">
+            O BHUB é uma plataforma inovadora dedicada à agregação e análise de artigos científicos em Análise do Comportamento. Nossa missão é democratizar o acesso à pesquisa científica, tornando o conhecimento mais acessível e organizado para estudantes, pesquisadores e profissionais da área.
+        </p>
+    </div>
+</section>
+
+<!-- What We Do Section -->
+<section class="max-w-6xl mx-auto px-4 mb-16 sm:mb-24">
+    <div class="text-center mb-12">
+        <h2 class="text-2xl sm:text-3xl font-bold text-slate-900 mb-4">O Que Fazemos</h2>
+        <p class="text-slate-600 max-w-2xl mx-auto">
+            Utilizamos tecnologia de ponta para simplificar sua jornada de pesquisa.
+        </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+        <!-- Card 1 -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+            <div class="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-4">
+                {{ icon('rss', 'w-5 h-5', aria_hidden=True) | safe }}
+            </div>
+            <h3 class="font-bold text-slate-900 mb-2">Agregação Inteligente</h3>
+            <p class="text-sm text-slate-600 leading-relaxed">
+                Coleta automática de artigos de fontes RSS e scraping de portais científicos, centralizando tudo em um só lugar.
+            </p>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+            <div class="w-10 h-10 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center mb-4">
+                {{ icon('tag', 'w-5 h-5', aria_hidden=True) | safe }}
+            </div>
+            <h3 class="font-bold text-slate-900 mb-2">Classificação com IA</h3>
+            <p class="text-sm text-slate-600 leading-relaxed">
+                Uso de Machine Learning para categorizar automaticamente os artigos, facilitando a descoberta de temas relevantes.
+            </p>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+            <div class="w-10 h-10 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center mb-4">
+                {{ icon('bar-chart-2', 'w-5 h-5', aria_hidden=True) | safe }}
+            </div>
+            <h3 class="font-bold text-slate-900 mb-2">Avaliação de Impacto</h3>
+            <p class="text-sm text-slate-600 leading-relaxed">
+                Sistema de scoring inteligente para identificar e destacar os artigos mais relevantes e impactantes da área.
+            </p>
+        </div>
+
+        <!-- Card 4 -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+            <div class="w-10 h-10 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center mb-4">
+                {{ icon('search', 'w-5 h-5', aria_hidden=True) | safe }}
+            </div>
+            <h3 class="font-bold text-slate-900 mb-2">Busca Avançada</h3>
+            <p class="text-sm text-slate-600 leading-relaxed">
+                Busca semântica e em texto completo para que você encontre exatamente o conteúdo que precisa em segundos.
+            </p>
+        </div>
+
+        <!-- Card 5 -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+            <div class="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center mb-4">
+                {{ icon('globe', 'w-5 h-5', aria_hidden=True) | safe }}
+            </div>
+            <h3 class="font-bold text-slate-900 mb-2">Tradução Automática</h3>
+            <p class="text-sm text-slate-600 leading-relaxed">
+                Tradução integrada com cache inteligente para quebrar barreiras linguísticas e facilitar o acesso a conteúdos internacionais.
+            </p>
+        </div>
+    </div>
+</section>
+
+<!-- Values Section -->
+<section class="mb-16 sm:mb-24 bg-slate-50 py-16 sm:py-24 -mx-4 sm:mx-0 sm:rounded-3xl">
+    <div class="max-w-4xl mx-auto px-4 text-center mb-12">
+        <h2 class="text-2xl sm:text-3xl font-bold text-slate-900 mb-4">Nossos Valores</h2>
+        <p class="text-slate-600">
+            Princípios que guiam o desenvolvimento do BHUB.
+        </p>
+    </div>
+
+    <div class="max-w-5xl mx-auto px-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="bg-white p-6 rounded-xl border border-slate-100 shadow-sm text-center">
+            <div class="mx-auto w-12 h-12 bg-green-50 text-green-600 rounded-full flex items-center justify-center mb-4">
+                {{ icon('users', 'w-6 h-6', aria_hidden=True) | safe }}
+            </div>
+            <h3 class="font-bold text-slate-900 mb-1">Acessibilidade</h3>
+            <p class="text-xs text-slate-500">Conhecimento para todos</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl border border-slate-100 shadow-sm text-center">
+            <div class="mx-auto w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-4">
+                {{ icon('zap', 'w-6 h-6', aria_hidden=True) | safe }}
+            </div>
+            <h3 class="font-bold text-slate-900 mb-1">Inovação</h3>
+            <p class="text-xs text-slate-500">IA a serviço da ciência</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl border border-slate-100 shadow-sm text-center">
+            <div class="mx-auto w-12 h-12 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center mb-4">
+                {{ icon('check-circle', 'w-6 h-6', aria_hidden=True) | safe }}
+            </div>
+            <h3 class="font-bold text-slate-900 mb-1">Qualidade</h3>
+            <p class="text-xs text-slate-500">Conteúdo verificado</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl border border-slate-100 shadow-sm text-center">
+            <div class="mx-auto w-12 h-12 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mb-4">
+                {{ icon('heart', 'w-6 h-6', aria_hidden=True) | safe }}
+            </div>
+            <h3 class="font-bold text-slate-900 mb-1">Comunidade</h3>
+            <p class="text-xs text-slate-500">Conectando pessoas</p>
+        </div>
+    </div>
+</section>
+
+<!-- Tech Stack Section -->
+<section class="max-w-4xl mx-auto px-4 mb-16 sm:mb-24">
+    <div class="text-center mb-12">
+        <h2 class="text-2xl sm:text-3xl font-bold text-slate-900 mb-4">Tecnologia</h2>
+        <p class="text-slate-600">
+            Construído com as ferramentas mais modernas do mercado.
+        </p>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden divide-y divide-slate-100">
+        <div class="p-4 sm:p-6 flex items-start gap-4">
+            <div class="flex-shrink-0 w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center text-slate-500">
+                {{ icon('server', 'w-5 h-5', aria_hidden=True) | safe }}
+            </div>
+            <div>
+                <h3 class="font-semibold text-slate-900">Backend Robusto</h3>
+                <p class="text-sm text-slate-600 mt-1">FastAPI (Python) com banco de dados SQLite otimizado com FTS5 para performance máxima.</p>
+            </div>
+        </div>
+
+        <div class="p-4 sm:p-6 flex items-start gap-4">
+            <div class="flex-shrink-0 w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center text-slate-500">
+                {{ icon('cpu', 'w-5 h-5', aria_hidden=True) | safe }}
+            </div>
+            <div>
+                <h3 class="font-semibold text-slate-900">Machine Learning</h3>
+                <p class="text-sm text-slate-600 mt-1">Uso de <code>sentence-transformers</code> para classificação semântica precisa dos artigos.</p>
+            </div>
+        </div>
+
+        <div class="p-4 sm:p-6 flex items-start gap-4">
+            <div class="flex-shrink-0 w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center text-slate-500">
+                {{ icon('layout', 'w-5 h-5', aria_hidden=True) | safe }}
+            </div>
+            <div>
+                <h3 class="font-semibold text-slate-900">Frontend Moderno</h3>
+                <p class="text-sm text-slate-600 mt-1">Combinação poderosa de HTMX + Jinja2 para uma experiência interativa, leve e rápida.</p>
+            </div>
+        </div>
+
+        <div class="p-4 sm:p-6 flex items-start gap-4">
+            <div class="flex-shrink-0 w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center text-slate-500">
+                {{ icon('bot', 'w-5 h-5', aria_hidden=True) | safe }}
+            </div>
+            <div>
+                <h3 class="font-semibold text-slate-900">Integração de IA</h3>
+                <p class="text-sm text-slate-600 mt-1">DeepSeek API para tradução contextual e recursos de classificação avançada.</p>
+            </div>
+        </div>
+
+        <div class="p-4 sm:p-6 flex items-start gap-4">
+            <div class="flex-shrink-0 w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center text-slate-500">
+                {{ icon('palette', 'w-5 h-5', aria_hidden=True) | safe }}
+            </div>
+            <div>
+                <h3 class="font-semibold text-slate-900">Design System</h3>
+                <p class="text-sm text-slate-600 mt-1">Tailwind CSS personalizado com a paleta oficial teal/verde-água para uma identidade visual consistente.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Contact CTA -->
+<section class="max-w-4xl mx-auto px-4 mb-16 text-center">
+    <div class="bg-primary-50 rounded-3xl p-8 sm:p-12 border border-primary-100">
+        <h2 class="text-2xl sm:text-3xl font-bold text-slate-900 mb-4">Fale Conosco</h2>
+        <p class="text-slate-600 mb-8 max-w-xl mx-auto">
+            Quer saber mais sobre o BHUB? Tem alguma sugestão ou dúvida?
+            Estamos sempre abertos para ouvir nossa comunidade.
+        </p>
+        <a href="/contact" class="inline-flex items-center justify-center px-8 py-3 text-base font-semibold text-white bg-primary-600 rounded-xl hover:bg-primary-700 active:bg-primary-800 transition-all shadow-sm hover:shadow hover:-translate-y-0.5">
+            {{ icon('mail', 'w-5 h-5 mr-2', aria_hidden=True) | safe }}
+            Enviar Mensagem
+        </a>
+    </div>
+</section>
+
+<style>
+    @keyframes blob {
+        0% { transform: translate(0px, 0px) scale(1); }
+        33% { transform: translate(30px, -50px) scale(1.1); }
+        66% { transform: translate(-20px, 20px) scale(0.9); }
+        100% { transform: translate(0px, 0px) scale(1); }
+    }
+    .animate-blob {
+        animation: blob 7s infinite;
+    }
+    .animation-delay-2000 {
+        animation-delay: 2s;
+    }
+</style>
+{% endblock %}

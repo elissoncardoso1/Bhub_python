@@ -1,13 +1,15 @@
-# BHUB Backend - Python Requirements
+                               # BHUB Backend - Python Requirements
 # Framework Web
 fastapi>=0.115.0
 uvicorn[standard]>=0.32.0
 python-multipart>=0.0.12
 starlette>=0.41.0
+jinja2>=3.1.4
 
 # Database
 sqlalchemy[asyncio]>=2.0.36
 aiosqlite>=0.20.0
+asyncpg>=0.30.0
 alembic>=1.14.0
 greenlet>=3.1.0
 
@@ -44,11 +46,20 @@ torch>=2.5.0
 numpy>=2.1.0
 scikit-learn>=1.5.0
 
+# Local LLM (llama.cpp)
+llama-cpp-python>=0.2.0
+huggingface-hub>=0.20.0
+
 # Jobs/Scheduling
 apscheduler>=3.10.4
+arq>=0.26.1
+redis[hiredis]>=5.0
 
 # Logging
 loguru>=0.7.2
+opentelemetry-api>=1.28.0
+opentelemetry-sdk>=1.28.0
+opentelemetry-exporter-otlp-proto-grpc>=1.28.0
 
 # Image Processing
 pillow>=11.0.0
@@ -63,3 +74,8 @@ slowapi>=0.1.9
 
 # Timezone
 pytz>=2024.2
+
+# Testing (mínimo para executar testes básicos)
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
+pytest-cov>=4.1.0

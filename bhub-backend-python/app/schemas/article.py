@@ -4,7 +4,7 @@ Schemas de artigo.
 
 from datetime import datetime
 
-from pydantic import Field, HttpUrl, computed_field
+from pydantic import Field, computed_field
 
 from app.models.article import SourceType
 from app.schemas.category import CategoryResponse
@@ -62,6 +62,7 @@ class ArticleUpdate(BaseSchema):
     highlighted: bool | None = None
     impact_score: float | None = Field(default=None, ge=1, le=10)
     is_published: bool | None = None
+    is_open_access: bool | None = None
 
 
 class ArticleResponse(ArticleBase, TimestampSchema):
@@ -77,6 +78,7 @@ class ArticleResponse(ArticleBase, TimestampSchema):
     classification_confidence: float | None = None
     highlighted: bool
     is_published: bool
+    is_open_access: bool
     source_type: SourceType
     feed_id: int | None = None
     feed_name: str | None = None
@@ -85,7 +87,6 @@ class ArticleResponse(ArticleBase, TimestampSchema):
     view_count: int
     download_count: int
     authors: list[AuthorResponse] = []
-    has_pdf: bool = False
     has_pdf: bool = False
 
     @computed_field
@@ -112,6 +113,7 @@ class ArticleSearchParams(BaseSchema):
     feed_id: int | None = None
     highlighted: bool | None = None
     has_pdf: bool | None = None
+    is_open_access: bool | None = None
     date_from: datetime | None = None
     date_to: datetime | None = None
     sort_by: str = Field(default="publication_date", pattern=r"^(publication_date|title|impact_score|view_count|created_at)$")

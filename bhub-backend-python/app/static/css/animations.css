@@ -1,0 +1,746 @@
+/**
+ * BHUB - Sistema de Animações e Micro-interações
+ * ===============================================
+ * Animações CSS reutilizáveis para melhorar a experiência do usuário
+ *
+ * Princípios:
+ * - Animações suaves e não intrusivas
+ * - Respeito a prefers-reduced-motion
+ * - Performance (60fps)
+ * - Feedback claro em ações
+ */
+
+/* ==========================================
+   Configuração Base
+   ========================================== */
+
+:root {
+  /* Durações padrão */
+  --duration-instant: 50ms;
+  --duration-fast: 150ms;
+  --duration-normal: 300ms;
+  --duration-slow: 500ms;
+  --duration-slower: 700ms;
+
+  /* Duração de toast - pode ser sobrescrita pelo JS via inline style */
+  --toast-duration: 5000ms;
+
+  /* Easings */
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* ==========================================
+   Animações de Entrada (Animate In)
+   ========================================== */
+
+/* Fade In */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn var(--duration-normal) var(--ease-out) forwards;
+}
+
+/* Fade In Up */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp var(--duration-normal) var(--ease-out) forwards;
+}
+
+/* Fade In Down */
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-down {
+  animation: fadeInDown var(--duration-normal) var(--ease-out) forwards;
+}
+
+/* Fade In Scale */
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-in-scale {
+  animation: fadeInScale var(--duration-normal) var(--ease-out) forwards;
+}
+
+/* Slide In Right */
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(2rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-right {
+  animation: slideInRight var(--duration-normal) var(--ease-out) forwards;
+}
+
+/* Slide In Left */
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-2rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft var(--duration-normal) var(--ease-out) forwards;
+}
+
+/* ==========================================
+   Animações de Saída (Animate Out)
+   ========================================== */
+
+/* Fade Out */
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.animate-fade-out {
+  animation: fadeOut var(--duration-fast) var(--ease-in) forwards;
+}
+
+/* Fade Out Up */
+@keyframes fadeOutUp {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-1rem);
+  }
+}
+
+.animate-fade-out-up {
+  animation: fadeOutUp var(--duration-fast) var(--ease-in) forwards;
+}
+
+/* Fade Out Down */
+@keyframes fadeOutDown {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+}
+
+.animate-fade-out-down {
+  animation: fadeOutDown var(--duration-fast) var(--ease-in) forwards;
+}
+
+/* ==========================================
+   Animações de Loading
+   ========================================== */
+
+/* Spinner */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Pulse */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s var(--ease-in-out) infinite;
+}
+
+/* Skeleton shimmer */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--color-primary-100, #b3e8e2) 25%,
+    var(--color-primary-50, #e6f7f5) 50%,
+    var(--color-primary-100, #b3e8e2) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Bounce */
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(-25%);
+    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+  }
+  50% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  }
+}
+
+.animate-bounce {
+  animation: bounce 1s infinite;
+}
+
+/* Dots loading */
+@keyframes dotsLoading {
+  0%, 80%, 100% {
+    transform: scale(0);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.loading-dots span {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background-color: currentColor;
+  margin: 0 0.125rem;
+  animation: dotsLoading 1.4s ease-in-out infinite;
+}
+
+.loading-dots span:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.loading-dots span:nth-child(2) {
+  animation-delay: 0.16s;
+}
+
+.loading-dots span:nth-child(3) {
+  animation-delay: 0.32s;
+}
+
+/* ==========================================
+   Animações de Feedback
+   ========================================== */
+
+/* Success checkmark */
+@keyframes checkmark {
+  0% {
+    stroke-dashoffset: 50;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animate-checkmark {
+  stroke-dasharray: 50;
+  stroke-dashoffset: 50;
+  animation: checkmark var(--duration-slow) var(--ease-out) forwards;
+}
+
+/* Shake (error) */
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-0.25rem);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(0.25rem);
+  }
+}
+
+.animate-shake {
+  animation: shake 0.5s var(--ease-in-out);
+}
+
+/* Pop (success) */
+@keyframes pop {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-pop {
+  animation: pop var(--duration-fast) var(--ease-spring);
+}
+
+/* Attention pulse */
+@keyframes attentionPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(var(--color-primary-400-rgb, 63, 181, 163), 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(var(--color-primary-400-rgb, 63, 181, 163), 0);
+  }
+}
+
+.animate-attention {
+  animation: attentionPulse 2s infinite;
+}
+
+/* ==========================================
+   Transições de Hover
+   ========================================== */
+
+/* Card hover lift */
+.hover-lift {
+  transition: transform var(--duration-fast) var(--ease-out),
+              box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.hover-lift:hover {
+  transform: translateY(-0.25rem);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1),
+              0 8px 10px -6px rgba(0, 0, 0, 0.1);
+}
+
+/* Button press effect */
+.press-effect {
+  transition: transform var(--duration-instant) var(--ease-out);
+}
+
+.press-effect:active {
+  transform: scale(0.98);
+}
+
+/* Link underline animation */
+.link-underline {
+  position: relative;
+  text-decoration: none;
+}
+
+.link-underline::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background-color: currentColor;
+  transition: width var(--duration-fast) var(--ease-out);
+}
+
+.link-underline:hover::after {
+  width: 100%;
+}
+
+/* Icon spin on hover */
+.hover-spin:hover svg,
+.hover-spin:hover i {
+  animation: spin 0.5s var(--ease-in-out);
+}
+
+/* Grow on hover */
+.hover-grow {
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.hover-grow:hover {
+  transform: scale(1.05);
+}
+
+/* ==========================================
+   Animações de Modal
+   ========================================== */
+
+/* Modal overlay */
+@keyframes modalOverlayIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modalOverlayOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.modal-overlay-enter {
+  animation: modalOverlayIn var(--duration-fast) var(--ease-out) forwards;
+}
+
+.modal-overlay-exit {
+  animation: modalOverlayOut var(--duration-fast) var(--ease-in) forwards;
+}
+
+/* Modal content */
+@keyframes modalContentIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-1rem);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes modalContentOut {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95) translateY(1rem);
+  }
+}
+
+.modal-content-enter {
+  animation: modalContentIn var(--duration-normal) var(--ease-spring) forwards;
+}
+
+.modal-content-exit {
+  animation: modalContentOut var(--duration-fast) var(--ease-in) forwards;
+}
+
+/* ==========================================
+   Animações de Toast
+   ========================================== */
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes toastOut {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+.toast-enter {
+  animation: toastIn var(--duration-normal) var(--ease-spring) forwards;
+}
+
+.toast-exit {
+  animation: toastOut var(--duration-fast) var(--ease-in) forwards;
+}
+
+/* Progress bar for toast auto-dismiss */
+@keyframes toastProgress {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+.toast-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: var(--color-primary-400);
+  animation: toastProgress var(--toast-duration, 5000ms) linear forwards;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+}
+
+/* ==========================================
+   Animações de Página (HTMX)
+   ========================================== */
+
+/* Page transition in */
+.htmx-settling .page-content,
+.htmx-added .page-content {
+  animation: fadeInUp var(--duration-normal) var(--ease-out) forwards;
+}
+
+/* Swap animation */
+.htmx-swapping > * {
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+/* ==========================================
+   Stagger Animations (Cards Grid)
+   ========================================== */
+
+.stagger-children > * {
+  animation: fadeInUp var(--duration-normal) var(--ease-out) forwards;
+  opacity: 0;
+}
+
+.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-children > *:nth-child(2) { animation-delay: 50ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 100ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 150ms; }
+.stagger-children > *:nth-child(5) { animation-delay: 200ms; }
+.stagger-children > *:nth-child(6) { animation-delay: 250ms; }
+.stagger-children > *:nth-child(7) { animation-delay: 300ms; }
+.stagger-children > *:nth-child(8) { animation-delay: 350ms; }
+.stagger-children > *:nth-child(9) { animation-delay: 400ms; }
+.stagger-children > *:nth-child(10) { animation-delay: 450ms; }
+
+/* ==========================================
+   Scroll Animations (Intersection Observer)
+   ========================================== */
+
+.animate-on-scroll {
+  opacity: 0;
+  transform: translateY(1rem);
+  transition: opacity var(--duration-normal) var(--ease-out),
+              transform var(--duration-normal) var(--ease-out);
+}
+
+.animate-on-scroll.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ==========================================
+   Focus Animations
+   ========================================== */
+
+.focus-ring-animate:focus {
+  animation: focusRing var(--duration-fast) var(--ease-out);
+}
+
+@keyframes focusRing {
+  0% {
+    box-shadow: 0 0 0 0 var(--color-primary-400);
+  }
+  100% {
+    box-shadow: 0 0 0 4px var(--color-primary-400);
+  }
+}
+
+/* ==========================================
+   Skeleton Loaders
+   ========================================== */
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    #f0f0f0 25%,
+    #e0e0e0 50%,
+    #f0f0f0 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 0.25rem;
+}
+
+.skeleton-text {
+  height: 1em;
+  margin-bottom: 0.5em;
+}
+
+.skeleton-text.short {
+  width: 60%;
+}
+
+.skeleton-title {
+  height: 1.5em;
+  width: 80%;
+  margin-bottom: 0.75em;
+}
+
+.skeleton-avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+}
+
+.skeleton-image {
+  width: 100%;
+  height: 200px;
+  border-radius: 0.5rem;
+}
+
+.skeleton-button {
+  width: 120px;
+  height: 40px;
+  border-radius: 0.5rem;
+}
+
+/* ==========================================
+   Reduced Motion - FONTE DA VERDADE
+   ========================================== */
+/* Esta é a regra global consolidada para prefers-reduced-motion
+ * Outros arquivos podem ter regras específicas que complementam esta
+ */
+
+@media (prefers-reduced-motion: reduce) {
+  /* Regra global para todos os elementos */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  /* Scroll suave desabilitado */
+  html {
+    scroll-behavior: auto !important;
+  }
+
+  /* Animações específicas desabilitadas */
+  .animate-fade-in,
+  .animate-fade-in-up,
+  .animate-fade-in-down,
+  .animate-fade-in-scale,
+  .animate-slide-in-right,
+  .animate-slide-in-left,
+  .stagger-children > * {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .animate-on-scroll {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .hover-lift:hover {
+    transform: none !important;
+  }
+
+  .animate-spin {
+    animation: none !important;
+  }
+
+  .animate-pulse {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+
+  /* Animações de modal e toast */
+  .modal-overlay-enter,
+  .modal-overlay-exit,
+  .modal-content-enter,
+  .modal-content-exit,
+  .toast-enter,
+  .toast-exit {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  /* Progress bar do toast - desabilitar animação mas manter funcionalidade */
+  .toast-progress {
+    animation: none !important;
+    width: 100%; /* Mantém barra visível mas não anima */
+  }
+}
+
+/* ==========================================
+   Utility Classes
+   ========================================== */
+
+/* Animation delays */
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-500 { animation-delay: 500ms; }
+.delay-700 { animation-delay: 700ms; }
+.delay-1000 { animation-delay: 1000ms; }
+
+/* Animation durations */
+.duration-fast { animation-duration: var(--duration-fast) !important; }
+.duration-normal { animation-duration: var(--duration-normal) !important; }
+.duration-slow { animation-duration: var(--duration-slow) !important; }
+
+/* Fill modes */
+.fill-forwards { animation-fill-mode: forwards; }
+.fill-backwards { animation-fill-mode: backwards; }
+.fill-both { animation-fill-mode: both; }
+
+/* Play states */
+.animate-pause { animation-play-state: paused; }
+.animate-play { animation-play-state: running; }

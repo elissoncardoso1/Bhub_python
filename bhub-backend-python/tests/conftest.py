@@ -3,8 +3,7 @@ Configuração de testes com pytest.
 """
 
 import asyncio
-from collections.abc import AsyncGenerator
-from typing import Generator
+from collections.abc import AsyncGenerator, Generator
 
 import pytest
 import pytest_asyncio
@@ -15,7 +14,6 @@ from sqlalchemy.pool import StaticPool
 
 from app.database import Base, close_db, get_async_session
 from app.main import app
-
 
 # Engine de teste (in-memory)
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
@@ -53,10 +51,10 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
     """Fornece sessão de banco de dados para testes."""
     async with engine_test.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    
+
     async with async_session_test() as session:
         yield session
-    
+
     async with engine_test.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
 
@@ -64,37 +62,44 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
 @pytest_asyncio.fixture(scope="function")
 async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     """Fornece cliente HTTP para testes."""
-    
+
     async def override_get_session():
         yield db_session
-    
+
     app.dependency_overrides[get_async_session] = override_get_session
-    
+
     async with AsyncClient(
         transport=ASGITransport(app=app),
         base_url="http://test",
     ) as client:
         yield client
-    
+
     app.dependency_overrides.clear()
 
 
 @pytest_asyncio.fixture
 async def create_test_user(db_session: AsyncSession):
     """Helper para criar usuário de teste."""
-    from app.models import User, UserRole
-    from passlib.hash import bcrypt
     import uuid
-    
+
+    from fastapi_users.password import PasswordHelper
+
+    from app.models import User, UserRole
+
+    password_helper = PasswordHelper()
+
     async def _create_user(
         email: str = "test@test.com",
         password: str = "testpass123",
         role: UserRole = UserRole.USER,
     ) -> User:
+        # Usar password_helper do fastapi-users para fazer hash
+        hashed_password = password_helper.hash(password)
+
         user = User(
             id=uuid.uuid4(),
             email=email,
-            hashed_password=bcrypt.hash(password),
+            hashed_password=hashed_password,
             role=role,
             is_active=True,
             is_verified=True,
@@ -103,7 +108,7 @@ async def create_test_user(db_session: AsyncSession):
         await db_session.commit()
         await db_session.refresh(user)
         return user
-    
+
     return _create_user
 
 

@@ -2,7 +2,7 @@
 Router principal da API v1.
 """
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from app.api.v1.admin import router as admin_router
 from app.api.v1.ai import router as ai_router
@@ -16,8 +16,12 @@ from app.api.v1.csrf import router as csrf_router
 from app.api.v1.feeds import router as feeds_router
 from app.api.v1.opengraph import router as opengraph_router
 from app.api.v1.search import router as search_router
+from app.core.csrf import validate_csrf_if_present
 
-router = APIRouter(prefix="/api/v1")
+router = APIRouter(
+    prefix="/api/v1",
+    dependencies=[Depends(validate_csrf_if_present)],
+)
 
 # Rotas públicas
 router.include_router(articles_router)

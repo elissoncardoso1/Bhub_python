@@ -1,0 +1,400 @@
+<div class="article-detail-container"
+     itemscope
+     itemtype="https://schema.org/ScholarlyArticle">
+    <!-- Tipo do Artigo (Badge único) -->
+    <div class="article-type-badge">
+        {{ icon('book-open', 'w-4 h-4', aria_hidden=True) | safe }}
+        <span itemprop="articleSection">{{ article.category.name if article.category else 'Geral' }}</span>
+    </div>
+
+    <!-- Título do Artigo -->
+    <h1 class="article-detail-title" itemprop="headline">
+        {{ article.title_translated or article.title }}
+    </h1>
+
+    <!-- Autor(es) - Formato curto com expansão -->
+    <div class="article-authors" itemprop="author" itemscope itemtype="https://schema.org/Person">
+        <div class="authors-short">
+            {{ icon('users', 'w-5 h-5', aria_hidden=True) | safe }}
+            <span itemprop="name">
+                {% if article.authors %}
+                    {% set first_author = article.authors[0] %}
+                    <span>{{ first_author.name }}</span>
+                    {% if article.authors|length > 1 %}
+                        <span class="metadata-et-al">et al.</span>
+                    {% endif %}
+                {% else %}
+                    <span>Autores desconhecidos</span>
+                {% endif %}
+            </span>
+            {% if article.authors and article.authors|length > 1 %}
+            <button
+                type="button"
+                class="authors-expand-btn"
+                aria-expanded="false"
+                aria-controls="authors-full-list"
+                onclick="toggleAuthorsList()">
+                ver todos os autores
+            </button>
+            {% endif %}
+        </div>
+        {% if article.authors and article.authors|length > 1 %}
+        <div id="authors-full-list" class="authors-full" hidden>
+            {% for author in article.authors %}
+            <span itemprop="author" itemscope itemtype="https://schema.org/Person">
+                <span itemprop="name">{{ author.name }}</span>{% if not loop.last %}, {% endif %}
+            </span>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Metadata Bar (Consolidada) -->
+    <div class="article-metadata-bar" role="list" aria-label="Metadados do artigo">
+        <!-- Data -->
+        {% if article.publication_date %}
+        <div class="metadata-item" role="listitem">
+            {{ icon('calendar', 'w-4 h-4', aria_hidden=True) | safe }}
+            <time datetime="{{ article.publication_date.isoformat() }}" itemprop="datePublished">
+                <span class="metadata-item-label sr-only">Data:</span>
+                <span class="metadata-item-value">{{ article.publication_date | date_fmt_br('full') }}</span>
+            </time>
+        </div>
+        {% endif %}
+
+        <!-- Periódico -->
+        <div class="metadata-item" role="listitem">
+            {{ icon('book', 'w-4 h-4', aria_hidden=True) | safe }}
+            <span class="metadata-item-label sr-only">Periódico:</span>
+            <span class="metadata-item-value" itemprop="publisher" itemscope itemtype="https://schema.org/Organization">
+                <span itemprop="name">{{ article.journal_name or article.feed.name or 'N/A' }}</span>
+            </span>
+        </div>
+
+        <!-- Idioma -->
+        <div class="metadata-item" role="listitem">
+            {{ icon('globe', 'w-4 h-4', aria_hidden=True) | safe }}
+            <span class="metadata-item-label sr-only">Idioma:</span>
+            <span class="metadata-item-value" itemprop="inLanguage">{{ article.language|upper }}</span>
+        </div>
+
+        <!-- Impacto -->
+        <div class="metadata-item" role="listitem">
+            {{ icon('trending-up', 'w-4 h-4', aria_hidden=True) | safe }}
+            <span class="metadata-item-label sr-only">Impacto:</span>
+            <span class="metadata-item-value metadata-impact {% if article.impact_score > 7 %}high{% elif article.impact_score > 4 %}medium{% else %}low{% endif %}">
+                {{ "%.1f"|format(article.impact_score) }}
+            </span>
+        </div>
+
+        <!-- DOI -->
+        {% if article.doi %}
+        <div class="metadata-item" role="listitem">
+            {{ icon('link', 'w-4 h-4', aria_hidden=True) | safe }}
+            <span class="metadata-item-label sr-only">DOI:</span>
+            <span class="metadata-item-value">
+                <a href="https://doi.org/{{ article.doi }}"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   itemprop="identifier"
+                   itemscope
+                   itemtype="https://schema.org/PropertyValue">
+                    <span itemprop="propertyID">DOI</span>
+                    <span itemprop="value">{{ article.doi }}</span>
+                </a>
+            </span>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Action Bar (Ações principais) -->
+    <div class="article-action-bar" role="group" aria-label="Ações do artigo">
+        {% if article.link %}
+        <a href="{{ article.link }}"
+           target="_blank"
+           rel="noopener noreferrer"
+           itemprop="url"
+           class="action-primary">
+            {{ icon('external-link', 'w-4 h-4', aria_hidden=True) | safe }}
+            <span>Ler artigo original</span>
+        </a>
+        {% endif %}
+
+        <button
+            type="button"
+            class="action-secondary"
+            onclick="toggleSaveArticle({{ article.id }})">
+            {{ icon('bookmark', 'w-4 h-4', aria_hidden=True) | safe }}
+            <span>Salvar</span>
+        </button>
+
+        {% if article.doi %}
+        <button
+            type="button"
+            class="action-secondary"
+            onclick="copyDOI('{{ article.doi }}')">
+            {{ icon('copy', 'w-4 h-4', aria_hidden=True) | safe }}
+            <span>Copiar DOI</span>
+        </button>
+        {% endif %}
+
+        <button
+            type="button"
+            class="action-secondary"
+            onclick="shareArticle()">
+            {{ icon('share-2', 'w-4 h-4', aria_hidden=True) | safe }}
+            <span>Compartilhar</span>
+        </button>
+
+        {% if article.pdf_file_path %}
+        <a href="/download/{{ article.id }}"
+           target="_blank"
+           rel="noopener noreferrer"
+           download
+           class="action-secondary">
+            {{ icon('download', 'w-4 h-4', aria_hidden=True) | safe }}
+            <span>Download PDF</span>
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- Bloco de Citação -->
+    <div class="article-citation">
+        <div class="citation-header">
+            <div class="citation-title">
+                {{ icon('quote', 'w-4 h-4', aria_hidden=True) | safe }}
+                <span>Citação</span>
+            </div>
+            <button
+                type="button"
+                class="citation-copy-btn"
+                onclick="copyCitation()"
+                id="citation-copy-btn">
+                {{ icon('copy', 'w-3 h-3', aria_hidden=True) | safe }}
+                <span>Copiar</span>
+            </button>
+        </div>
+        <div class="citation-text" id="citation-text">
+            {% if article.authors %}
+                {% set first_author = article.authors[0] %}
+                {{ first_author.name }}{% if article.authors|length > 1 %} et al.{% endif %}.
+            {% else %}
+                Autores desconhecidos.
+            {% endif %}
+            ({{ article.publication_date.year if article.publication_date else 's.d.' }}).
+            {{ article.title_translated or article.title }}.
+            <em>{{ article.journal_name or article.feed.name or 'N/A' }}</em>{% if article.doi %}. https://doi.org/{{ article.doi }}{% endif %}.
+        </div>
+    </div>
+
+    <!-- Container do Abstract/Resumo -->
+    <div class="article-abstract">
+        <!-- Abstract Content (Original or Translated) -->
+        <div id="abstract-content"
+             class="abstract-content"
+             itemprop="abstract">
+            {{ article.abstract_translated or article.abstract or 'Resumo não disponível.' }}
+        </div>
+
+        <!-- Translate Button (Below Abstract) -->
+        {% if article.abstract and (not article.abstract_translated or article.abstract != article.abstract_translated) %}
+        <div class="mt-4 sm:mt-6 pt-4 border-t border-primary-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+            <button
+                id="translate-btn"
+                type="button"
+                aria-label="Traduzir resumo para português"
+                class="action-secondary"
+                hx-post="/translate"
+                hx-ext="json-enc"
+                hx-vals="{{ {'text': article.abstract or '', 'source_lang': 'en', 'target_lang': 'pt', 'element_id': 'abstract-content', 'article_id': article.id} | tojson }}"
+                hx-target="#abstract-content"
+                hx-swap="innerHTML"
+                hx-disabled-elt="this"
+            >
+                <span class="translate-icon">{{ icon('languages', 'w-4 h-4', aria_hidden=True) | safe }}</span>
+                <span class="translate-label">Traduzir para Português</span>
+            </button>
+
+            <span class="text-xs text-primary-500 flex items-center gap-1">
+                {{ icon('info', 'w-3 h-3', aria_hidden=True) | safe }}
+                <span>Idioma original: {{ article.language | upper }}</span>
+            </span>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Keywords -->
+    {% if article.keywords %}
+    <div class="article-keywords">
+        <h4 class="keywords-title">
+            {{ icon('tag', 'w-4 h-4', aria_hidden=True) | safe }}
+            <span>Palavras-chave</span>
+        </h4>
+        <div class="keywords-list" itemprop="keywords">
+             {% for keyword in article.keywords.split(',') %}
+             <span class="keyword-tag">
+                 {{ keyword.strip() }}
+             </span>
+             {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Original Title Info -->
+    {% if article.title_translated and article.title != article.title_translated %}
+    <div class="mt-8 sm:mt-12 pt-4 sm:pt-6 border-t border-dashed border-primary-300 text-xs sm:text-sm text-primary-500">
+        <span class="font-medium">Título Original:</span>
+        <span class="italic">"{{ article.title }}"</span>
+    </div>
+    {% endif %}
+
+    <!-- Structured Data JSON-LD -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "ScholarlyArticle",
+      "headline": {{ (article.title_translated or article.title) | tojson }},
+      "description": {{ (article.abstract_translated or article.abstract or '') | tojson }},
+      "datePublished": {{ (article.publication_date.isoformat() if article.publication_date else '') | tojson }},
+      "author": {
+        "@type": "Person",
+        "name": {{ (article.authors|map(attribute='name')|join(', ') if article.authors else 'Autores desconhecidos') | tojson }}
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": {{ (article.journal_name or article.feed.name or 'BHUB') | tojson }}
+      }{% if article.doi %},
+      "identifier": {
+        "@type": "PropertyValue",
+        "propertyID": "DOI",
+        "value": {{ article.doi | tojson }}
+      }{% endif %}{% if article.link %},
+      "url": {{ article.link | tojson }}{% endif %}
+    }
+    </script>
+</div>
+
+<!-- JavaScript para interações -->
+<script>
+    // Expandir/colapsar lista de autores
+    function toggleAuthorsList() {
+        const fullList = document.getElementById('authors-full-list');
+        const button = document.querySelector('.authors-expand-btn');
+
+        if (!fullList || !button) return;
+
+        const isExpanded = !fullList.hidden;
+        fullList.hidden = isExpanded;
+        button.setAttribute('aria-expanded', !isExpanded);
+        button.textContent = isExpanded ? 'ver todos os autores' : 'ocultar autores';
+    }
+
+    // Copiar DOI
+    function copyDOI(doi) {
+        if (!doi) return;
+
+        const doiUrl = `https://doi.org/${doi}`;
+        navigator.clipboard.writeText(doiUrl).then(() => {
+            // Feedback visual pode ser adicionado aqui
+            console.log('DOI copiado:', doiUrl);
+        }).catch(err => {
+            console.error('Erro ao copiar DOI:', err);
+        });
+    }
+
+    // Copiar citação
+    function copyCitation() {
+        const citationText = document.getElementById('citation-text');
+        const copyBtn = document.getElementById('citation-copy-btn');
+
+        if (!citationText || !copyBtn) return;
+
+        const text = citationText.textContent.trim();
+        navigator.clipboard.writeText(text).then(() => {
+            // Feedback visual
+            copyBtn.classList.add('copied');
+            const originalText = copyBtn.querySelector('span').textContent;
+            copyBtn.querySelector('span').textContent = 'Copiado!';
+
+            setTimeout(() => {
+                copyBtn.classList.remove('copied');
+                copyBtn.querySelector('span').textContent = originalText;
+            }, 2000);
+        }).catch(err => {
+            console.error('Erro ao copiar citação:', err);
+        });
+    }
+
+    // Compartilhar artigo (Web Share API ou fallback)
+    function shareArticle() {
+        const title = document.querySelector('.article-detail-title')?.textContent || '';
+        const url = window.location.href;
+
+        if (navigator.share) {
+            navigator.share({
+                title: title,
+                url: url
+            }).catch(err => {
+                console.log('Erro ao compartilhar:', err);
+            });
+        } else {
+            // Fallback: copiar URL
+            navigator.clipboard.writeText(url).then(() => {
+                console.log('URL copiada:', url);
+            }).catch(err => {
+                console.error('Erro ao copiar URL:', err);
+            });
+        }
+    }
+
+    // Salvar artigo (função existente ou placeholder)
+    function toggleSaveArticle(articleId) {
+        // Implementar lógica de salvar artigo
+        if (typeof globalThis !== 'undefined') {
+            globalThis.console?.log('Salvar artigo:', articleId);
+        }
+    }
+
+    // Button loading state via HTMX
+    document.addEventListener('DOMContentLoaded', function() {
+        const translateBtn = document.getElementById('translate-btn');
+        if (translateBtn) {
+            translateBtn.addEventListener('htmx:before-request', function() {
+                this.querySelector('.translate-icon').style.display = 'none';
+                this.querySelector('.translate-label').textContent = 'Traduzindo...';
+            });
+        }
+    });
+</script>
+
+<style>
+    /* Button loading state via HTMX */
+    #translate-btn.htmx-request .translate-icon {
+        display: none;
+    }
+    #translate-btn.htmx-request .translate-label {
+        display: none;
+    }
+    #translate-btn.htmx-request::before {
+        content: '';
+        width: 16px;
+        height: 16px;
+        border: 2px solid var(--color-primary-400);
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin-right: 8px;
+    }
+    #translate-btn.htmx-request::after {
+        content: 'Traduzindo...';
+    }
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        @keyframes spin {
+            to { transform: rotate(0deg); }
+        }
+    }
+</style>

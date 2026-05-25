@@ -4,7 +4,7 @@ Schemas de feed.
 
 from datetime import datetime
 
-from pydantic import Field, HttpUrl
+from pydantic import Field
 
 from app.models.feed import FeedType, SyncFrequency
 from app.schemas.common import BaseSchema, TimestampSchema

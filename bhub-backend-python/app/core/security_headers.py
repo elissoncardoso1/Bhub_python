@@ -3,7 +3,7 @@ Middleware para adicionar security headers HTTP.
 Protege a aplicação contra vários tipos de ataques.
 """
 
-from typing import Callable
+from collections.abc import Callable
 
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -15,7 +15,7 @@ from app.config import settings
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """
     Middleware que adiciona security headers HTTP à resposta.
-    
+
     Headers incluídos:
     - Strict-Transport-Security (HSTS)
     - X-Frame-Options
@@ -106,4 +106,3 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             del response.headers["X-Powered-By"]
 
         return response
-

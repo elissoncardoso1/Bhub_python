@@ -22,13 +22,13 @@ async def list_authors(
     Lista autores, ordenados por quantidade de artigos.
     """
     stmt = select(Author).order_by(desc(Author.article_count))
-    
+
     if search:
         stmt = stmt.where(Author.name.ilike(f"%{search}%"))
-        
+
     stmt = stmt.limit(limit)
-    
+
     result = await db.execute(stmt)
     authors = result.scalars().all()
-    
+
     return [AuthorWithStats.model_validate(a) for a in authors]

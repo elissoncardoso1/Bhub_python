@@ -2,6 +2,17 @@
 Schemas Pydantic da aplicação BHUB.
 """
 
+from app.schemas.analytics import (
+    AnalyticsEventCreate,
+    AnalyticsEventResponse,
+    AnalyticsOverviewResponse,
+    AnalyticsSessionResponse,
+    ContentStatsResponse,
+    EventsStatsResponse,
+    TimeSeriesDataPoint,
+    TopPageResponse,
+    TrafficStatsResponse,
+)
 from app.schemas.article import (
     ArticleCreate,
     ArticleHighlightRequest,
@@ -45,17 +56,6 @@ from app.schemas.feed import (
     FeedSyncResult,
     FeedTestResult,
     FeedUpdate,
-)
-from app.schemas.analytics import (
-    AnalyticsEventCreate,
-    AnalyticsEventResponse,
-    AnalyticsOverviewResponse,
-    AnalyticsSessionResponse,
-    ContentStatsResponse,
-    EventsStatsResponse,
-    TimeSeriesDataPoint,
-    TopPageResponse,
-    TrafficStatsResponse,
 )
 from app.schemas.user import (
     LoginRequest,

@@ -67,6 +67,17 @@ O servidor estará disponível em: http://localhost:8000
 - **Swagger UI**: http://localhost:8000/docs
 - **ReDoc**: http://localhost:8000/redoc
 
+## 🖥️ Frontend (HTMX)
+
+O frontend agora é servido pelo próprio FastAPI (SSR + HTMX):
+
+- **Home / Artigos**: `GET /`
+- **Detalhe do artigo**: `GET /articles/{id}`
+- **Categorias**: `GET /categories`
+- **Contato**: `GET /contact`
+- **Admin**: `GET /admin` (requer usuário `ADMIN`)
+- **Login**: `GET/POST /login`
+
 ## 🏗️ Estrutura do Projeto
 
 ```

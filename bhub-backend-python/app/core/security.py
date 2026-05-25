@@ -19,7 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.core.logging import log
 from app.database import get_async_session
-from app.models.user import User, UserRole
+from app.models.user import User
 
 
 # Database adapter
@@ -86,6 +86,7 @@ fastapi_users = FastAPIUsers[User, uuid.UUID](
 
 # Dependencies para uso nas rotas
 current_user = fastapi_users.current_user(active=True)
+current_user_optional = fastapi_users.current_user(active=True, optional=True)
 current_superuser = fastapi_users.current_user(active=True, superuser=True)
 
 
@@ -103,5 +104,6 @@ async def current_admin_user(
 
 # Type aliases para uso nas rotas
 CurrentUser = Annotated[User, Depends(current_user)]
+CurrentUserOptional = Annotated[User | None, Depends(current_user_optional)]
 CurrentAdmin = Annotated[User, Depends(current_admin_user)]
 CurrentSuperuser = Annotated[User, Depends(current_superuser)]

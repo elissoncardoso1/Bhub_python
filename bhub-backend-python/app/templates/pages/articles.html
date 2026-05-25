@@ -1,0 +1,1290 @@
+{% extends "base.html" %}
+
+{% block title %}Busca Avançada de Artigos - BHUB{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+    <!-- Header (compacto após busca) -->
+    <div id="page-header" class="mb-4 {% if total and total > 0 %}search-active{% endif %}">
+        <h1 class="text-xl sm:text-2xl font-semibold text-slate-900">
+            Busca Avançada de Artigos
+        </h1>
+        <p id="header-subtitle" class="text-sm text-slate-600 mt-1 {% if total and total > 0 %}hidden{% endif %}">
+            Use filtros avançados e busca semântica para encontrar exatamente o que procura
+        </p>
+    </div>
+
+    <div class="flex flex-col lg:flex-row gap-6 lg:gap-8">
+        <!-- Sidebar: Advanced Filters -->
+        <aside class="w-full lg:w-80 flex-shrink-0" aria-label="Filtros avançados">
+            <div class="filters-panel bg-white rounded-lg shadow-sm lg:sticky lg:top-24">
+                <!-- Header com contador de filtros ativos -->
+                <div class="filters-header">
+                    <div class="flex items-center justify-between w-full">
+                        <h2 class="filters-title">Filtros Avançados</h2>
+                        <button
+                            type="button"
+                            class="clear-button"
+                            onclick="document.getElementById('advanced-search-form').reset(); document.getElementById('advanced-search-form').requestSubmit();"
+                            aria-label="Limpar todos os filtros"
+                        >
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                            <span>Limpar</span>
+                        </button>
+                    </div>
+                    <div id="active-filters-count" class="filters-active-info {% if not filters or (not filters.category_ids and not filters.source_category and not filters.feed_id and not filters.date_from and not filters.date_to and not filters.highlighted and not filters.has_pdf and not filters.is_open_access) %}hidden{% endif %}">
+                        <span class="filters-active-text">Filtros ativos: <span id="active-filters-number" class="font-semibold">0</span></span>
+                        <button
+                            type="button"
+                            class="filters-clear-all"
+                            onclick="document.getElementById('advanced-search-form').reset(); document.getElementById('advanced-search-form').requestSubmit();"
+                            aria-label="Limpar todos os filtros"
+                        >
+                            Limpar tudo
+                        </button>
+                    </div>
+                </div>
+
+                <form id="advanced-search-form"
+                      hx-get="/articles"
+                      hx-target="#search-results"
+                      hx-indicator="#search-loading"
+                      hx-push-url="true"
+                      hx-swap="innerHTML"
+                      hx-trigger="submit, change delay:500ms from:.filter-checkbox, change delay:300ms from:.filter-select, change delay:800ms from:#search-input-advanced"
+                      class="filters-form">
+
+                    <!-- Search Type Toggle -->
+                    <section class="filter-section">
+                        <label class="filter-label">Tipo de Busca</label>
+                        <div class="filter-options filter-radio-group">
+                            <label class="filter-option-item filter-radio-item {% if (filters.search_type if filters else 'text') == 'text' %}filter-radio-item-active{% endif %}">
+                                <input type="radio" name="search_type" value="text" {% if (filters.search_type if filters else 'text') == 'text' %}checked{% endif %} class="sr-only">
+                                <span class="filter-option-text">Texto</span>
+                            </label>
+                            <label class="filter-option-item filter-radio-item {% if (filters.search_type if filters else 'text') == 'semantic' %}filter-radio-item-active{% endif %}">
+                                <input type="radio" name="search_type" value="semantic" {% if (filters.search_type if filters else 'text') == 'semantic' %}checked{% endif %} class="sr-only">
+                                <span class="filter-option-text">Semântica</span>
+                            </label>
+                        </div>
+                        <p class="filter-hint">
+                            <span id="search-type-hint">{% if (filters.search_type if filters else 'text') == 'semantic' %}Busca por significado e contexto (usando IA){% else %}Busca por palavras-chave exatas{% endif %}</span>
+                        </p>
+                    </section>
+
+                    <!-- Main Search Input -->
+                    <section class="filter-section">
+                        <label for="search-input-advanced" class="filter-label">Busca</label>
+                        <div class="relative">
+                            <input
+                                type="text"
+                                id="search-input-advanced"
+                                name="search"
+                                value="{% if filters and filters.search %}{{ filters.search }}{% endif %}"
+                                placeholder="Digite palavras-chave..."
+                                class="filter-input"
+                                autocomplete="off"
+                                onkeydown="if(event.key === 'Enter') { event.preventDefault(); document.getElementById('advanced-search-form').requestSubmit(); }"
+                            >
+                            <button
+                                type="submit"
+                                class="filter-search-button"
+                                aria-label="Buscar"
+                            >
+                                {{ icon('search', 'w-5 h-5', aria_hidden=True) | safe }}
+                            </button>
+                        </div>
+                    </section>
+
+                    <!-- Categories -->
+                    <section class="filter-section">
+                        <label class="filter-label">Categorias</label>
+                        <div class="filter-options filter-categories-list">
+                            {% for cat in categories %}
+                            <label class="filter-option-item">
+                                <input
+                                    type="checkbox"
+                                    name="category_id"
+                                    value="{{ cat.id }}"
+                                    class="filter-checkbox"
+                                    {% if filters and filters.category_ids and cat.id in filters.category_ids %}checked{% endif %}
+                                >
+                                <span class="filter-option-text flex-grow truncate">{{ cat.name }}</span>
+                                <span class="filter-badge">{{ cat.article_count }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </section>
+
+                    <!-- Source Type -->
+                    <section class="filter-section">
+                        <label for="source-category-advanced" class="filter-label">Tipo de Fonte</label>
+                        <select
+                            id="source-category-advanced"
+                            name="source_category"
+                            class="filter-select"
+                        >
+                            <option value="" {% if not filters or not filters.source_category %}selected{% endif %}>Todas as fontes</option>
+                            <option value="journal" {% if filters and filters.source_category == 'journal' %}selected{% endif %}>Periódicos Científicos</option>
+                            <option value="portal" {% if filters and filters.source_category == 'portal' %}selected{% endif %}>Blogs e Portais</option>
+                        </select>
+                    </section>
+
+                    <!-- Feed Filter -->
+                    {% if feeds %}
+                    <section class="filter-section">
+                        <label for="feed-filter" class="filter-label">Fonte Específica</label>
+                        <select
+                            id="feed-filter"
+                            name="feed_id"
+                            class="filter-select"
+                        >
+                            <option value="">Todas as fontes</option>
+                            {% for feed in feeds %}
+                            <option value="{{ feed.id }}" {% if filters and filters.feed_id == feed.id %}selected{% endif %}>{{ feed.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </section>
+                    {% endif %}
+
+                    <!-- Date Range -->
+                    <section class="filter-section">
+                        <label class="filter-label">Período de Publicação</label>
+                        <div class="filter-date-group">
+                            <div>
+                                <label for="date-from" class="filter-date-label">De</label>
+                                <input
+                                    type="date"
+                                    id="date-from"
+                                    name="date_from"
+                                    value="{% if filters and filters.date_from %}{{ filters.date_from.strftime('%Y-%m-%d') }}{% endif %}"
+                                    class="filter-input filter-date-input"
+                                >
+                            </div>
+                            <div>
+                                <label for="date-to" class="filter-date-label">Até</label>
+                                <input
+                                    type="date"
+                                    id="date-to"
+                                    name="date_to"
+                                    value="{% if filters and filters.date_to %}{{ filters.date_to.strftime('%Y-%m-%d') }}{% endif %}"
+                                    class="filter-input filter-date-input"
+                                >
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Additional Filters -->
+                    <section class="filter-section">
+                        <label class="filter-label">Filtros Adicionais</label>
+                        <div class="filter-options">
+                            <label class="filter-option-item">
+                                <input
+                                    type="checkbox"
+                                    name="highlighted"
+                                    value="true"
+                                    class="filter-checkbox"
+                                    {% if filters and filters.highlighted %}checked{% endif %}
+                                >
+                                <span class="filter-option-text">Apenas artigos em destaque</span>
+                            </label>
+
+                            <label class="filter-option-item">
+                                <input
+                                    type="checkbox"
+                                    name="has_pdf"
+                                    value="true"
+                                    class="filter-checkbox"
+                                    {% if filters and filters.has_pdf %}checked{% endif %}
+                                >
+                                <span class="filter-option-text">Apenas com PDF disponível</span>
+                            </label>
+
+                            <label class="filter-option-item">
+                                <input
+                                    type="checkbox"
+                                    name="is_open_access"
+                                    value="true"
+                                    class="filter-checkbox"
+                                    {% if filters and filters.is_open_access %}checked{% endif %}
+                                >
+                                <span class="filter-option-text">Apenas Open Access</span>
+                            </label>
+                        </div>
+                    </section>
+
+                    <!-- Sort Options -->
+                    <section class="filter-section">
+                        <label for="sort-by-advanced" class="filter-label">Ordenar por</label>
+                        <div class="filter-sort-group">
+                            <select
+                                id="sort-by-advanced"
+                                name="sort_by"
+                                class="filter-select"
+                            >
+                                <option value="publication_date" {% if filters and filters.sort_by == 'publication_date' %}selected{% endif %}>Data de Publicação</option>
+                                <option value="impact_score" {% if filters and filters.sort_by == 'impact_score' %}selected{% endif %}>Score de Impacto</option>
+                                <option value="view_count" {% if filters and filters.sort_by == 'view_count' %}selected{% endif %}>Mais Visualizados</option>
+                                <option value="title" {% if filters and filters.sort_by == 'title' %}selected{% endif %}>Título (A-Z)</option>
+                            </select>
+                            <select
+                                name="sort_order"
+                                class="filter-select"
+                            >
+                                <option value="desc" {% if not filters or filters.sort_order == 'desc' %}selected{% endif %}>Decrescente</option>
+                                <option value="asc" {% if filters and filters.sort_order == 'asc' %}selected{% endif %}>Crescente</option>
+                            </select>
+                        </div>
+                    </section>
+                </form>
+            </div>
+        </aside>
+
+        <!-- Main Content: Results -->
+        <main class="flex-1 min-w-0">
+            <!-- Toolbar Unificada (compacta) -->
+            <div id="results-toolbar" class="results-toolbar mb-2 {% if not total or total == 0 %}hidden{% endif %}">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <!-- Esquerda: Contador + Filtros Rápidos -->
+                    <div class="flex flex-wrap items-center gap-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm font-medium text-slate-700">Resultados</span>
+                            <span id="results-count" class="text-base font-semibold text-primary-600">({{ total or 0 }})</span>
+                            <div id="search-loading" class="htmx-indicator ml-1" role="status" aria-live="polite">
+                                <span class="sr-only">Carregando resultados...</span>
+                                {{ icon('loader-2', 'w-4 h-4 animate-spin text-primary-400', aria_hidden=True) | safe }}
+                            </div>
+                        </div>
+
+                        <!-- Filtros Rápidos -->
+                        <div class="flex items-center gap-1.5">
+                            <button
+                                type="button"
+                                onclick="setQuickFilter('source_category', ''); submitFilters();"
+                                class="quick-filter-btn {% if not filters or not filters.source_category %}quick-filter-active{% else %}quick-filter-inactive{% endif %}"
+                                aria-label="Mostrar todos os artigos"
+                            >
+                                {{ icon('layout-grid', 'w-3.5 h-3.5', aria_hidden=True) | safe }}
+                                <span>Todos</span>
+                            </button>
+                            <button
+                                type="button"
+                                onclick="setQuickFilter('source_category', 'journal'); submitFilters();"
+                                class="quick-filter-btn {% if filters and filters.source_category == 'journal' %}quick-filter-active quick-filter-journal{% else %}quick-filter-inactive{% endif %}"
+                                aria-label="Mostrar apenas periódicos científicos"
+                            >
+                                {{ icon('book', 'w-3.5 h-3.5', aria_hidden=True) | safe }}
+                                <span>Periódicos</span>
+                            </button>
+                            <button
+                                type="button"
+                                onclick="setQuickFilter('source_category', 'portal'); submitFilters();"
+                                class="quick-filter-btn {% if filters and filters.source_category == 'portal' %}quick-filter-active quick-filter-portal{% else %}quick-filter-inactive{% endif %}"
+                                aria-label="Mostrar apenas blogs e portais"
+                            >
+                                {{ icon('rss', 'w-3.5 h-3.5', aria_hidden=True) | safe }}
+                                <span>Blogs/Portais</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Direita: Controle de Visualização -->
+                    <div class="flex items-center gap-2">
+                        <label for="view-mode" class="text-xs font-medium text-slate-600 whitespace-nowrap">Visualização:</label>
+                        <div class="flex gap-1 bg-slate-100 rounded-lg p-1">
+                            <button
+                                type="button"
+                                id="view-grid"
+                                class="p-1.5 rounded hover:bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-primary-400 min-h-[32px] min-w-[32px] flex items-center justify-center {% if not request.headers.get('HX-Request') or 'list-view' not in request.headers.get('HX-Target-Class', '') %}bg-white shadow-sm{% endif %}"
+                                onclick="document.getElementById('search-results').classList.remove('list-view'); document.getElementById('search-results').classList.add('grid-view');"
+                                aria-label="Visualização em grade"
+                            >
+                                {{ icon('grid', 'w-3.5 h-3.5 text-slate-600', aria_hidden=True) | safe }}
+                            </button>
+                            <button
+                                type="button"
+                                id="view-list"
+                                class="p-1.5 rounded hover:bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-primary-400 min-h-[32px] min-w-[32px] flex items-center justify-center {% if 'list-view' in request.headers.get('HX-Target-Class', '') %}bg-white shadow-sm{% endif %}"
+                                onclick="document.getElementById('search-results').classList.remove('grid-view'); document.getElementById('search-results').classList.add('list-view');"
+                                aria-label="Visualização em lista"
+                            >
+                                {{ icon('list', 'w-3.5 h-3.5 text-slate-600', aria_hidden=True) | safe }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search Results -->
+            <div id="search-results" class="grid-view">
+                {% set has_active_search = (filters and (filters.search or filters.category_ids or filters.source_category or filters.feed_id or filters.date_from or filters.date_to or filters.highlighted or filters.has_pdf or filters.is_open_access)) %}
+                {% include 'partials/articles/list.html' %}
+            </div>
+        </main>
+    </div>
+</div>
+
+<style>
+    /* ============================================
+       FILTERS PANEL - REFINED DESIGN
+       Paleta: #14b8a6 (teal), grays, white
+    ============================================ */
+
+    /* Painel principal */
+    .filters-panel {
+        border-left: 4px solid #14b8a6;
+        background-color: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        padding: 24px;
+    }
+
+    /* Header com título e botão limpar */
+    .filters-header {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .filters-header > div:first-child {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+    }
+
+    /* Filtros ativos info */
+    .filters-active-info {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 12px;
+        background-color: rgba(20, 184, 166, 0.05);
+        border-radius: 6px;
+        border: 1px solid rgba(20, 184, 166, 0.2);
+    }
+
+    .filters-active-text {
+        font-size: 12px;
+        color: #0d9488;
+    }
+
+    .filters-clear-all {
+        font-size: 11px;
+        font-weight: 500;
+        color: #14b8a6;
+        background: transparent;
+        border: none;
+        padding: 4px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+
+    .filters-clear-all:hover {
+        background-color: rgba(20, 184, 166, 0.1);
+        color: #0d9488;
+    }
+
+    .filters-clear-all:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.2);
+    }
+
+    .filters-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #1f2937;
+        margin: 0;
+    }
+
+    /* Botão limpar */
+    .clear-button {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        font-weight: 500;
+        color: #14b8a6;
+        background-color: transparent;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        min-height: 32px;
+    }
+
+    .clear-button:hover {
+        background-color: rgba(20, 184, 166, 0.1);
+        color: #0d9488;
+    }
+
+    .clear-button:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px #14b8a6, 0 0 0 4px rgba(20, 184, 166, 0.1);
+    }
+
+    /* Form container */
+    .filters-form {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+    }
+
+    /* Seções de filtro */
+    .filter-section {
+        padding: 12px 0;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .filter-section:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    /* Labels de seção */
+    .filter-label {
+        display: block;
+        font-size: 11px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #6b7280;
+        margin-bottom: 12px;
+        margin-top: 0;
+    }
+
+    /* Hint text */
+    .filter-hint {
+        margin-top: 8px;
+        font-size: 11px;
+        color: #9ca3af;
+        line-height: 1.4;
+    }
+
+    /* Container de opções */
+    .filter-options {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .filter-categories-list {
+        max-height: 256px;
+        overflow-y: auto;
+        padding-right: 8px;
+    }
+
+    .filter-categories-list::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .filter-categories-list::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 2px;
+    }
+
+    .filter-categories-list::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 2px;
+    }
+
+    .filter-categories-list::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+
+    /* Item de opção (checkbox + label) */
+    .filter-option-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        min-height: 44px;
+    }
+
+    .filter-option-item:hover {
+        background-color: rgba(20, 184, 166, 0.08);
+        transform: translateX(2px);
+    }
+
+    .filter-option-item:hover .filter-checkbox {
+        border-color: #14b8a6;
+    }
+
+    /* Texto da opção */
+    .filter-option-text {
+        font-size: 14px;
+        font-weight: 400;
+        color: #374151;
+        flex: 1;
+    }
+
+    /* Radio group para tipo de busca */
+    .filter-radio-group {
+        display: flex;
+        gap: 8px;
+    }
+
+    .filter-radio-item {
+        flex: 1;
+        justify-content: center;
+        background-color: #ffffff;
+        border: 2px solid #e2e8f0;
+        padding: 10px 16px;
+    }
+
+    .filter-radio-item:hover {
+        border-color: #14b8a6;
+        background-color: rgba(20, 184, 166, 0.05);
+    }
+
+    .filter-radio-item-active {
+        background-color: rgba(20, 184, 166, 0.1);
+        border-color: #14b8a6;
+        color: #0d9488;
+    }
+
+    .filter-radio-item-active .filter-option-text {
+        color: #0d9488;
+        font-weight: 500;
+    }
+
+    /* Checkbox customizado */
+    .filter-checkbox {
+        appearance: none;
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+        border: 2px solid #cbd5e1;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        background-color: #ffffff;
+        position: relative;
+    }
+
+    .filter-checkbox:hover {
+        border-color: #14b8a6;
+        background-color: rgba(20, 184, 166, 0.05);
+    }
+
+    .filter-checkbox:checked {
+        background-color: #14b8a6;
+        border-color: #14b8a6;
+        background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill="white" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L3.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"/></svg>');
+        background-position: center;
+        background-repeat: no-repeat;
+        background-size: 12px;
+    }
+
+    .filter-checkbox:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.1);
+    }
+
+    .filter-checkbox:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    /* Badge de contagem */
+    .filter-badge {
+        margin-left: auto;
+        padding: 2px 8px;
+        background-color: rgba(20, 184, 166, 0.1);
+        color: #14b8a6;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 500;
+        flex-shrink: 0;
+    }
+
+    /* Input search */
+    .filter-input {
+        width: 100%;
+        padding: 10px 12px;
+        border: 2px solid #e2e8f0;
+        border-radius: 6px;
+        font-size: 14px;
+        color: #1f2937;
+        font-family: inherit;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        background-color: #ffffff;
+    }
+
+    .filter-input::placeholder {
+        color: #9ca3af;
+    }
+
+    .filter-input:focus {
+        outline: none;
+        border-color: #14b8a6;
+        box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.1);
+        background-color: rgba(20, 184, 166, 0.02);
+    }
+
+    /* Botão de busca dentro do input */
+    .filter-search-button {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        padding: 8px;
+        color: #9ca3af;
+        background-color: transparent;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 36px;
+        min-height: 36px;
+    }
+
+    .filter-search-button:hover {
+        color: #14b8a6;
+        background-color: rgba(20, 184, 166, 0.1);
+    }
+
+    .filter-search-button:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.2);
+    }
+
+    /* Select dropdown */
+    .filter-select {
+        width: 100%;
+        padding: 10px 12px;
+        border: 2px solid #e2e8f0;
+        border-radius: 6px;
+        font-size: 14px;
+        color: #1f2937;
+        background-color: #ffffff;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        font-family: inherit;
+        min-height: 44px;
+    }
+
+    .filter-select:hover {
+        border-color: #14b8a6;
+    }
+
+    .filter-select:focus {
+        outline: none;
+        border-color: #14b8a6;
+        box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.1);
+    }
+
+    /* Grupo de datas */
+    .filter-date-group {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .filter-date-label {
+        display: block;
+        font-size: 12px;
+        color: #6b7280;
+        margin-bottom: 6px;
+    }
+
+    .filter-date-input {
+        min-height: 44px;
+    }
+
+    /* Grupo de ordenação */
+    .filter-sort-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    /* Custom scrollbar */
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 2px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 2px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+
+    /* Grid view mode - garante que o grid funcione corretamente */
+    #search-results.grid-view .grid {
+        display: grid !important;
+        width: 100%;
+        grid-template-columns: repeat(1, minmax(0, 1fr));
+    }
+
+    @media (min-width: 768px) {
+        #search-results.grid-view .grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (min-width: 1024px) {
+        #search-results.grid-view .grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+    }
+
+    /* List view mode */
+    .list-view .grid {
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    .list-view article {
+        max-width: 100% !important;
+    }
+
+    /* Tooltip styles */
+    [id$="-tooltip"] {
+        animation: fadeIn 0.2s ease-out;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(-4px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Academic card improvements */
+    article[itemtype="https://schema.org/ScholarlyArticle"] {
+        transition: all 0.2s ease;
+    }
+
+    article[itemtype="https://schema.org/ScholarlyArticle"]:hover {
+        border-color: rgb(99 102 241);
+    }
+
+    /* ============================================
+       TOOLBAR UNIFICADA - COMPACTA
+    ============================================ */
+
+    .results-toolbar {
+        padding: 10px 12px;
+        background-color: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    }
+
+    /* Header compacto após busca */
+    #page-header.search-active h1 {
+        font-size: 1.125rem; /* 18px */
+        margin-bottom: 0;
+    }
+
+    /* Filtros rápidos compactos */
+    .quick-filter-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        font-size: 12px;
+        font-weight: 500;
+        border-radius: 6px;
+        border: 1px solid;
+        transition: all 0.15s ease;
+        cursor: pointer;
+        min-height: 28px;
+    }
+
+    .quick-filter-btn:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.2);
+    }
+
+    .quick-filter-active {
+        background-color: #f1f5f9;
+        border-color: #cbd5e1;
+        color: #475569;
+    }
+
+    .quick-filter-inactive {
+        background-color: #ffffff;
+        border-color: #e2e8f0;
+        color: #64748b;
+    }
+
+    .quick-filter-inactive:hover {
+        background-color: #f8fafc;
+        border-color: #cbd5e1;
+    }
+
+    .quick-filter-journal.quick-filter-active {
+        background-color: #faf5ff;
+        border-color: #d8b4fe;
+        color: #7c3aed;
+    }
+
+    .quick-filter-portal.quick-filter-active {
+        background-color: #fff7ed;
+        border-color: #fed7aa;
+        color: #ea580c;
+    }
+
+    /* Container de resultados - wrapper neutro para HTMX */
+    /* Remove qualquer espaço vertical desnecessário */
+    #search-results {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        background: unset;
+        background-color: unset;
+        border-width: 0px;
+        border-color: rgba(0, 0, 0, 0);
+        border-style: none;
+        border-image: none;
+        /* Garante que o container não force altura mínima e permita que o conteúdo se expanda */
+        display: block;
+        min-height: 0;
+    }
+
+    /* Grid view - permite que o grid interno funcione corretamente */
+    #search-results.grid-view {
+        display: block;
+    }
+
+    /* List view - mantém comportamento de lista */
+    #search-results.list-view {
+        display: block;
+    }
+
+    /* Quando vazio (apenas na carga inicial antes do HTMX), não ocupa espaço */
+    #search-results:empty {
+        display: none;
+    }
+
+    /* Responsividade */
+    @media (max-width: 640px) {
+        .results-toolbar {
+            padding: 8px;
+        }
+
+        .quick-filter-btn span {
+            font-size: 11px;
+        }
+    }
+
+    /* Prefers reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+        .quick-filter-btn,
+        .filters-clear-all,
+        .clear-button {
+            transition: none;
+        }
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+
+    // ========================================================================
+    // FIX 3: Sincronização bidirecional URL ↔ Formulário
+    // ========================================================================
+
+    /**
+     * Sincroniza os valores do formulário com os parâmetros da URL
+     * Útil para: links diretos, browser back/forward, compartilhamento
+     */
+    function syncFormWithURL() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const form = document.getElementById('advanced-search-form');
+
+        if (!form) return;
+
+        // Log para debug
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        if (isLocal && urlParams.toString()) {
+            console.log('🔄 Sincronizando form com URL:', urlParams.toString());
+        }
+
+        // Primeiro, limpar todos os checkboxes
+        form.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+            cb.checked = false;
+        });
+
+        // Iterar sobre cada parâmetro da URL
+        urlParams.forEach((value, key) => {
+            const inputs = form.querySelectorAll(`[name="${key}"]`);
+
+            inputs.forEach(input => {
+                if (input.type === 'checkbox') {
+                    // Para checkboxes: marcar se o valor bater
+                    // category_id pode aparecer múltiplas vezes na URL
+                    if (input.value === value) {
+                        input.checked = true;
+                    }
+                } else if (input.type === 'radio') {
+                    // Para radios: selecionar o que bater
+                    if (input.value === value) {
+                        input.checked = true;
+                    }
+                } else {
+                    // Para text, select, date, etc
+                    input.value = value;
+                }
+            });
+        });
+
+        // Se não há parâmetros na URL, resetar para defaults
+        if (!urlParams.toString()) {
+            // Tipo de busca padrão: text
+            const searchTypeText = form.querySelector('input[name="search_type"][value="text"]');
+            if (searchTypeText) searchTypeText.checked = true;
+        }
+    }
+
+    // Sincronizar ao carregar a página
+    syncFormWithURL();
+
+    // Escutar mudanças no histórico (back/forward do navegador)
+    window.addEventListener('popstate', function(event) {
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            console.log('⬅️ Browser back/forward detected');
+        }
+
+        // Re-sincronizar form com URL
+        syncFormWithURL();
+
+        // Re-submeter form para atualizar resultados
+        const form = document.getElementById('advanced-search-form');
+        if (form) {
+            // Usar setTimeout para evitar conflitos
+            setTimeout(() => {
+                form.requestSubmit();
+            }, 100);
+        }
+    });
+
+    // Escutar eventos HTMX afterSwap para atualizar URL count e estados visuais
+    document.body.addEventListener('htmx:afterSwap', function(event) {
+        // Garantir que ícones sejam renderizados
+        if (window.lucide) {
+            lucide.createIcons();
+        }
+
+        // Atualizar estados após resultados serem carregados
+        if (event.detail.target && event.detail.target.id === 'search-results') {
+            updatePageStates();
+            updateActiveFiltersCount();
+
+            // Log para debug
+            const params = new URLSearchParams(window.location.search);
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                console.log('✅ Results updated. Current URL:', window.location.pathname + window.location.search);
+            }
+        }
+    });
+
+    /**
+     * Atualiza estados visuais da página após busca
+     */
+    function updatePageStates() {
+        const resultsCount = document.getElementById('results-count');
+        const toolbar = document.getElementById('results-toolbar');
+        const header = document.getElementById('page-header');
+        const subtitle = document.getElementById('header-subtitle');
+
+        if (!resultsCount) return;
+
+        // Extrair número do contador (formato: "(681)")
+        const countText = resultsCount.textContent.trim();
+        const countMatch = countText.match(/\((\d+)\)/);
+        const total = countMatch ? parseInt(countMatch[1], 10) : 0;
+
+        // Mostrar/ocultar toolbar baseado em resultados
+        if (toolbar) {
+            if (total > 0) {
+                toolbar.classList.remove('hidden');
+            } else {
+                toolbar.classList.add('hidden');
+            }
+        }
+
+        // Compactar header após busca
+        if (header && total > 0) {
+            header.classList.add('search-active');
+            if (subtitle) {
+                subtitle.classList.add('hidden');
+            }
+        } else if (header) {
+            header.classList.remove('search-active');
+            if (subtitle) {
+                subtitle.classList.remove('hidden');
+            }
+        }
+    }
+
+    /**
+     * Conta e atualiza número de filtros ativos
+     */
+    function updateActiveFiltersCount() {
+        const form = document.getElementById('advanced-search-form');
+        const activeFiltersInfo = document.getElementById('active-filters-count');
+        const activeFiltersNumber = document.getElementById('active-filters-number');
+
+        if (!form || !activeFiltersInfo || !activeFiltersNumber) return;
+
+        let count = 0;
+
+        // Contar categorias selecionadas
+        const categoryCheckboxes = form.querySelectorAll('input[name="category_id"]:checked');
+        count += categoryCheckboxes.length;
+
+        // Contar source_category
+        const sourceCategory = form.querySelector('select[name="source_category"]');
+        if (sourceCategory && sourceCategory.value) {
+            count++;
+        }
+
+        // Contar feed_id
+        const feedId = form.querySelector('select[name="feed_id"]');
+        if (feedId && feedId.value) {
+            count++;
+        }
+
+        // Contar datas
+        const dateFrom = form.querySelector('input[name="date_from"]');
+        const dateTo = form.querySelector('input[name="date_to"]');
+        if (dateFrom && dateFrom.value) count++;
+        if (dateTo && dateTo.value) count++;
+
+        // Contar filtros adicionais
+        if (form.querySelector('input[name="highlighted"]:checked')) count++;
+        if (form.querySelector('input[name="has_pdf"]:checked')) count++;
+        if (form.querySelector('input[name="is_open_access"]:checked')) count++;
+
+        // Atualizar UI
+        activeFiltersNumber.textContent = count;
+        if (count > 0) {
+            activeFiltersInfo.classList.remove('hidden');
+        } else {
+            activeFiltersInfo.classList.add('hidden');
+        }
+    }
+
+    // Atualizar estados na carga inicial (já dentro de DOMContentLoaded)
+    updatePageStates();
+    updateActiveFiltersCount();
+
+    // Escutar mudanças no formulário para atualizar contador de filtros
+    const searchFormForFilters = document.getElementById('advanced-search-form');
+    if (searchFormForFilters) {
+        searchFormForFilters.addEventListener('change', function() {
+            updateActiveFiltersCount();
+        });
+    }
+
+
+    // Update search type hint
+    const searchTypeInputs = document.querySelectorAll('input[name="search_type"]');
+    const searchTypeHint = document.getElementById('search-type-hint');
+
+    searchTypeInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            if (this.value === 'semantic') {
+                searchTypeHint.textContent = 'Busca por significado e contexto (usando IA)';
+            } else {
+                searchTypeHint.textContent = 'Busca por palavras-chave exatas';
+            }
+        });
+    });
+
+    // Ensure form values are preserved and sent correctly
+    const searchFormForDebug = document.getElementById('advanced-search-form');
+    if (searchFormForDebug) {
+        // Listen to HTMX events to debug and ensure values are sent
+        document.body.addEventListener('htmx:beforeRequest', function(event) {
+            if (event.detail.path && event.detail.path.includes('/articles')) {
+                // Log form data for debugging
+                if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                    const formData = new FormData(searchFormForDebug);
+                    console.log('Sending filters:', Object.fromEntries(formData.entries()));
+                }
+            }
+        });
+    }
+
+    // Tooltip functionality for impact and confidence metrics
+    window.showTooltip = function(event, tooltipId) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        const tooltip = document.getElementById(tooltipId);
+        if (!tooltip) return;
+
+        // Hide all tooltips first
+        document.querySelectorAll('[id$="-tooltip"]').forEach(t => {
+            t.classList.add('hidden');
+            t.style.display = 'none';
+        });
+
+        // Show this tooltip
+        tooltip.classList.remove('hidden');
+        tooltip.style.display = 'block';
+
+        // Position tooltip relative to button
+        const button = event.target.closest('button');
+        const rect = button.getBoundingClientRect();
+        const scrollX = window.pageXOffset || document.documentElement.scrollLeft;
+        const scrollY = window.pageYOffset || document.documentElement.scrollTop;
+
+        tooltip.style.position = 'fixed';
+        tooltip.style.left = (rect.left + scrollX) + 'px';
+        tooltip.style.top = (rect.bottom + scrollY + 8) + 'px';
+
+        // Adjust if tooltip goes off screen
+        setTimeout(() => {
+            const tooltipRect = tooltip.getBoundingClientRect();
+            if (tooltipRect.right > window.innerWidth) {
+                tooltip.style.left = (window.innerWidth - tooltipRect.width - 16) + 'px';
+            }
+            if (tooltipRect.bottom > window.innerHeight) {
+                tooltip.style.top = (rect.top + scrollY - tooltipRect.height - 8) + 'px';
+            }
+        }, 0);
+
+        // Hide on click outside or ESC key
+        const hideTooltip = (e) => {
+            if (e.key === 'Escape' || (!tooltip.contains(e.target) && !button.contains(e.target))) {
+                tooltip.classList.add('hidden');
+                tooltip.style.display = 'none';
+                document.removeEventListener('click', hideTooltip);
+                document.removeEventListener('keydown', hideTooltip);
+            }
+        };
+
+        setTimeout(() => {
+            document.addEventListener('click', hideTooltip);
+            document.addEventListener('keydown', hideTooltip);
+        }, 100);
+    };
+
+    // Função para navegação de páginas mantendo filtros
+    window.goToPage = function(page) {
+        const form = document.getElementById('advanced-search-form');
+        if (!form) return;
+
+        const formData = new FormData(form);
+        formData.set('page', page);
+
+        // Construir URL com todos os parâmetros
+        const params = new URLSearchParams();
+
+        // Adicionar todos os campos do formulário
+        for (const [key, value] of formData.entries()) {
+            if (value && value !== '') {
+                if (key === 'category_id') {
+                    // Para checkboxes múltiplos, adicionar cada um
+                    params.append(key, value);
+                } else {
+                    params.set(key, value);
+                }
+            }
+        }
+
+        // Fazer requisição HTMX
+        htmx.ajax('GET', `/articles?${params.toString()}`, {
+            target: '#search-results',
+            swap: 'innerHTML',
+            pushUrl: true,
+            indicator: '#search-loading'
+        });
+    };
+
+
+    // ========================================================================
+    // FIX 1 & 2: Sincronizar filtros rápidos com o formulário
+    // ========================================================================
+
+    /**
+     * Define um valor de filtro no formulário e força atualização visual
+     * @param {string} filterName - Nome do campo (ex: 'source_category')
+     * @param {string} value - Valor a ser setado
+     */
+    window.setQuickFilter = function(filterName, value) {
+        const form = document.getElementById('advanced-search-form');
+        if (!form) {
+            console.error('Form #advanced-search-form not found');
+            return;
+        }
+
+        const input = form.querySelector(`[name="${filterName}"]`);
+
+        if (input) {
+            if (input.type === 'checkbox' || input.type === 'radio') {
+                // Para checkboxes/radios: marcar o que tem o valor correto
+                form.querySelectorAll(`[name="${filterName}"]`).forEach(el => {
+                    el.checked = (el.value === value);
+                });
+            } else {
+                // Para selects e inputs de texto
+                input.value = value;
+
+                // Trigger change event para atualizar visual se necessário
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+
+            // Log para debug
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                console.log(`✅ Filter set: ${filterName} = "${value}"`);
+            }
+        } else {
+            console.warn(`Filter input not found: ${filterName}`);
+        }
+    };
+
+    /**
+     * Submete o formulário de filtros via HTMX
+     */
+    window.submitFilters = function() {
+        const form = document.getElementById('advanced-search-form');
+        if (!form) {
+            console.error('Form #advanced-search-form not found');
+            return;
+        }
+
+        // Usar requestSubmit() para garantir que eventos de submit sejam disparados
+        form.requestSubmit();
+    };
+
+    // Atualizar estados na carga inicial
+    updatePageStates();
+    updateActiveFiltersCount();
+
+    // Escutar mudanças no formulário para atualizar contador de filtros
+    const searchForm = document.getElementById('advanced-search-form');
+    if (searchForm) {
+        searchForm.addEventListener('change', function() {
+            updateActiveFiltersCount();
+        });
+    }
+
+    });
+</script>
+{% endblock %}

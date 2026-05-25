@@ -1,0 +1,225 @@
+/* ============================================
+   ACCESSIBILITY.CSS - Regras de Acessibilidade
+   ============================================ */
+
+/* Screen Reader Only
+ * Nota: Tailwind também fornece .sr-only via output.css
+ * Esta definição serve como fallback e fonte única para CSS manual
+ */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Posicionamento específico para #results-count com sr-only */
+#results-count.sr-only {
+  top: 255px;
+}
+
+/* Focus Visible - Apenas para elementos interativos
+ * Evita outlines inesperados em elementos não-interativos
+ */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[role="button"]:focus-visible,
+[role="link"]:focus-visible,
+[role="menuitem"]:focus-visible,
+[tabindex]:not([tabindex="-1"]):focus-visible {
+  outline: 2px solid var(--color-primary-400);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Skip to main content */
+.skip-to-main {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--color-primary-400);
+  color: var(--color-text-primary);
+  padding: var(--space-2) var(--space-4);
+  text-decoration: none;
+  z-index: 100;
+  border-radius: var(--radius-md);
+  font-weight: var(--font-weight-semibold);
+  transition: var(--transition-fast);
+}
+
+.skip-to-main:focus {
+  top: 0;
+}
+
+/* ============================================
+   MODAIS E TOASTS - Focus States
+   ============================================ */
+
+/* Modal container - focus trap */
+#modal-container [role="dialog"]:focus-within {
+  outline: none; /* Focus está nos elementos internos */
+}
+
+/* Botões de fechar modal */
+#modal-container button[aria-label*="Fechar"],
+#modal-container button[aria-label*="Close"] {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+#modal-container button[aria-label*="Fechar"]:focus-visible,
+#modal-container button[aria-label*="Close"]:focus-visible {
+  outline: 2px solid var(--color-primary-400);
+  outline-offset: 2px;
+}
+
+/* Toast items - focus em botões de fechar */
+#toast-container button:focus-visible {
+  outline: 2px solid var(--color-primary-400);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ============================================
+   MENUS MOBILE - Focus States
+   ============================================ */
+
+/* Mobile menu drawer - elementos focáveis */
+#mobile-menu-drawer a:focus-visible,
+#mobile-menu-drawer button:focus-visible {
+  outline: 2px solid var(--color-primary-400);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Mobile search modal - input e botões */
+#mobile-search-modal input:focus-visible,
+#mobile-search-modal button:focus-visible {
+  outline: 2px solid var(--color-primary-400);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Nota: prefers-reduced-motion está consolidado em animations.css */
+
+/* ============================================
+   FOOTER - Acessibilidade e Ética (Evil by Design)
+   ============================================ */
+
+/* Ícones sociais - Hit area mínima de 44px (WCAG 2.5.5) */
+footer .footer-social-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0.5rem;
+  border-radius: 0.375rem;
+  transition: all 0.2s ease;
+}
+
+/* Tooltip visível no hover/focus (transparência, não ocultação) */
+footer .footer-social-link[title]:hover::after,
+footer .footer-social-link[title]:focus-visible::after {
+  content: attr(title);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  background: var(--color-neutral-900);
+  color: var(--color-neutral-50);
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+  border-radius: 0.25rem;
+  pointer-events: none;
+  z-index: 10;
+  opacity: 0.95;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Links do footer - contraste adequado e foco visível */
+footer .footer-link {
+  display: inline-block;
+  padding: 0.125rem 0.25rem;
+  margin: -0.125rem -0.25rem;
+  border-radius: 0.25rem;
+  transition: all 0.2s ease;
+  color: var(--color-neutral-300);
+}
+
+footer .footer-link:hover {
+  color: var(--color-info-400);
+}
+
+footer .footer-link:focus-visible {
+  color: var(--color-info-400);
+  background: rgba(59, 130, 246, 0.1);
+}
+
+/* Email clicável - contraste e foco */
+footer a[href^="mailto:"] {
+  color: var(--color-neutral-300);
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 0.25rem;
+  transition: all 0.2s ease;
+}
+
+footer a[href^="mailto:"]:hover {
+  color: var(--color-info-400);
+  text-decoration-color: var(--color-info-400);
+}
+
+footer a[href^="mailto:"]:focus-visible {
+  color: var(--color-info-400);
+  text-decoration-color: var(--color-info-400);
+  outline: 2px solid var(--color-info-400);
+  outline-offset: 2px;
+  border-radius: 0.25rem;
+}
+
+/* Equilíbrio visual - primeira coluna não deve dominar */
+footer > div > div > div:first-child {
+  opacity: 1;
+}
+
+footer > div > div > div:not(:first-child) {
+  opacity: 1;
+}
+
+/* Títulos das seções - contraste adequado */
+footer h3 {
+  color: var(--color-neutral-50);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Texto "Desenvolvido com..." - discreto mas legível */
+footer .text-slate-500 {
+  color: var(--color-neutral-500);
+  font-size: var(--font-size-sm);
+}
+
+/* Links de Privacidade/Termos - destaque sutil mas visível */
+footer a[href*="privacy"],
+footer a[href*="terms"] {
+  font-weight: var(--font-weight-medium);
+}
+
+/* Responsividade - garantir hit area em mobile */
+@media (max-width: 768px) {
+  footer .footer-social-link {
+    min-width: 48px;
+    min-height: 48px;
+  }
+}

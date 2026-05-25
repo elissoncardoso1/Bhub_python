@@ -3,10 +3,9 @@ Sistema de proteção CSRF (Cross-Site Request Forgery).
 """
 
 import secrets
-from typing import Annotated, Optional
+from typing import Annotated
 
 from fastapi import Depends, HTTPException, Request, Response, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from app.config import settings
 from app.core.logging import log
@@ -36,11 +35,11 @@ class CSRFProtection:
             path="/",
         )
 
-    def get_token_from_cookie(self, request: Request) -> Optional[str]:
+    def get_token_from_cookie(self, request: Request) -> str | None:
         """Obtém o token CSRF do cookie."""
         return request.cookies.get(self.cookie_name)
 
-    def get_token_from_header(self, request: Request) -> Optional[str]:
+    def get_token_from_header(self, request: Request) -> str | None:
         """Obtém o token CSRF do header."""
         return request.headers.get(self.header_name.lower())
 
@@ -51,14 +50,14 @@ class CSRFProtection:
     ) -> bool:
         """
         Valida o token CSRF.
-        
+
         Args:
             request: Requisição FastAPI
             require_token: Se True, exige token. Se False, apenas valida se presente.
-        
+
         Returns:
             True se válido ou se não requerido
-        
+
         Raises:
             HTTPException: Se token inválido ou ausente quando requerido
         """
@@ -68,7 +67,7 @@ class CSRFProtection:
 
         # Obter token do header
         header_token = self.get_token_from_header(request)
-        
+
         # Obter token do cookie
         cookie_token = self.get_token_from_cookie(request)
 
@@ -112,7 +111,10 @@ async def get_csrf_token(request: Request) -> str:
     """
     token = csrf_protection.get_token_from_cookie(request)
     if not token:
-        token = csrf_protection.generate_token()
+        # Caso a middleware já tenha gerado um token para esta request (GET/HEAD),
+        # reutilizar para manter consistência entre meta tag e cookie.
+        token = getattr(request.state, "csrf_token", None) or csrf_protection.generate_token()
+        request.state.csrf_token = token
     return token
 
 
@@ -122,7 +124,7 @@ async def validate_csrf_token(
 ) -> bool:
     """
     Dependência para validar token CSRF em rotas mutáveis.
-    
+
     Usage:
         @router.post("/endpoint")
         async def my_endpoint(
@@ -134,6 +136,11 @@ async def validate_csrf_token(
     return csrf_protection.validate_csrf(request, require_token=require_token)
 
 
+# Variante permissiva: valida apenas se houver cookie CSRF
+async def validate_csrf_if_present(request: Request) -> bool:
+    return csrf_protection.validate_csrf(request, require_token=False)
+
+
 # Type alias para uso nas rotas
 CSRFValid = Annotated[bool, Depends(validate_csrf_token)]
-
+CSRFOptional = Annotated[bool, Depends(validate_csrf_if_present)]

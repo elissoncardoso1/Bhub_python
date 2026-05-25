@@ -112,18 +112,18 @@ class WebScrapingService:
         Bloqueia IPs privados, localhost e esquemas perigosos.
         """
         parsed = urlparse(url)
-        
+
         # Validar esquema - apenas HTTP/HTTPS permitidos
         if parsed.scheme not in ['http', 'https']:
             raise ValueError(
                 f"Esquema '{parsed.scheme}' não permitido. Apenas HTTP/HTTPS são permitidos."
             )
-        
+
         if not parsed.netloc:
             raise ValueError("URL inválida: sem hostname")
-        
+
         hostname = parsed.hostname.lower()
-        
+
         # Bloquear localhost e variações
         blocked_hosts = [
             'localhost',
@@ -133,46 +133,46 @@ class WebScrapingService:
             '[::1]',
             'localhost.localdomain',
         ]
-        
+
         if hostname in blocked_hosts:
             raise ValueError(f"Hostname '{hostname}' bloqueado por segurança (SSRF prevention)")
-        
+
         # Bloquear IPs privados (RFC 1918)
         if hostname:
             # Verificar se é um IP
             try:
                 ip = ipaddress.ip_address(hostname)
-                
+
                 # Bloquear IPs privados
                 if ip.is_private:
                     raise ValueError(
                         f"IP privado '{hostname}' bloqueado por segurança (SSRF prevention)"
                     )
-                
+
                 # Bloquear IPs de loopback
                 if ip.is_loopback:
                     raise ValueError(
                         f"IP de loopback '{hostname}' bloqueado por segurança"
                     )
-                
+
                 # Bloquear IPs de link-local
                 if ip.is_link_local:
                     raise ValueError(
                         f"IP link-local '{hostname}' bloqueado por segurança"
                     )
-                
+
             except ValueError:
                 # Não é um IP válido, verificar se é hostname bloqueado
                 if any(blocked in hostname for blocked in blocked_hosts):
                     raise ValueError(f"Hostname '{hostname}' bloqueado por segurança")
-        
+
         # Validar que não há caracteres perigosos no path
         if parsed.path:
             dangerous_chars = ['../', '..\\', '%2e%2e', '%2f']
             path_lower = parsed.path.lower()
             if any(dangerous in path_lower for dangerous in dangerous_chars):
                 raise ValueError("Path contém caracteres perigosos")
-    
+
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=2, max=10),
@@ -180,7 +180,7 @@ class WebScrapingService:
     async def scrape_url(self, url: str) -> dict:
         """
         Extrai dados de artigo de uma URL.
-        
+
         Returns:
             dict com dados do artigo
         """
@@ -188,7 +188,7 @@ class WebScrapingService:
 
         # Validar URL (prevenir SSRF)
         self._validate_url(url)
-        
+
         parsed = urlparse(url)
         if not parsed.scheme or not parsed.netloc:
             raise ValueError("URL inválida")

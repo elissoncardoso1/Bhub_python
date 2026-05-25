@@ -343,3 +343,6 @@ class OpenGraphService:
         img.save(cache_path, "PNG", optimize=True)
         return cache_path
 
+def get_opengraph_service() -> OpenGraphService:
+    """Dependency injection provider for OpenGraphService."""
+    return OpenGraphService()

@@ -38,7 +38,14 @@ class Category(BaseModel):
     # Relacionamentos
     articles: Mapped[list["Article"]] = relationship(
         "Article",
+        primaryjoin="Category.id == Article.category_id",
         back_populates="category",
+        lazy="selectin",
+    )
+    articles_many: Mapped[list["Article"]] = relationship(
+        "Article",
+        secondary="article_categories",
+        back_populates="categories",
         lazy="selectin",
     )
 
@@ -49,11 +56,25 @@ class Category(BaseModel):
 # Dados iniciais das categorias
 DEFAULT_CATEGORIES = [
     {
+        "name": "Autismo",
+        "slug": "autismo",
+        "description": "Artigos sobre autismo, TEA, vivências de autistas e intervenções baseadas em ABA",
+        "color": "#EC4899",
+        "keywords": "autismo,TEA,transtorno do espectro autista,ASD,autism,spectrum,autistic,autista,autistas,neurodivergente,neurodivergência,ABA para autismo,intervenção precoce,early intervention,autism spectrum disorder,autistic disorder,autism treatment,autism therapy,autism intervention,autism research,vivências autistas,experiências autistas,pessoa autista,adulto autista,criança autista,diagnóstico autismo,inclusão autista,introvertendo",
+    },
+    {
+        "name": "Notícias",
+        "slug": "noticias",
+        "description": "Notícias, podcasts, entrevistas, relatos pessoais e atualidades sobre Análise do Comportamento",
+        "color": "#06B6D4",
+        "keywords": "notícias,news,atualidades,atualizações,updates,breaking news,announcements,events,eventos,anúncios,novidades,latest,recent,podcast,episódio,entrevista,relato,vivência,vivências,experiência pessoal,depoimento,conversa,bate-papo,congresso,conferência,comunicado",
+    },
+    {
         "name": "Clínica",
         "slug": "clinica",
-        "description": "Artigos relacionados à prática clínica em Análise do Comportamento",
+        "description": "Artigos relacionados à prática clínica em Análise do Comportamento (exceto autismo)",
         "color": "#10B981",
-        "keywords": "clínica,terapia,tratamento,intervenção,paciente,cliente,sessão,consultório,atendimento,transtorno,diagnóstico,avaliação clínica,caso clínico,psicoterapia,clinical,therapy,treatment,intervention,patient,client,session,clinic,disorder,diagnosis,clinical assessment,clinical case",
+        "keywords": "clínica,terapia,tratamento,intervenção,paciente,cliente,sessão,consultório,atendimento,transtorno,diagnóstico,avaliação clínica,caso clínico,psicoterapia,clinical,therapy,treatment,intervention,patient,client,session,clinic,disorder,diagnosis,clinical assessment,clinical case,ansiedade,depressão,fobia,TOC,transtorno alimentar",
     },
     {
         "name": "Educação",
@@ -77,13 +98,6 @@ DEFAULT_CATEGORIES = [
         "keywords": "pesquisa,experimento,metodologia,dados,análise,resultados,hipótese,variável,controle,laboratório,estudo,investigação,empírico,experimental,básica,research,experiment,methodology,data,analysis,results,hypothesis,variable,control,laboratory,study,investigation,empirical,experimental,basic",
     },
     {
-        "name": "Autismo",
-        "slug": "autismo",
-        "description": "Artigos sobre autismo, TEA e intervenções baseadas em ABA",
-        "color": "#EC4899",
-        "keywords": "autismo,TEA,transtorno do espectro autista,ASD,autism,spectrum,autistic,ABA para autismo,intervenção precoce,early intervention,autism spectrum disorder,autistic disorder,autism treatment,autism therapy,autism intervention,autism research",
-    },
-    {
         "name": "Behaviorismo Radical",
         "slug": "behaviorismo-radical",
         "description": "Artigos sobre filosofia, teoria e fundamentos do Behaviorismo Radical",
@@ -96,13 +110,6 @@ DEFAULT_CATEGORIES = [
         "description": "Artigos sobre linguagem e comportamento verbal (Skinner)",
         "color": "#059669",
         "keywords": "comportamento verbal,verbal behavior,tato,mando,intraverbal,ecoico,autoclítico,textual,transcrição,audiência,falante,ouvinte,linguagem,comunicação,relational frame theory,RFT,frames relacionais",
-    },
-    {
-        "name": "Notícias",
-        "slug": "noticias",
-        "description": "Notícias e atualidades sobre Análise do Comportamento",
-        "color": "#06B6D4",
-        "keywords": "notícias,news,atualidades,atualizações,updates,breaking news,announcements,events,eventos,anúncios,novidades,latest,recent",
     },
     {
         "name": "Outros",

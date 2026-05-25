@@ -1,0 +1,121 @@
+{# OOB: Update results count in the toolbar (hidden, apenas para HTMX swap) #}
+<span id="results-count" hx-swap-oob="true" class="sr-only" aria-hidden="true">({{ total or 0 }})</span>
+
+{# Skeleton Loader durante carregamento HTMX #}
+{% from "components/loading.html" import article_card_list_skeleton %}
+<div id="articles-skeleton" class="htmx-indicator" role="status" aria-live="polite">
+    {{ article_card_list_skeleton(6) }}
+    <span class="sr-only">Carregando artigos, por favor aguarde.</span>
+</div>
+
+{% if articles %}
+    {# Grid de Cards com animação stagger #}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 stagger-children">
+        {% for article in articles %}
+            {% include 'components/card.html' %}
+        {% endfor %}
+    </div>
+
+    {# Pagination melhorada #}
+    {% if total_pages > 1 %}
+    <nav aria-label="Paginação de artigos" class="mt-8 sm:mt-12">
+        <ul class="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2">
+            {# Previous Button #}
+            <li>
+                {% if page > 1 %}
+                <button
+                    type="button"
+                    onclick="goToPage({{ page - 1 }})"
+                    class="flex items-center gap-1 px-3 sm:px-4 py-2 sm:py-2.5 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-primary-600 hover:border-primary-300 transition-all focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 min-h-[44px] text-sm sm:text-base"
+                    aria-label="Ir para página anterior"
+                >
+                    {{ icon('chevron-left', 'w-4 h-4', aria_hidden=True) | safe }}
+                    <span class="hidden sm:inline">Anterior</span>
+                </button>
+                {% else %}
+                <span
+                    class="flex items-center gap-1 px-3 sm:px-4 py-2 sm:py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-300 cursor-not-allowed min-h-[44px] text-sm sm:text-base"
+                    aria-disabled="true"
+                >
+                    {{ icon('chevron-left', 'w-4 h-4', aria_hidden=True) | safe }}
+                    <span class="hidden sm:inline">Anterior</span>
+                    <span class="sr-only">Página anterior indisponível</span>
+                </span>
+                {% endif %}
+            </li>
+
+            {# Page Numbers #}
+            {% for p in range(1, total_pages + 1) %}
+                {% if p == page %}
+                    {# Current page #}
+                    <li>
+                        <span
+                            class="flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 bg-primary-500 text-white rounded-lg font-semibold shadow-sm min-h-[44px]"
+                            aria-current="page"
+                            aria-label="Página {{ p }}, página atual"
+                        >
+                            {{ p }}
+                        </span>
+                    </li>
+                {% elif p <= 3 or p >= total_pages - 2 or (p >= page - 1 and p <= page + 1) %}
+                    {# Visible pages #}
+                    <li>
+                        <button
+                            type="button"
+                            onclick="goToPage({{ p }})"
+                            class="flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 bg-white border border-slate-200 rounded-lg text-slate-700 hover:bg-slate-50 hover:text-primary-600 hover:border-primary-300 transition-all focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 font-medium min-h-[44px]"
+                            aria-label="Ir para página {{ p }}"
+                        >
+                            {{ p }}
+                        </button>
+                    </li>
+                {% elif p == 4 or p == total_pages - 3 %}
+                    {# Ellipsis #}
+                    <li aria-hidden="true">
+                        <span class="flex items-center justify-center w-8 h-10 text-slate-400">
+                            ...
+                        </span>
+                    </li>
+                {% endif %}
+            {% endfor %}
+
+            {# Next Button #}
+            <li>
+                {% if page < total_pages %}
+                <button
+                    type="button"
+                    onclick="goToPage({{ page + 1 }})"
+                    class="flex items-center gap-1 px-3 sm:px-4 py-2 sm:py-2.5 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-primary-600 hover:border-primary-300 transition-all focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 min-h-[44px] text-sm sm:text-base"
+                    aria-label="Ir para próxima página"
+                >
+                    <span class="hidden sm:inline">Próxima</span>
+                    {{ icon('chevron-right', 'w-4 h-4', aria_hidden=True) | safe }}
+                </button>
+                {% else %}
+                <span
+                    class="flex items-center gap-1 px-3 sm:px-4 py-2 sm:py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-300 cursor-not-allowed min-h-[44px] text-sm sm:text-base"
+                    aria-disabled="true"
+                >
+                    <span class="hidden sm:inline">Próxima</span>
+                    {{ icon('chevron-right', 'w-4 h-4', aria_hidden=True) | safe }}
+                    <span class="sr-only">Próxima página indisponível</span>
+                </span>
+                {% endif %}
+            </li>
+        </ul>
+
+        {# Page info #}
+        <div class="text-center text-sm text-slate-500 mt-4">
+            Página <span class="font-medium text-slate-700">{{ page }}</span> de <span class="font-medium text-slate-700">{{ total_pages }}</span>
+        </div>
+    </nav>
+    {% endif %}
+
+{# Empty State - apenas se houver busca/filtros ativos ou se não for página de busca avançada #}
+{% else %}
+    {# Renderizar empty state apenas se houver busca ativa ou se não for página de busca avançada #}
+    {% if has_active_search is not defined or has_active_search %}
+        {% from "components/empty.html" import empty_filters %}
+        {{ empty_filters() }}
+    {% endif %}
+{% endif %}

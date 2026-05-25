@@ -8,10 +8,10 @@ import re
 from datetime import datetime
 from typing import Any
 
+from bs4 import BeautifulSoup
 from dateutil import parser as date_parser
 
 from app.core.logging import log
-from bs4 import BeautifulSoup
 
 
 class ArticleParserService:
@@ -44,6 +44,8 @@ class ArticleParserService:
             "journal": self._extract_journal(entry),
             "language": self._detect_language(entry),
             "image_url": self._extract_image(entry),
+            "is_open_access": self._detect_open_access(entry),
+            "pdf_url": self._extract_pdf_url(entry),
         }
 
     def _extract_title(self, entry: dict, journal_name: str | None = None) -> str:
@@ -106,13 +108,13 @@ class ArticleParserService:
             abstract = re.sub(r"<[^>]+>", "", abstract)
             # Decodificar entidades HTML (e.g., &#8230; -> …, &#8216; -> ')
             abstract = html.unescape(abstract)
-            
+
             # Remover boilerplate de WordPress "Tempo de Leitura: X minutos"
             abstract = re.sub(r"^Tempo de Leitura:\s*<?[\s\d]+\s*minutos?\s*", "", abstract, flags=re.IGNORECASE)
-            
+
             # Remover rodapé "O post ... apareceu primeiro em ..."
             abstract = re.sub(r"\s*O post\s+.+?\s+apareceu primeiro em\s+.+\.\s*$", "", abstract, flags=re.IGNORECASE)
-            
+
             abstract = abstract.strip()
 
             # Limitar tamanho
@@ -206,23 +208,23 @@ class ArticleParserService:
         authors = []
         try:
             soup = BeautifulSoup(html_content, 'html.parser')
-            
+
             # Tentar citation_author (Google Scholar / Highwire Press)
             meta_authors = soup.find_all("meta", {"name": "citation_author"})
             if not meta_authors:
                 # Tentar dc.creator
                 meta_authors = soup.find_all("meta", {"name": "dc.creator"})
-            
+
             for tag in meta_authors:
                 content = tag.get("content", "").strip()
                 if content:
                     # Springer format: "Surname, Firstname" -> maintain as is or normalize?
                     # Our normalizer handles "Surname, Firstname".
-                    authors.append({'name': content, 'role': 'author'}) 
-                    
+                    authors.append({'name': content, 'role': 'author'})
+
         except Exception as e:
             log.error(f"Erro ao parsear HTML para autores: {e}")
-            
+
         return authors
 
     def _split_authors(self, author_str: str) -> list[str]:
@@ -241,7 +243,7 @@ class ArticleParserService:
         email_paren_match = re.search(r'[\w\.-]+@[\w\.-]+\s*\(([^)]+)\)', author_str)
         if email_paren_match:
             return [self._clean_author_name(email_paren_match.group(1))]
-            
+
         name_paren_email_match = re.search(r'([^)]+)\s*\([\w\.-]+@[\w\.-]+\)', author_str)
         if name_paren_email_match:
             return [self._clean_author_name(name_paren_email_match.group(1))]
@@ -250,46 +252,46 @@ class ArticleParserService:
         # Mas CUIDADO com sufixos de titulação: "Name, PhD", "Name, BCBA"
         # Lista de sufixos para NÃO separar ou para remover
         credentials = r'\b(PhD|M\.?S\.?|B\.?C\.?B\.?A\.?(-D)?|M\.?A\.?|Dr\.?|R\.?B\.?T\.?|L\.?M\.?F\.?T\.?|L\.?C\.?S\.?W\.?)\b'
-        
+
         # Primeiro, remover credenciais da string para evitar split incorreto nelas
         # Ex: "Tameika Meadows, BCBA" -> "Tameika Meadows"
         clean_str = re.sub(rf',\s*{credentials}', '', author_str, flags=re.IGNORECASE)
         clean_str = re.sub(rf'\s+{credentials}', '', clean_str, flags=re.IGNORECASE)
 
         names = re.split(r',\s*|\s+and\s+|\s+e\s+|\s+&\s+|\s*\|\s*', clean_str, flags=re.IGNORECASE)
-        
+
         cleaned_names = []
         for name in names:
             clean = self._clean_author_name(name)
             if clean:
                 cleaned_names.append(clean)
-                
+
         return cleaned_names
 
     def _clean_author_name(self, name: str) -> str | None:
         """Limpa e valida um nome de autor."""
         name = name.strip()
-        
+
         # Remover parenteses e emails residuais
         name = re.sub(r'\([^)]*\)', '', name).strip()
         name = re.sub(r'[\w\.-]+@[\w\.-]+', '', name).strip()
         name = re.sub(r'\)', '', name).strip()  # Remover parentes soltos
-        
+
         if len(name) < 2:
             return None
-            
+
         # Blacklist de termos genéricos
         blacklist = [
             "admin", "noreply", "editor", "author", "blog author", "contributor",
             "unknown", "anonymous", "staff", "team", "guest", "bhub"
         ]
-        
+
         if name.lower() in blacklist:
             return None
-            
+
         # Remover prefixos/sufixos comuns
         name = re.sub(r'^(Dr\.|Prof\.|Mr\.|Mrs\.|Ms\.)\s+', '', name, flags=re.IGNORECASE)
-        
+
         return name if len(name) > 1 else None
 
     def _extract_keywords(self, entry: dict) -> str | None:
@@ -409,3 +411,125 @@ class ArticleParserService:
                     return enc.get("url") or enc.get("href")
 
         return None
+
+    def _extract_pdf_url(self, entry: dict) -> str | None:
+        """Extrai URL do PDF do artigo."""
+        # 1. Tentar campo pdf_url direto
+        pdf_url = entry.get("pdf_url") or entry.get("prism_url") or entry.get("dc_identifier")
+        if pdf_url:
+            # Verificar se é realmente um PDF
+            if isinstance(pdf_url, str) and (pdf_url.endswith(".pdf") or "pdf" in pdf_url.lower()):
+                return pdf_url
+
+        # 2. Tentar enclosures (comum em feeds RSS)
+        enclosures = entry.get("enclosures", [])
+        for enc in enclosures:
+            if isinstance(enc, dict):
+                enc_type = enc.get("type", "").lower()
+                enc_url = enc.get("url") or enc.get("href")
+                if enc_url and ("pdf" in enc_type or enc_url.endswith(".pdf")):
+                    return enc_url
+
+        # 3. Tentar links com type="application/pdf"
+        links = entry.get("links", [])
+        for link in links:
+            if isinstance(link, dict):
+                link_type = link.get("type", "").lower()
+                link_href = link.get("href")
+                if link_href and ("application/pdf" in link_type or link_href.endswith(".pdf")):
+                    return link_href
+
+        # 4. Tentar media:content com type PDF
+        media = entry.get("media_content", [])
+        if media and isinstance(media, list):
+            for m in media:
+                if isinstance(m, dict):
+                    m_type = m.get("type", "").lower()
+                    m_url = m.get("url")
+                    if m_url and ("pdf" in m_type or m_url.endswith(".pdf")):
+                        return m_url
+
+        # 5. Tentar padrões comuns na URL do artigo
+        article_url = self._extract_url(entry)
+        if article_url:
+            # Padrões comuns: /pdf/, /download/, /article/download/
+            pdf_patterns = [
+                r"(.*/)(article|paper|publication)(.*?)(/pdf/|/download/|/fulltext/)(.*)",
+                r"(.*/)(.*?)(\.pdf)$",
+            ]
+            for pattern in pdf_patterns:
+                match = re.search(pattern, article_url, re.IGNORECASE)
+                if match:
+                    # Tentar construir URL do PDF
+                    base_url = article_url.rsplit("/", 1)[0]
+                    potential_pdf = f"{base_url}/pdf" or f"{article_url}.pdf"
+                    return potential_pdf
+
+        return None
+
+    def _detect_open_access(self, entry: dict) -> bool:
+        """Detecta se o artigo é open access ou open science."""
+        # Padrões de busca (case-insensitive)
+        open_access_patterns = [
+            r"open\s*access",
+            r"open\s*science",
+            r"creative\s*commons",
+            r"cc\s*by",
+            r"cc\s*by-nc",
+            r"cc\s*by-sa",
+            r"cc\s*0",
+            r"public\s*domain",
+            r"free\s*access",
+            r"gold\s*open\s*access",
+            r"green\s*open\s*access",
+            r"hybrid\s*open\s*access",
+        ]
+
+        # 1. Verificar campo dc:rights (Dublin Core)
+        rights = entry.get("dc_rights") or entry.get("rights") or entry.get("prism_copyright")
+        if rights:
+            rights_str = str(rights).lower()
+            for pattern in open_access_patterns:
+                if re.search(pattern, rights_str, re.IGNORECASE):
+                    return True
+
+        # 2. Verificar campo license
+        license_field = entry.get("license") or entry.get("prism_license")
+        if license_field:
+            license_str = str(license_field).lower()
+            for pattern in open_access_patterns:
+                if re.search(pattern, license_str, re.IGNORECASE):
+                    return True
+
+        # 3. Verificar tags/categorias
+        tags = entry.get("tags", [])
+        for tag in tags:
+            tag_str = str(tag).lower()
+            if isinstance(tag, dict):
+                tag_str = str(tag.get("term", "")).lower()
+            for pattern in open_access_patterns:
+                if re.search(pattern, tag_str, re.IGNORECASE):
+                    return True
+
+        # 4. Verificar no título (pode conter indicadores)
+        title = self._extract_title(entry).lower()
+        for pattern in open_access_patterns:
+            if re.search(pattern, title, re.IGNORECASE):
+                return True
+
+        # 5. Verificar no abstract/summary
+        abstract = self._extract_abstract(entry)
+        if abstract:
+            abstract_lower = abstract.lower()
+            for pattern in open_access_patterns:
+                if re.search(pattern, abstract_lower, re.IGNORECASE):
+                    return True
+
+        # 6. Verificar na URL (alguns sites indicam OA na URL)
+        url = self._extract_url(entry)
+        if url:
+            url_lower = url.lower()
+            if "open-access" in url_lower or "openaccess" in url_lower:
+                return True
+
+        return False

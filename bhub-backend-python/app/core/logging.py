@@ -8,6 +8,7 @@ from pathlib import Path
 from loguru import logger
 
 from app.config import settings
+from app.core.alerting import create_alert_sink
 from app.core.log_sanitizer import sanitize_for_logging
 
 
@@ -46,6 +47,18 @@ def setup_logging() -> None:
         enqueue=True,  # Thread-safe
     )
 
+    # Handler JSON estruturado (produção ou quando habilitado)
+    if settings.log_json or settings.is_production:
+        logger.add(
+            log_dir / "combined.json.log",
+            level="DEBUG",
+            rotation=settings.log_rotation,
+            retention=settings.log_retention,
+            compression="gz",
+            enqueue=True,
+            serialize=True,
+        )
+
     # Handler para erros
     logger.add(
         log_dir / "error.log",
@@ -68,6 +81,17 @@ def setup_logging() -> None:
         enqueue=True,
     )
 
+    # Alertas mínimos via webhook (opcional)
+    if settings.alert_webhook_url:
+        logger.add(
+            create_alert_sink(
+                settings.alert_webhook_url,
+                settings.alert_timeout_seconds,
+            ),
+            level=settings.alert_min_level,
+            enqueue=True,
+        )
+
     logger.info("Logging configurado com sucesso")
 
 
@@ -79,14 +103,14 @@ def get_logger(name: str = "bhub"):
 def safe_log(level: str, message: str, *args, **kwargs):
     """
     Função helper para logging seguro com sanitização automática.
-    
+
     Uso:
         safe_log("info", "Login attempt: {email}", email=user.email)
     """
     # Sanitizar mensagem e argumentos
     sanitized_message = sanitize_for_logging(message)
     sanitized_kwargs = sanitize_for_logging(kwargs) if kwargs else {}
-    
+
     # Chamar logger apropriado
     log_func = getattr(logger, level.lower(), logger.info)
     log_func(sanitized_message, *args, **sanitized_kwargs)

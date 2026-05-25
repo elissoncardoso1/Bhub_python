@@ -2,8 +2,6 @@
 Classificador de artigos usando embeddings.
 """
 
-import json
-from typing import Any
 
 import numpy as np
 from sentence_transformers import SentenceTransformer
@@ -54,7 +52,7 @@ class EmbeddingClassifier:
     async def load_category_embeddings(cls, categories: list[dict]) -> None:
         """
         Carrega embeddings das categorias.
-        
+
         Args:
             categories: Lista de dicts com name, description, keywords
         """
@@ -91,11 +89,11 @@ class EmbeddingClassifier:
     ) -> tuple[str, float]:
         """
         Classifica um texto em uma categoria.
-        
+
         Args:
             text: Texto para classificar (título + abstract + keywords)
             threshold: Limiar mínimo de confiança
-            
+
         Returns:
             Tupla (categoria_slug, confiança)
         """
@@ -213,6 +211,20 @@ class HeuristicClassifier:
     """
 
     CATEGORY_KEYWORDS = {
+        # Autismo tem prioridade alta - verificado primeiro
+        "autismo": [
+            "autismo", "autista", "autistas", "autistic", "autism",
+            "TEA", "ASD", "espectro autista", "spectrum", "espectro",
+            "neurodivergente", "neurodivergência", "introvertendo",
+            "vivências autistas", "pessoa autista", "adulto autista",
+        ],
+        # Notícias para conteúdo não-científico
+        "noticias": [
+            "podcast", "episódio", "entrevista", "relato", "vivência",
+            "vivências", "experiência pessoal", "depoimento", "conversa",
+            "bate-papo", "evento", "congresso", "conferência", "notícia",
+            "news", "announcement", "comunicado",
+        ],
         "clinica": [
             "clínica", "terapia", "tratamento", "intervenção", "paciente",
             "cliente", "sessão", "consultório", "atendimento", "transtorno",
@@ -237,13 +249,23 @@ class HeuristicClassifier:
             "research", "experiment", "methodology", "data", "analysis",
             "hypothesis", "laboratory", "empirical",
         ],
+        "behaviorismo-radical": [
+            "behaviorismo radical", "radical behaviorism", "skinner",
+            "seleção por consequências", "eventos privados", "filosofia",
+            "epistemologia", "ontogenia", "filogenia",
+        ],
+        "comportamento-verbal": [
+            "comportamento verbal", "verbal behavior", "tato", "mando",
+            "intraverbal", "ecoico", "autoclítico", "textual", "RFT",
+            "relational frame", "frames relacionais",
+        ],
     }
 
     @classmethod
     def classify(cls, text: str) -> tuple[str, float]:
         """
         Classifica texto usando heurística de keywords.
-        
+
         Returns:
             Tupla (categoria_slug, confiança)
         """
@@ -251,6 +273,11 @@ class HeuristicClassifier:
             return ("outros", 0.0)
 
         text_lower = text.lower()
+
+        # Verificar autismo primeiro (prioridade)
+        autismo_score = sum(1 for kw in cls.CATEGORY_KEYWORDS["autismo"] if kw.lower() in text_lower)
+        if autismo_score >= 2:
+            return ("autismo", min(autismo_score / 3.0, 1.0))
 
         scores = {}
         for category, keywords in cls.CATEGORY_KEYWORDS.items():

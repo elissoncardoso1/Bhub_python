@@ -2,14 +2,13 @@
 Middleware para gerenciar tokens CSRF automaticamente.
 """
 
-from typing import Callable
+from collections.abc import Callable
 
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 
 from app.core.csrf import csrf_protection
-from app.core.logging import log
 
 
 class CSRFMiddleware(BaseHTTPMiddleware):
@@ -40,20 +39,26 @@ class CSRFMiddleware(BaseHTTPMiddleware):
             "/api/v1/auth/login",  # Login usa outro método
             "/api/v1/auth/refresh",  # Refresh token usa outro método
         }
-        
+
         path = request.url.path
         if any(path.startswith(excluded) for excluded in excluded_paths):
             return await call_next(request)
 
         # Para requisições GET/HEAD, gerar ou manter token CSRF
         if request.method in ("GET", "HEAD"):
-            response = await call_next(request)
-            
-            # Se não há token CSRF no cookie, gerar um novo
-            if not csrf_protection.get_token_from_cookie(request):
+            # Se não há token CSRF no cookie, gerar ANTES do handler para que
+            # páginas SSR possam embutir o token no HTML com consistência.
+            token = csrf_protection.get_token_from_cookie(request)
+            if not token:
                 token = csrf_protection.generate_token()
+                request.state.csrf_token = token
+
+            response = await call_next(request)
+
+            # Se não havia token no cookie, definir agora usando o mesmo token.
+            if not csrf_protection.get_token_from_cookie(request):
                 csrf_protection.set_csrf_cookie(response, token)
-            
+
             return response
 
         # Para requisições mutáveis, validar CSRF se auto_validate estiver ativo
@@ -71,4 +76,3 @@ class CSRFMiddleware(BaseHTTPMiddleware):
                 )
 
         return await call_next(request)
-

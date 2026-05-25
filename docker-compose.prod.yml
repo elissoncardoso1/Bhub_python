@@ -1,0 +1,152 @@
+# BHUB - Docker Compose Production
+# Configuração completa para produção com Backend e Frontend
+
+version: "3.8"
+
+services:
+  backend:
+    build:
+      context: ./bhub-backend-python
+      dockerfile: Dockerfile.prod
+    container_name: bhub-backend
+    restart: unless-stopped
+
+    networks:
+      - bhub-network
+
+    # Ports (apenas interno, Nginx faz proxy)
+    expose:
+      - "8000"
+    ports:
+      - "127.0.0.1:8000:8000"
+
+    # Volumes persistentes
+    volumes:
+      - ./bhub-backend-python/uploads:/app/uploads:rw
+      - ./bhub-backend-python/logs:/app/logs:rw
+      - ./bhub-backend-python/bhub.db:/app/bhub.db:rw
+
+    # Environment variables
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:///./bhub.db
+      - SECRET_KEY=${SECRET_KEY}
+      - DEBUG=${DEBUG:-false}
+      - ENVIRONMENT=production
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - HUGGINGFACE_API_KEY=${HUGGINGFACE_API_KEY:-}
+      - CRON_SECRET=${CRON_SECRET:-}
+      - ENABLE_SCHEDULER=${ENABLE_SCHEDULER:-true}
+      - SYNC_INTERVAL_HOURS=${SYNC_INTERVAL_HOURS:-1}
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+
+    # Read-only root filesystem (exceto volumes)
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/tmp
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
+
+    # Labels
+    labels:
+      - "com.bhub.service=backend"
+      - "com.bhub.environment=production"
+
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+      args:
+        - BACKEND_URL=${BACKEND_URL:-http://backend:8000}
+    container_name: bhub-frontend
+    restart: unless-stopped
+
+    networks:
+      - bhub-network
+
+    # Ports (apenas interno, Nginx faz proxy)
+    expose:
+      - "3000"
+    ports:
+      - "127.0.0.1:3000:3000"
+
+    # Environment variables
+    environment:
+      - NODE_ENV=production
+      - BACKEND_URL=${BACKEND_URL:-http://backend:8000}
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-/api/v1}
+      - NEXT_PUBLIC_ENABLE_ANALYTICS=${NEXT_PUBLIC_ENABLE_ANALYTICS:-true}
+
+    # Depend on backend
+    depends_on:
+      backend:
+        condition: service_healthy
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
+
+    # Labels
+    labels:
+      - "com.bhub.service=frontend"
+      - "com.bhub.environment=production"
+
+networks:
+  bhub-network:
+    driver: bridge
+    internal: false

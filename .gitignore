@@ -93,8 +93,14 @@ Thumbs.db
 
 # Backup files
 *.bak
+*.bak*
 *.backup
 *~
+
+# Local ML model weights
+*.gguf
+*.ggml
+*.safetensors
 
 # Test coverage
 .coverage
@@ -107,5 +113,3 @@ alembic/versions/*.pyc
 # Local configuration
 config/local/
 local_settings.py
-
-

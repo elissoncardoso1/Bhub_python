@@ -6,7 +6,6 @@ Gerencia o cache de traduções para evitar chamadas repetidas à API.
 import hashlib
 import re
 from datetime import datetime, timedelta
-from typing import Tuple
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,24 +17,24 @@ from app.models.translation_cache import TranslationCache
 def normalize_text(text: str) -> str:
     """
     Normaliza texto para consistência no cache.
-    
+
     Args:
         text: Texto a normalizar
-        
+
     Returns:
         Texto normalizado
     """
     # Remove espaços em branco no início e fim
     text = text.strip()
-    
+
     # Remove espaços duplicados
     text = re.sub(r'\s+', ' ', text)
-    
+
     # Mantém case-sensitive para preservar termos técnicos
     # Mas remove espaços extras e normaliza quebras de linha
     text = text.replace('\n', ' ').replace('\r', ' ')
     text = re.sub(r'\s+', ' ', text)
-    
+
     return text
 
 
@@ -47,21 +46,21 @@ def generate_cache_key(
 ) -> str:
     """
     Gera chave de cache única baseada no texto e parâmetros.
-    
+
     Args:
         text: Texto a traduzir
         source_lang: Idioma de origem
         target_lang: Idioma de destino
         model_version: Versão do modelo usado
-        
+
     Returns:
         Hash SHA256 em hexadecimal
     """
     normalized = normalize_text(text)
-    
+
     # Constrói string única
     key_data = f"{source_lang}|{target_lang}|{normalized}|{model_version}"
-    
+
     # Gera hash SHA256
     hash_obj = hashlib.sha256(key_data.encode('utf-8'))
     return hash_obj.hexdigest()
@@ -69,7 +68,7 @@ def generate_cache_key(
 
 class TranslationCacheService:
     """Serviço para gerenciar cache de traduções."""
-    
+
     @staticmethod
     async def get_cached_translation(
         session: AsyncSession,
@@ -77,11 +76,11 @@ class TranslationCacheService:
     ) -> TranslationCache | None:
         """
         Busca tradução no cache.
-        
+
         Args:
             session: Sessão do banco de dados
             cache_key: Chave de cache (hash)
-            
+
         Returns:
             TranslationCache se encontrado, None caso contrário
         """
@@ -90,7 +89,7 @@ class TranslationCacheService:
         )
         result = await session.execute(stmt)
         return result.scalar_one_or_none()
-    
+
     @staticmethod
     async def update_access_time(
         session: AsyncSession,
@@ -98,7 +97,7 @@ class TranslationCacheService:
     ) -> None:
         """
         Atualiza timestamp de último acesso.
-        
+
         Args:
             session: Sessão do banco de dados
             cache_key: Chave de cache
@@ -110,7 +109,7 @@ class TranslationCacheService:
         )
         await session.execute(stmt)
         await session.commit()
-    
+
     @staticmethod
     async def save_translation(
         session: AsyncSession,
@@ -124,7 +123,7 @@ class TranslationCacheService:
     ) -> TranslationCache:
         """
         Salva tradução no cache.
-        
+
         Args:
             session: Sessão do banco de dados
             cache_key: Chave de cache
@@ -134,7 +133,7 @@ class TranslationCacheService:
             target_language: Idioma de destino
             model: Modelo usado
             provider: Provedor de IA usado
-            
+
         Returns:
             TranslationCache criado
         """
@@ -148,18 +147,18 @@ class TranslationCacheService:
             provider=provider,
             last_accessed_at=datetime.utcnow(),
         )
-        
+
         session.add(translation_cache)
         await session.commit()
         await session.refresh(translation_cache)
-        
+
         log.info(
             f"Tradução salva no cache: {cache_key[:8]}... "
             f"({source_language} -> {target_language})"
         )
-        
+
         return translation_cache
-    
+
     @staticmethod
     async def clean_old_translations(
         session: AsyncSession,
@@ -167,49 +166,49 @@ class TranslationCacheService:
     ) -> int:
         """
         Remove traduções não acessadas há mais de X dias.
-        
+
         Args:
             session: Sessão do banco de dados
             days: Número de dias sem acesso para considerar obsoleto
-            
+
         Returns:
             Número de traduções removidas
         """
         from sqlalchemy import delete
-        
+
         cutoff_date = datetime.utcnow() - timedelta(days=days)
-        
+
         stmt = delete(TranslationCache).where(
             TranslationCache.last_accessed_at < cutoff_date
         )
-        
+
         result = await session.execute(stmt)
         await session.commit()
-        
+
         count = result.rowcount
         if count > 0:
             log.info(f"Removidas {count} traduções antigas do cache")
-        
+
         return count
-    
+
     @staticmethod
     async def get_cache_stats(session: AsyncSession) -> dict:
         """
         Retorna estatísticas do cache.
-        
+
         Args:
             session: Sessão do banco de dados
-            
+
         Returns:
             Dicionário com estatísticas
         """
         from sqlalchemy import func
-        
+
         # Total de traduções
         total_stmt = select(func.count(TranslationCache.id))
         total_result = await session.execute(total_stmt)
         total = total_result.scalar() or 0
-        
+
         # Traduções por idioma
         lang_stmt = (
             select(
@@ -231,7 +230,7 @@ class TranslationCacheService:
             }
             for row in lang_result
         ]
-        
+
         # Traduções mais antigas
         oldest_stmt = (
             select(TranslationCache)
@@ -240,10 +239,9 @@ class TranslationCacheService:
         )
         oldest_result = await session.execute(oldest_stmt)
         oldest = oldest_result.scalar_one_or_none()
-        
+
         return {
             "total": total,
             "by_language": by_language,
             "oldest_access": oldest.last_accessed_at.isoformat() if oldest else None,
         }
-

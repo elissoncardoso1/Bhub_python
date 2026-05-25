@@ -59,7 +59,7 @@ class ImpactRatingService:
     ) -> float:
         """
         Calcula score de impacto do artigo.
-        
+
         Args:
             title: Título do artigo
             abstract: Abstract do artigo
@@ -67,7 +67,7 @@ class ImpactRatingService:
             journal_name: Nome do periódico
             has_doi: Se tem DOI
             use_ai: Se deve tentar usar IA para análise mais sofisticada
-        
+
         Returns:
             Score de 1.0 a 10.0
         """
@@ -85,7 +85,7 @@ class ImpactRatingService:
             try:
                 from app.ai import get_ai_manager
                 ai_manager = get_ai_manager()
-                
+
                 # Se IA externa disponível, usar para análise de impacto
                 if any(p in ai_manager.providers for p in ["deepseek", "openrouter"]):
                     # Análise básica via IA pode melhorar o score
@@ -153,7 +153,7 @@ class ImpactRatingService:
     ) -> list[float]:
         """
         Calcula impacto para múltiplos artigos.
-        
+
         Args:
             articles: Lista de dicts com title, abstract, keywords, journal_name, has_doi
         """

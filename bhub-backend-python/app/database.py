@@ -23,13 +23,29 @@ class Base(DeclarativeBase):
     pass
 
 
-# Configuração do engine para SQLite async
+def _create_engine_kwargs() -> dict:
+    if settings.database_url.startswith("postgresql"):
+        return {
+            "pool_size": 20,
+            "max_overflow": 10,
+            "pool_pre_ping": True,
+            "pool_recycle": 3600,
+        }
+
+    return {
+        "poolclass": StaticPool if ":memory:" in settings.database_url else None,
+        "connect_args": (
+            {"check_same_thread": False, "timeout": 30}
+            if "sqlite" in settings.database_url
+            else {}
+        ),
+    }
+
+
 engine = create_async_engine(
     settings.database_url,
     echo=settings.debug,
-    # SQLite específico: usar StaticPool para conexões em memória
-    poolclass=StaticPool if ":memory:" in settings.database_url else None,
-    connect_args={"check_same_thread": False, "timeout": 30} if "sqlite" in settings.database_url else {},
+    **_create_engine_kwargs(),
 )
 
 from sqlalchemy import event
@@ -92,7 +108,39 @@ async def init_db() -> None:
     Também cria a tabela FTS5 para busca full-text.
     """
     async with engine.begin() as conn:
+        if conn.dialect.name == "postgresql":
+            await conn.execute(text("CREATE EXTENSION IF NOT EXISTS pg_trgm"))
+
         await conn.run_sync(Base.metadata.create_all)
+
+        if conn.dialect.name == "postgresql":
+            await conn.execute(
+                text("""
+                CREATE OR REPLACE FUNCTION articles_search_vector_update()
+                RETURNS TRIGGER AS $$
+                BEGIN
+                    NEW.search_vector :=
+                        setweight(to_tsvector('portuguese', coalesce(NEW.title, '')), 'A') ||
+                        setweight(to_tsvector('portuguese', coalesce(NEW.abstract, '')), 'B') ||
+                        setweight(to_tsvector('english', coalesce(NEW.title, '')), 'A') ||
+                        setweight(to_tsvector('english', coalesce(NEW.abstract, '')), 'B');
+                    RETURN NEW;
+                END;
+                $$ LANGUAGE plpgsql
+                """)
+            )
+            await conn.execute(text("DROP TRIGGER IF EXISTS articles_search_vector_trigger ON articles"))
+            await conn.execute(
+                text("""
+                CREATE TRIGGER articles_search_vector_trigger
+                BEFORE INSERT OR UPDATE ON articles
+                FOR EACH ROW EXECUTE FUNCTION articles_search_vector_update()
+                """)
+            )
+            return
+
+        if conn.dialect.name != "sqlite":
+            return
 
         # Criar tabela FTS5 para busca full-text
         await conn.execute(

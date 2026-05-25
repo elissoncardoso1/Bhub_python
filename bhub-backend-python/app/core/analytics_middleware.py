@@ -3,18 +3,17 @@ Middleware para captura automática de eventos de analytics.
 Respeita privacidade e não coleta dados pessoais identificáveis.
 """
 
-import hashlib
+from collections.abc import Callable
 from datetime import datetime
-from typing import Callable
 
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 
+from app.config import settings
+from app.database import get_session_context
 from app.models.analytics import EventType
 from app.services.analytics_service import AnalyticsService
-from app.database import get_session_context
-from app.config import settings
 
 
 class AnalyticsMiddleware(BaseHTTPMiddleware):
@@ -51,6 +50,9 @@ class AnalyticsMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         # Gerar ou obter session_id
+        had_session = bool(
+            request.headers.get("X-Session-ID") or request.cookies.get("analytics_session_id")
+        )
         session_id = self._get_or_create_session_id(request)
 
         # Processar requisição
@@ -73,6 +75,18 @@ class AnalyticsMiddleware(BaseHTTPMiddleware):
 
         # Adicionar session_id no header da resposta
         response.headers["X-Session-ID"] = session_id
+
+        # Persistir session_id em cookie para SSR/HTMX (não depende de header no client)
+        if not had_session:
+            response.set_cookie(
+                key="analytics_session_id",
+                value=session_id,
+                httponly=True,
+                secure=not settings.is_development,
+                samesite="lax",
+                max_age=3600 * 24 * 30,  # 30 dias
+                path="/",
+            )
 
         return response
 
@@ -126,10 +140,10 @@ class AnalyticsMiddleware(BaseHTTPMiddleware):
         async with get_session_context() as db:
             # Anonimizar IP para compliance LGPD/GDPR
             from app.core.ip_anonymization import anonymize_ip, should_anonymize_ip
-            
+
             raw_ip = request.client.host if request.client else None
             ip_address = anonymize_ip(raw_ip) if should_anonymize_ip() else raw_ip
-            
+
             # Obter ou criar sessão
             await AnalyticsService.get_or_create_session(
                 db=db,
@@ -152,4 +166,3 @@ class AnalyticsMiddleware(BaseHTTPMiddleware):
             )
 
             await db.commit()
-

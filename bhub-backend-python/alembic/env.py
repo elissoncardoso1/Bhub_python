@@ -24,6 +24,7 @@ from app.models import (  # noqa: F401
     PDFMetadata,
     TranslationCache,
     User,
+    article_categories,  # Tabela de associação many-to-many
 )
 
 # this is the Alembic Config object, which provides

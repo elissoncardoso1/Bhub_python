@@ -12,6 +12,12 @@ from app.ai.manager import (
     get_ai_manager,
 )
 
+# Import condicional para evitar erro se dependências não estiverem instaladas
+try:
+    from app.ai.local_llm_service import LocalLLMService
+except ImportError:
+    LocalLLMService = None  # type: ignore
+
 __all__ = [
     "AIManager",
     "AIProvider",
@@ -19,5 +25,6 @@ __all__ = [
     "DeepSeekService",
     "OpenRouterService",
     "HuggingFaceService",
+    "LocalLLMService",
     "get_ai_manager",
 ]

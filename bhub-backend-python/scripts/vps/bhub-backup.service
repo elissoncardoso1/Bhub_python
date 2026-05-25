@@ -1,0 +1,8 @@
+[Unit]
+Description=BHUB Backup
+
+[Service]
+Type=oneshot
+User=www-data
+Group=www-data
+ExecStart=/var/www/bhub/backend/scripts/vps/backup.sh

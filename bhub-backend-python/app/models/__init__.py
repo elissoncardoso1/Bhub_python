@@ -2,7 +2,15 @@
 Modelos SQLAlchemy da aplicação BHUB.
 """
 
+from app.models.analytics import (
+    AnalyticsEvent,
+    AnalyticsMetric,
+    AnalyticsSession,
+    EventType,
+    SessionStatus,
+)
 from app.models.article import Article, SourceType
+from app.models.article_category import article_categories
 from app.models.author import Author, article_authors
 from app.models.banner import Banner, BannerPosition
 from app.models.base import BaseModel, TimestampMixin
@@ -18,15 +26,10 @@ from app.models.feed import (
     SyncFrequency,
 )
 from app.models.pdf_metadata import PDFMetadata, ProcessingStatus
+from app.models.refresh_token import RefreshToken
+from app.models.scheduler_lock import SchedulerLock
 from app.models.translation_cache import TranslationCache
 from app.models.user import User, UserRole
-from app.models.analytics import (
-    AnalyticsEvent,
-    AnalyticsMetric,
-    AnalyticsSession,
-    EventType,
-    SessionStatus,
-)
 
 __all__ = [
     # Base
@@ -49,6 +52,8 @@ __all__ = [
     # Author
     "Author",
     "article_authors",
+    # Article-Category Association
+    "article_categories",
     # Article
     "Article",
     "SourceType",
@@ -69,4 +74,8 @@ __all__ = [
     "AnalyticsMetric",
     "EventType",
     "SessionStatus",
+    # Scheduler Lock
+    "SchedulerLock",
+    # Refresh Token
+    "RefreshToken",
 ]

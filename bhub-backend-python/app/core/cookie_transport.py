@@ -2,11 +2,9 @@
 Transport customizado para autenticação usando HttpOnly cookies.
 """
 
-from typing import Optional
 
 from fastapi import Response
-from fastapi_users.authentication import AuthenticationBackend, BearerTransport
-from fastapi_users.authentication.transport.base import TransportLogoutNotSupportedError
+from fastapi_users.authentication import BearerTransport
 
 
 class CookieTransport(BearerTransport):
@@ -14,7 +12,7 @@ class CookieTransport(BearerTransport):
     Transport que usa cookies HttpOnly para tokens JWT.
     Mais seguro que Bearer tokens no header Authorization.
     """
-    
+
     def __init__(
         self,
         cookie_name: str = "access_token",
@@ -30,7 +28,7 @@ class CookieTransport(BearerTransport):
         self.cookie_samesite = cookie_samesite
         # Manter compatibilidade com BearerTransport para tokenUrl
         super().__init__(tokenUrl="/api/v1/auth/login")
-    
+
     async def login(self, token: str, response: Response) -> None:
         """Define o token em um cookie HttpOnly."""
         response.set_cookie(
@@ -46,7 +44,7 @@ class CookieTransport(BearerTransport):
         # TODO: Remover isso após migração completa do frontend
         response.body = f'{{"access_token": "{token}", "token_type": "bearer"}}'.encode()
         response.headers["Content-Type"] = "application/json"
-    
+
     async def logout(self, response: Response) -> None:
         """Remove o cookie de autenticação."""
         response.delete_cookie(
@@ -56,18 +54,17 @@ class CookieTransport(BearerTransport):
             samesite=self.cookie_samesite,
             path="/",
         )
-    
-    def get_token_from_request(self, request) -> Optional[str]:
+
+    def get_token_from_request(self, request) -> str | None:
         """Obtém o token do cookie ou do header Authorization (compatibilidade)."""
         # Primeiro tentar obter do cookie
         token = request.cookies.get(self.cookie_name)
         if token:
             return token
-        
+
         # Fallback para header Authorization (compatibilidade)
         authorization = request.headers.get("Authorization")
         if authorization and authorization.startswith("Bearer "):
             return authorization.split(" ")[1]
-        
-        return None
 
+        return None

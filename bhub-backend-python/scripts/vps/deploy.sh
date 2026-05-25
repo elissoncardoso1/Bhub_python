@@ -64,6 +64,25 @@ fi
 
 cd "$BACKEND_DIR"
 
+# 3.1 Configurar backup automático (systemd timer)
+if command -v systemctl >/dev/null 2>&1; then
+    if [ -f "$BACKEND_DIR/scripts/vps/bhub-backup.service" ] && [ -f "$BACKEND_DIR/scripts/vps/bhub-backup.timer" ]; then
+        if [ "$EUID" -ne 0 ]; then
+            warning "Backup automático requer root: execute novamente com sudo para habilitar o timer"
+        else
+            cp "$BACKEND_DIR/scripts/vps/bhub-backup.service" /etc/systemd/system/bhub-backup.service
+            cp "$BACKEND_DIR/scripts/vps/bhub-backup.timer" /etc/systemd/system/bhub-backup.timer
+            systemctl daemon-reload
+            systemctl enable --now bhub-backup.timer || warning "Falha ao habilitar bhub-backup.timer"
+            log "Backup automático configurado (systemd timer)"
+        fi
+    else
+        warning "Arquivos do systemd para backup não encontrados"
+    fi
+else
+    warning "systemctl não encontrado; backup automático não configurado"
+fi
+
 # Criar .env se não existir
 if [ ! -f ".env" ]; then
     log "Criando arquivo .env..."
@@ -84,6 +103,9 @@ CRON_SECRET=$(openssl rand -hex 16)
 DEBUG=false
 ENVIRONMENT=production
 ALLOWED_ORIGINS=https://${DOMAIN:-localhost},https://www.${DOMAIN:-localhost}
+SCHEDULER_MODE=app
+LOG_JSON=true
+ALERT_WEBHOOK_URL=
 
 # AI Services (configure suas chaves)
 DEEPSEEK_API_KEY=
@@ -133,10 +155,10 @@ log "Fazendo deploy do frontend..."
 
 # Localizar diretório do frontend
 FRONTEND_SOURCE=""
-if [ -d "../Frontend/workspace-2a3ac13c-ec98-4e6d-b282-2b37ac9303e6" ]; then
-    FRONTEND_SOURCE="../Frontend/workspace-2a3ac13c-ec98-4e6d-b282-2b37ac9303e6"
-elif [ -d "../../Frontend/workspace-2a3ac13c-ec98-4e6d-b282-2b37ac9303e6" ]; then
-    FRONTEND_SOURCE="../../Frontend/workspace-2a3ac13c-ec98-4e6d-b282-2b37ac9303e6"
+if [ -d "../Frontend" ]; then
+    FRONTEND_SOURCE="../Frontend"
+elif [ -d "../../Frontend" ]; then
+    FRONTEND_SOURCE="../../Frontend"
 else
     error "Diretório do frontend não encontrado"
 fi
@@ -147,13 +169,13 @@ cd "$FRONTEND_DIR"
 
 # Instalar dependências
 log "Instalando dependências do frontend..."
-npm ci --production
+npm install --no-audit --no-fund
 
 # Criar .env.local
 if [ ! -f ".env.local" ]; then
     log "Criando .env.local..."
     cat > .env.local << EOF
-NEXT_PUBLIC_API_URL=https://${DOMAIN:-localhost}/api
+NEXT_PUBLIC_API_URL=/api/v1
 NEXT_PUBLIC_ENABLE_ANALYTICS=true
 EOF
 fi
@@ -172,17 +194,17 @@ pm2 save
 log "Configurando Nginx..."
 if [ -f "$BACKEND_DIR/config/nginx/bhub.conf" ]; then
     cp "$BACKEND_DIR/config/nginx/bhub.conf" /etc/nginx/sites-available/bhub
-    
+
     # Substituir variáveis no arquivo
     sed -i "s/seudominio.com/${DOMAIN:-localhost}/g" /etc/nginx/sites-available/bhub
-    
+
     # Ativar site
     ln -sf /etc/nginx/sites-available/bhub /etc/nginx/sites-enabled/
     rm -f /etc/nginx/sites-enabled/default
-    
+
     # Testar configuração
     nginx -t || error "Configuração do Nginx inválida"
-    
+
     # Recarregar Nginx
     systemctl reload nginx
     log "Nginx configurado"
@@ -222,4 +244,3 @@ log "Próximos passos:"
 log "1. Configure SSL: sudo certbot --nginx -d ${DOMAIN:-seu-dominio.com}"
 log "2. Verifique os logs: pm2 logs bhub-frontend"
 log "3. Verifique o backend: docker-compose -f docker-compose.prod.yml logs -f"
-

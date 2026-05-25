@@ -2,9 +2,7 @@
 Schemas de autor.
 """
 
-from typing import Optional
 
-from pydantic import Field
 
 from app.schemas.common import BaseSchema
 

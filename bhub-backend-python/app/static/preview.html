@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BHUB – Preview de Design</title>
+
+  <!-- Tailwind CDN com paleta customizada -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              50:  '#e6f7f5',
+              100: '#b3e8e2',
+              200: '#80d9cf',
+              300: '#4dcabc',
+              400: '#3fb5a3',
+              500: '#10908d',
+              600: '#0d7a78',
+              700: '#135a5a',
+              800: '#0f4847',
+              900: '#0b3536',
+            },
+            accent: { light: '#daedd6' },
+          },
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+        }
+      }
+    }
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Inter Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Design Tokens -->
+  <style>
+    :root {
+      --color-primary-50: #e6f7f5;
+      --color-primary-100: #b3e8e2;
+      --color-primary-200: #80d9cf;
+      --color-primary-300: #4dcabc;
+      --color-primary-400: #3fb5a3;
+      --color-primary-500: #10908d;
+      --color-primary-600: #0d7a78;
+      --color-primary-700: #135a5a;
+      --color-primary-800: #0f4847;
+      --color-primary-900: #0b3536;
+      --color-accent-light: #daedd6;
+      --color-bg-primary: #ffffff;
+      --color-bg-secondary: #daedd6;
+      --color-bg-tertiary: #f9fafb;
+      --color-bg-hover: #e6f7f5;
+      --color-text-primary: #0b3536;
+      --color-text-secondary: #135a5a;
+      --color-text-tertiary: #525252;
+      --color-text-muted: #737373;
+      --color-border-light: #e5e5e5;
+      --color-border-medium: #d4d4d4;
+      --color-border-dark: #135a5a;
+      --color-info-50: #eff6ff;
+      --color-info-100: #dbeafe;
+      --color-info-600: #2563eb;
+      --color-success-50: #f0fdf4;
+      --color-success-100: #dcfce7;
+      --color-success-700: #15803d;
+      --color-warning-600: #d97706;
+      --font-size-xs: 0.75rem;
+      --font-size-sm: 0.875rem;
+      --font-size-base: 1rem;
+      --font-size-lg: 1.125rem;
+      --font-size-xl: 1.25rem;
+      --font-size-2xl: 1.5rem;
+      --font-weight-medium: 500;
+      --font-weight-semibold: 600;
+      --font-weight-bold: 700;
+      --line-height-tight: 1.25;
+      --line-height-normal: 1.5;
+      --radius-sm: 0.375rem;
+      --radius-md: 0.5rem;
+      --radius-full: 9999px;
+      --space-1: 0.25rem;
+      --space-2: 0.5rem;
+      --space-3: 0.75rem;
+      --space-4: 1rem;
+      --shadow-md: 0 4px 6px -1px rgba(11,53,54,.1), 0 2px 4px -1px rgba(11,53,54,.06);
+      --transition-fast: 150ms ease-in-out;
+      --transition-base: 250ms ease-in-out;
+    }
+
+    body { font-family: 'Inter', sans-serif; }
+
+    /* ── Article Card ── */
+    .article-card {
+      background: var(--color-bg-primary);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-md);
+      padding: var(--space-4);
+      display: flex;
+      flex-direction: column;
+      min-height: 280px;
+      transition: var(--transition-base);
+    }
+    .article-card:hover {
+      border-color: var(--color-primary-400);
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
+    }
+    .article-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-3);
+      margin-bottom: var(--space-3);
+    }
+    .article-tags { display: flex; gap: var(--space-2); flex: 1; }
+    .article-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      padding: var(--space-1) var(--space-3);
+      border-radius: var(--radius-full);
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-medium);
+      white-space: nowrap;
+      color: #fff;
+    }
+    .article-tag.category-clinica       { background: #0d7370; }
+    .article-tag.category-pesquisa      { background: #1e40af; }
+    .article-tag.category-autismo       { background: #be185d; }
+    .article-tag.category-educacao      { background: #5b21b6; }
+    .article-tag.category-behaviorismo  { background: #6d28d9; }
+    .article-tag.category-noticias      { background: #c2410c; }
+
+    .article-header-actions { display: flex; gap: var(--space-1); flex-shrink: 0; }
+    .article-header-icon {
+      width: 32px; height: 32px;
+      border: 1px solid var(--color-border-light);
+      background: var(--color-bg-primary);
+      border-radius: var(--radius-md);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: var(--color-text-tertiary);
+      transition: var(--transition-fast);
+    }
+    .article-header-icon:hover {
+      border-color: var(--color-primary-400);
+      background: var(--color-bg-hover);
+    }
+    .article-title {
+      font-size: 19px;
+      font-weight: var(--font-weight-bold);
+      color: var(--color-text-primary);
+      line-height: var(--line-height-tight);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      margin: 0 0 var(--space-3);
+    }
+    .article-title a { color: inherit; text-decoration: none; }
+    .article-title a:hover { color: var(--color-primary-400); }
+    .article-authors {
+      display: flex; align-items: center; gap: var(--space-2);
+      font-size: var(--font-size-sm); color: var(--color-text-secondary);
+      font-style: italic; margin-bottom: var(--space-2);
+    }
+    .article-metadata {
+      display: flex; align-items: center; flex-wrap: wrap;
+      gap: var(--space-2); font-size: var(--font-size-sm);
+      color: var(--color-text-tertiary); margin-bottom: var(--space-3);
+    }
+    .metadata-sep { color: var(--color-text-muted); }
+    .article-description {
+      font-size: var(--font-size-sm); color: var(--color-text-secondary);
+      line-height: var(--line-height-normal);
+      display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+      overflow: hidden; font-style: italic; margin: 0 0 var(--space-3);
+    }
+    .article-metrics {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: var(--space-3); margin-bottom: var(--space-4);
+    }
+    .metric-card {
+      border-radius: var(--radius-md); padding: var(--space-2) var(--space-3);
+      display: flex; flex-direction: column; gap: var(--space-1); min-height: 60px;
+    }
+    .metric-card.impact-card {
+      background: linear-gradient(135deg, var(--color-info-50), var(--color-info-100));
+    }
+    .metric-card.relevance-card {
+      background: linear-gradient(135deg, var(--color-success-50), var(--color-primary-50));
+    }
+    .metric-label {
+      font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold);
+      text-transform: uppercase; letter-spacing: .3px; color: var(--color-info-600);
+    }
+    .metric-card.relevance-card .metric-label { color: var(--color-success-700); }
+    .metric-value {
+      font-size: var(--font-size-xl); font-weight: var(--font-weight-bold);
+      color: var(--color-info-600); display: flex; align-items: baseline; gap: 2px;
+    }
+    .metric-card.relevance-card .metric-value { color: var(--color-success-700); font-size: var(--font-size-2xl); }
+    .metric-unit { font-size: var(--font-size-sm); opacity: .8; }
+    .metric-bar {
+      width: 100%; height: 3px; background: var(--color-info-100);
+      border-radius: var(--radius-sm); overflow: hidden; margin-top: auto;
+    }
+    .metric-bar-fill { height: 100%; background: var(--color-info-600); border-radius: var(--radius-sm); }
+    .metric-card.relevance-card .metric-bar { background: var(--color-success-100); }
+    .metric-card.relevance-card .metric-bar-fill { background: var(--color-success-700); }
+    .article-footer {
+      display: flex; gap: var(--space-2);
+      padding-top: var(--space-3); border-top: 1px solid var(--color-border-light);
+      margin-top: auto;
+    }
+    .article-button {
+      flex: 1; padding: var(--space-2) var(--space-3); border: none;
+      border-radius: var(--radius-md); font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-semibold); cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: var(--space-1);
+      transition: var(--transition-base); text-decoration: none; min-height: 44px;
+      font-family: inherit;
+    }
+    .article-button-primary {
+      background: var(--color-primary-400); color: var(--color-text-primary);
+    }
+    .article-button-primary:hover { background: var(--color-primary-500); }
+    .article-button-secondary {
+      background: var(--color-bg-primary); color: var(--color-text-secondary);
+      border: 1px solid var(--color-border-medium);
+    }
+    .article-button-secondary:hover {
+      background: var(--color-bg-hover); border-color: var(--color-primary-400);
+    }
+
+    /* ── Blob animation (hero) ── */
+    @keyframes blob {
+      0%   { transform: translate(0,0) scale(1); }
+      33%  { transform: translate(30px,-50px) scale(1.1); }
+      66%  { transform: translate(-20px,20px) scale(0.9); }
+      100% { transform: translate(0,0) scale(1); }
+    }
+    .animate-blob { animation: blob 7s infinite; }
+    .animation-delay-2000 { animation-delay: 2s; }
+  </style>
+</head>
+
+<body class="bg-slate-50 font-sans antialiased min-h-screen flex flex-col">
+
+<!-- ═══════════════════════════════════════ NAVBAR ═══════════════════════════════════════ -->
+<nav class="sticky top-0 z-40 w-full bg-white border-b border-slate-200 shadow-sm">
+  <div class="container mx-auto px-4 h-16 flex items-center justify-between">
+
+    <!-- Logo -->
+    <a href="#" class="flex items-center gap-2 group">
+      <span class="bg-primary-500 text-white p-1.5 rounded-lg">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M9.5 2a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5z"/>
+          <path d="M14.5 2a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5z"/>
+          <path d="M3.5 9a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5z"/>
+          <path d="M20.5 9a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5z"/>
+          <path d="M9.5 17a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5z"/>
+          <path d="M14.5 17a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5z"/>
+          <line x1="12" y1="4.5" x2="12" y2="19.5"/>
+          <line x1="3.5" y1="11.5" x2="20.5" y2="11.5"/>
+        </svg>
+      </span>
+      <div class="flex flex-col">
+        <span class="font-bold text-xl text-slate-900 leading-none">BHUB</span>
+        <span class="text-xs text-slate-500 font-medium hidden sm:block">Behavior Hub</span>
+      </div>
+    </a>
+
+    <!-- Desktop Nav -->
+    <div class="hidden lg:flex items-center gap-8">
+      <a href="#" class="text-primary-600 border-b-2 border-primary-500 font-medium py-5 flex items-center">Início</a>
+      <a href="#" class="text-slate-600 hover:text-primary-600 font-medium py-5 flex items-center transition-colors">Artigos</a>
+      <a href="#" class="text-slate-600 hover:text-primary-600 font-medium py-5 flex items-center transition-colors">Análises</a>
+      <a href="#" class="text-slate-600 hover:text-primary-600 font-medium py-5 flex items-center transition-colors">Sobre</a>
+      <a href="#" class="text-slate-600 hover:text-primary-600 font-medium py-5 flex items-center transition-colors">Contato</a>
+    </div>
+
+    <!-- Right Actions -->
+    <div class="flex items-center gap-4">
+      <div class="relative hidden sm:block">
+        <input type="search" placeholder="Buscar artigos..."
+          class="w-64 pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 text-sm" />
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+      </div>
+      <a href="#" class="text-sm font-semibold text-slate-700 hover:text-primary-600 px-3 py-2 hidden sm:flex items-center">Entrar</a>
+      <a href="#" class="bg-primary-500 hover:bg-primary-600 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition-all hidden sm:flex items-center">Cadastrar</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════ MAIN ════════════════════════════════════════ -->
+<main class="flex-grow container mx-auto px-4 py-8">
+
+  <!-- Hero -->
+  <section class="mb-12 text-center py-12 bg-gradient-to-b from-primary-50 to-white rounded-3xl border border-primary-100 relative overflow-hidden">
+    <div class="absolute top-0 left-0 w-64 h-64 bg-primary-100 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
+    <div class="absolute top-0 right-0 w-64 h-64 bg-accent-light rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
+
+    <div class="relative z-10 max-w-4xl mx-auto px-4">
+      <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold text-slate-900 tracking-tight mb-4">
+        Agregação Inteligente de <br>
+        <span class="text-transparent bg-clip-text bg-gradient-to-r from-primary-500 to-primary-700">
+          Análise do Comportamento
+        </span>
+      </h1>
+      <p class="text-xl md:text-2xl text-slate-600 mb-8 max-w-2xl mx-auto leading-relaxed">
+        Descubra, analise e acesse as últimas pesquisas científicas em um único lugar, potencializado por Machine Learning.
+      </p>
+
+      <div class="flex items-center justify-center gap-4">
+        <a href="#articles" class="flex items-center justify-center px-8 py-3.5 text-base font-semibold text-white bg-primary-500 rounded-xl hover:bg-primary-600 hover:shadow-lg hover:-translate-y-0.5 transition-all">
+          Explorar Artigos
+        </a>
+        <a href="#" class="flex items-center justify-center px-8 py-3.5 text-base font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 hover:text-primary-600 transition-all">
+          Saiba como funciona
+        </a>
+      </div>
+
+      <!-- Stats mini-bar -->
+      <div class="mt-12 flex items-center justify-center gap-16 text-slate-500 text-sm font-medium">
+        <div class="flex items-center gap-2">
+          <svg class="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <span>+1.200 Artigos</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <svg class="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+          <span>Diversas Fontes</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+          <span>Atualização Diária</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Articles Section -->
+  <section id="articles" class="scroll-mt-24">
+    <div class="flex gap-8">
+
+      <!-- Sidebar Filters -->
+      <aside class="w-64 flex-shrink-0">
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sticky top-24">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="font-bold text-slate-900">Filtros</h3>
+            <button class="text-xs text-primary-600 hover:underline px-2 py-1">Limpar</button>
+          </div>
+
+          <!-- Search -->
+          <div class="mb-4">
+            <label class="block text-xs font-semibold text-slate-500 uppercase mb-2">Busca</label>
+            <input type="text" placeholder="Palavras-chave..."
+              class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-400 focus:border-transparent" />
+          </div>
+
+          <!-- Categories -->
+          <div class="mb-6">
+            <label class="block text-xs font-semibold text-slate-500 uppercase mb-2">Categorias</label>
+            <div class="space-y-1 max-h-60 overflow-y-auto pr-1">
+              <label class="flex items-center gap-2 text-sm text-slate-700 hover:text-primary-600 cursor-pointer p-2 rounded-lg hover:bg-slate-50">
+                <input type="checkbox" class="rounded text-primary-500 border-slate-300 w-4 h-4" checked>
+                <span class="flex-grow">Clínica</span>
+                <span class="text-xs text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">142</span>
+              </label>
+              <label class="flex items-center gap-2 text-sm text-slate-700 hover:text-primary-600 cursor-pointer p-2 rounded-lg hover:bg-slate-50">
+                <input type="checkbox" class="rounded text-primary-500 border-slate-300 w-4 h-4">
+                <span class="flex-grow">Autismo (ABA)</span>
+                <span class="text-xs text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">98</span>
+              </label>
+              <label class="flex items-center gap-2 text-sm text-slate-700 hover:text-primary-600 cursor-pointer p-2 rounded-lg hover:bg-slate-50">
+                <input type="checkbox" class="rounded text-primary-500 border-slate-300 w-4 h-4">
+                <span class="flex-grow">Pesquisa Básica</span>
+                <span class="text-xs text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">87</span>
+              </label>
+              <label class="flex items-center gap-2 text-sm text-slate-700 hover:text-primary-600 cursor-pointer p-2 rounded-lg hover:bg-slate-50">
+                <input type="checkbox" class="rounded text-primary-500 border-slate-300 w-4 h-4">
+                <span class="flex-grow">Educação</span>
+                <span class="text-xs text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">64</span>
+              </label>
+              <label class="flex items-center gap-2 text-sm text-slate-700 hover:text-primary-600 cursor-pointer p-2 rounded-lg hover:bg-slate-50">
+                <input type="checkbox" class="rounded text-primary-500 border-slate-300 w-4 h-4">
+                <span class="flex-grow">Comportamento Verbal</span>
+                <span class="text-xs text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">51</span>
+              </label>
+              <label class="flex items-center gap-2 text-sm text-slate-700 hover:text-primary-600 cursor-pointer p-2 rounded-lg hover:bg-slate-50">
+                <input type="checkbox" class="rounded text-primary-500 border-slate-300 w-4 h-4">
+                <span class="flex-grow">Organizacional</span>
+                <span class="text-xs text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">39</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Source -->
+          <div class="mb-6">
+            <label class="block text-xs font-semibold text-slate-500 uppercase mb-2">Fonte</label>
+            <select class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-400">
+              <option>Todas</option>
+              <option>Periódicos (Journals)</option>
+              <option>Portais & Blogs</option>
+            </select>
+          </div>
+
+          <div class="pt-4 border-t border-slate-100">
+            <button class="w-full py-2.5 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 transition-colors shadow-sm">
+              Aplicar Filtros
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <div class="flex-1 min-w-0">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+
+          <!-- Column 1: Periódicos -->
+          <div class="flex flex-col gap-6">
+            <div class="flex items-center gap-3 pb-4 border-b border-slate-200">
+              <div class="w-10 h-10 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center flex-shrink-0">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                </svg>
+              </div>
+              <div>
+                <h2 class="text-xl font-bold text-slate-900">Periódicos Científicos</h2>
+                <p class="text-sm text-slate-500">Publicações revisadas por pares</p>
+              </div>
+            </div>
+
+            <!-- Article Card 1 -->
+            <article class="article-card">
+              <div class="article-header">
+                <div class="article-tags">
+                  <span class="article-tag category-clinica">Clínica</span>
+                </div>
+                <div class="article-header-actions">
+                  <button class="article-header-icon">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m19 21-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                  </button>
+                  <button class="article-header-icon">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                  </button>
+                  <button class="article-header-icon">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                  </button>
+                </div>
+              </div>
+
+              <h3 class="article-title">
+                <a href="#">Eficácia do Treino de Comunicação Funcional no Tratamento de Comportamentos Desafiadores em Crianças com TEA</a>
+              </h3>
+              <div class="article-authors">
+                <svg class="w-4 h-4 text-primary-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <span>Smith, J. A. <em class="text-slate-400">et al.</em></span>
+              </div>
+              <div class="article-metadata">
+                <time>Jan 2025</time>
+                <span class="metadata-sep">•</span>
+                <span>Journal of Applied Behavior Analysis</span>
+                <span class="metadata-sep">•</span>
+                <span>EN</span>
+                <span class="metadata-sep">•</span>
+                <span class="font-semibold text-green-700">8.4</span>
+              </div>
+              <p class="article-description">
+                Este estudo examina a eficácia do FCT como intervenção primária para redução de comportamentos autolesivos e agressividade em crianças diagnosticadas com Transtorno do Espectro Autista.
+              </p>
+              <div class="article-metrics">
+                <div class="metric-card impact-card">
+                  <div class="metric-label">Impact</div>
+                  <div class="metric-value">8.4<span class="metric-unit">/10</span></div>
+                  <div class="metric-bar"><div class="metric-bar-fill" style="width:84%"></div></div>
+                </div>
+                <div class="metric-card relevance-card">
+                  <div class="metric-label">Relevância</div>
+                  <div class="metric-value">92<span class="metric-unit">%</span></div>
+                  <div class="metric-bar"><div class="metric-bar-fill" style="width:92%"></div></div>
+                </div>
+              </div>
+              <div class="article-footer">
+                <a href="#" class="article-button article-button-primary">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                  Ler original
+                </a>
+                <a href="#" class="article-button article-button-secondary">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                  Ver detalhes
+                </a>
+              </div>
+            </article>
+
+            <!-- Article Card 2 -->
+            <article class="article-card">
+              <div class="article-header">
+                <div class="article-tags">
+                  <span class="article-tag category-pesquisa">Pesquisa</span>
+                </div>
+                <div class="article-header-actions">
+                  <button class="article-header-icon"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m19 21-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
+                  <button class="article-header-icon"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></button>
+                </div>
+              </div>
+              <h3 class="article-title">
+                <a href="#">Contingências de Reforçamento e Variabilidade Comportamental: Uma Revisão Meta-analítica</a>
+              </h3>
+              <div class="article-authors">
+                <svg class="w-4 h-4 text-primary-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                <span>Oliveira, M. C.</span>
+              </div>
+              <div class="article-metadata">
+                <time>Dez 2024</time>
+                <span class="metadata-sep">•</span>
+                <span>Behavior Analysis: Research and Practice</span>
+                <span class="metadata-sep">•</span>
+                <span>PT</span>
+                <span class="metadata-sep">•</span>
+                <span class="font-semibold text-amber-600">6.1</span>
+              </div>
+              <p class="article-description">
+                Revisão sistemática de 45 estudos publicados entre 2010 e 2024 sobre como diferentes esquemas de reforçamento afetam a variabilidade comportamental em contextos laboratoriais e clínicos.
+              </p>
+              <div class="article-metrics">
+                <div class="metric-card impact-card">
+                  <div class="metric-label">Impact</div>
+                  <div class="metric-value">6.1<span class="metric-unit">/10</span></div>
+                  <div class="metric-bar"><div class="metric-bar-fill" style="width:61%"></div></div>
+                </div>
+                <div class="metric-card relevance-card">
+                  <div class="metric-label">Relevância</div>
+                  <div class="metric-value">78<span class="metric-unit">%</span></div>
+                  <div class="metric-bar"><div class="metric-bar-fill" style="width:78%"></div></div>
+                </div>
+              </div>
+              <div class="article-footer">
+                <a href="#" class="article-button article-button-primary">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                  Ler original
+                </a>
+                <a href="#" class="article-button article-button-secondary">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                  Ver detalhes
+                </a>
+              </div>
+            </article>
+          </div>
+
+          <!-- Column 2: Blogs & Portais -->
+          <div class="flex flex-col gap-6">
+            <div class="flex items-center gap-3 pb-4 border-b border-slate-200">
+              <div class="w-10 h-10 rounded-lg bg-orange-50 text-orange-500 flex items-center justify-center flex-shrink-0">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/>
+                </svg>
+              </div>
+              <div>
+                <h2 class="text-xl font-bold text-slate-900">Blogs e Portais</h2>
+                <p class="text-sm text-slate-500">Notícias e artigos informativos</p>
+              </div>
+            </div>
+
+            <!-- Article Card 3 -->
+            <article class="article-card">
+              <div class="article-header">
+                <div class="article-tags">
+                  <span class="article-tag category-noticias">Notícias</span>
+                </div>
+                <div class="article-header-actions">
+                  <button class="article-header-icon"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m19 21-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
+                  <button class="article-header-icon"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></button>
+                </div>
+              </div>
+              <h3 class="article-title">
+                <a href="#">ABA e Tecnologia: Como Apps de Rastreamento Estão Transformando Intervenções Comportamentais</a>
+              </h3>
+              <div class="article-authors">
+                <svg class="w-4 h-4 text-primary-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                <span>Redação ABAI</span>
+              </div>
+              <div class="article-metadata">
+                <time>15 Jan 2025</time>
+                <span class="metadata-sep">•</span>
+                <span>ABAI Blog</span>
+                <span class="metadata-sep">•</span>
+                <span>EN</span>
+                <span class="metadata-sep">•</span>
+                <span class="font-semibold text-primary-700">4.2</span>
+              </div>
+              <p class="article-description">
+                Uma análise das principais ferramentas digitais usadas por analistas do comportamento para coleta de dados em tempo real e tomada de decisão baseada em evidências.
+              </p>
+              <div class="article-metrics">
+                <div class="metric-card impact-card">
+                  <div class="metric-label">Impact</div>
+                  <div class="metric-value">4.2<span class="metric-unit">/10</span></div>
+                  <div class="metric-bar"><div class="metric-bar-fill" style="width:42%"></div></div>
+                </div>
+                <div class="metric-card relevance-card">
+                  <div class="metric-label">Relevância</div>
+                  <div class="metric-value">65<span class="metric-unit">%</span></div>
+                  <div class="metric-bar"><div class="metric-bar-fill" style="width:65%"></div></div>
+                </div>
+              </div>
+              <div class="article-footer">
+                <a href="#" class="article-button article-button-primary">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                  Ler original
+                </a>
+                <a href="#" class="article-button article-button-secondary">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                  Ver detalhes
+                </a>
+              </div>
+            </article>
+
+            <!-- Article Card 4 -->
+            <article class="article-card">
+              <div class="article-header">
+                <div class="article-tags">
+                  <span class="article-tag category-autismo">Autismo</span>
+                </div>
+                <div class="article-header-actions">
+                  <button class="article-header-icon"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m19 21-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
+                  <button class="article-header-icon"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></button>
+                </div>
+              </div>
+              <h3 class="article-title">
+                <a href="#">Naturalista vs. Mesa: Comparação de Contextos de Ensino para Habilidades de Imitação em TEA</a>
+              </h3>
+              <div class="article-authors">
+                <svg class="w-4 h-4 text-primary-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <span>Costa, R. S. <em class="text-slate-400">et al.</em></span>
+              </div>
+              <div class="article-metadata">
+                <time>Nov 2024</time>
+                <span class="metadata-sep">•</span>
+                <span>Behavior Therapy Blog</span>
+                <span class="metadata-sep">•</span>
+                <span>PT</span>
+                <span class="metadata-sep">•</span>
+                <span class="font-semibold text-amber-600">5.7</span>
+              </div>
+              <p class="article-description">
+                Comparação sistemática entre ensino incidental em ambientes naturais e treino em mesa para aquisição de habilidades imitativas em crianças com nível 1 e 2 de suporte.
+              </p>
+              <div class="article-metrics">
+                <div class="metric-card impact-card">
+                  <div class="metric-label">Impact</div>
+                  <div class="metric-value">5.7<span class="metric-unit">/10</span></div>
+                  <div class="metric-bar"><div class="metric-bar-fill" style="width:57%"></div></div>
+                </div>
+                <div class="metric-card relevance-card">
+                  <div class="metric-label">Relevância</div>
+                  <div class="metric-value">83<span class="metric-unit">%</span></div>
+                  <div class="metric-bar"><div class="metric-bar-fill" style="width:83%"></div></div>
+                </div>
+              </div>
+              <div class="article-footer">
+                <a href="#" class="article-button article-button-primary">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                  Ler original
+                </a>
+                <a href="#" class="article-button article-button-secondary">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                  Ver detalhes
+                </a>
+              </div>
+            </article>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ═══════════════════════════════════════ FOOTER ══════════════════════════════════════ -->
+<footer class="bg-primary-900 text-primary-100 mt-16">
+  <div class="container mx-auto px-4 py-12">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+      <div class="md:col-span-2">
+        <div class="flex items-center gap-2 mb-4">
+          <span class="bg-primary-500 text-white p-1.5 rounded-lg">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/></svg>
+          </span>
+          <span class="font-bold text-xl text-white">BHUB</span>
+        </div>
+        <p class="text-primary-300 text-sm leading-relaxed max-w-sm">
+          Plataforma inteligente para agregação e análise de artigos científicos em Análise do Comportamento, potencializada por Machine Learning.
+        </p>
+      </div>
+      <div>
+        <h4 class="font-semibold text-white mb-4 text-sm uppercase tracking-wide">Navegação</h4>
+        <ul class="space-y-2 text-sm text-primary-300">
+          <li><a href="#" class="hover:text-white transition-colors">Início</a></li>
+          <li><a href="#" class="hover:text-white transition-colors">Artigos</a></li>
+          <li><a href="#" class="hover:text-white transition-colors">Análises</a></li>
+          <li><a href="#" class="hover:text-white transition-colors">Sobre</a></li>
+          <li><a href="#" class="hover:text-white transition-colors">Contato</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="font-semibold text-white mb-4 text-sm uppercase tracking-wide">Categorias</h4>
+        <ul class="space-y-2 text-sm text-primary-300">
+          <li><a href="#" class="hover:text-white transition-colors">Clínica</a></li>
+          <li><a href="#" class="hover:text-white transition-colors">Autismo (ABA)</a></li>
+          <li><a href="#" class="hover:text-white transition-colors">Pesquisa Básica</a></li>
+          <li><a href="#" class="hover:text-white transition-colors">Educação</a></li>
+          <li><a href="#" class="hover:text-white transition-colors">Comportamento Verbal</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="border-t border-primary-800 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <p class="text-primary-400 text-sm">© 2025 BHUB – Behavior Hub. Todos os direitos reservados.</p>
+      <p class="text-primary-500 text-xs">Desenvolvido com FastAPI + HTMX + Tailwind CSS</p>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

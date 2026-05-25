@@ -2,28 +2,27 @@
 Serviço de agregação de feeds RSS/Atom.
 """
 
-import asyncio
 import time
 from datetime import datetime
 
-from app.services.background_tasks import classify_article_task
 import feedparser
 import httpx
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import settings
 from app.core.logging import log
-from app.models import Article, Author, Feed, FeedType, SourceType
+from app.models import Article, Author, Feed, SourceType
 from app.schemas.feed import FeedSyncAllResult, FeedSyncResult, FeedTestResult
 from app.services.article_parser import ArticleParserService
+from app.services.task_dispatcher import dispatch_classify_article, dispatch_download_pdf
 
 
 class FeedAggregatorService:
     """Serviço para agregação de feeds RSS/Atom."""
 
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: AsyncSession, ai_manager=None):
         self.db = db
+        self.ai_manager = ai_manager
         self.parser = ArticleParserService()
         self.http_client = httpx.AsyncClient(
             timeout=30.0,
@@ -128,12 +127,19 @@ class FeedAggregatorService:
 
             # Processar cada item
             articles_to_classify = []
+            articles_to_download_pdf = []
             for entry in parsed.entries:
                 try:
-                    created_article_id = await self._process_feed_entry(feed, entry)
+                    created_article_id, article_data = await self._process_feed_entry(feed, entry)
                     if created_article_id:
                         new_articles += 1
                         articles_to_classify.append(created_article_id)
+
+                        # Verificar se é open access e tem PDF URL para download
+                        if article_data and article_data.get("is_open_access") and article_data.get("pdf_url"):
+                            articles_to_download_pdf.append(
+                                (created_article_id, article_data.get("pdf_url"))
+                            )
                 except Exception as e:
                     log.error(f"Erro ao processar entrada: {e}")
                     errors.append(str(e))
@@ -147,12 +153,23 @@ class FeedAggregatorService:
             feed.total_articles += new_articles
 
             await self.db.commit()
+            from app.core.telemetry import record_feed_ingested
+
+            record_feed_ingested(new_articles, feed.name)
 
             # Disparar tarefas de classificação em background após commit
             if articles_to_classify:
                 for art_id in articles_to_classify:
-                    asyncio.create_task(classify_article_task(art_id))
-                log.info(f"Disparadas {len(articles_to_classify)} tarefas de classificação em background")
+                    job_id = await dispatch_classify_article(art_id)
+                    log.debug(f"Classificação enfileirada: job={job_id} artigo={art_id}")
+                log.info(f"Enfileiradas {len(articles_to_classify)} tarefas de classificação")
+
+            # Disparar tarefas de download de PDF para artigos open access
+            if articles_to_download_pdf:
+                for art_id, pdf_url in articles_to_download_pdf:
+                    job_id = await dispatch_download_pdf(art_id, pdf_url)
+                    log.debug(f"Download de PDF enfileirado: job={job_id} artigo={art_id}")
+                log.info(f"Enfileiradas {len(articles_to_download_pdf)} tarefas de download de PDF")
 
             duration = time.time() - start_time
             log.info(f"Feed {feed.name} sincronizado: {new_articles} novos artigos em {duration:.2f}s")
@@ -168,6 +185,9 @@ class FeedAggregatorService:
 
         except Exception as e:
             log.error(f"Erro ao sincronizar feed {feed.name}: {e}")
+            from app.core.telemetry import record_feed_failed
+
+            record_feed_failed(feed.name)
 
             # Atualizar contagem de erros
             feed.last_sync_at = datetime.utcnow()
@@ -184,7 +204,7 @@ class FeedAggregatorService:
                 duration_seconds=time.time() - start_time,
             )
 
-    async def _process_feed_entry(self, feed: Feed, entry: dict) -> int | None:
+    async def _process_feed_entry(self, feed: Feed, entry: dict) -> tuple[int | None, dict | None]:
         """Processa uma entrada do feed e cria artigo se necessário. Retorna ID do artigo criado."""
         # Gerar ID externo
         external_id = self.parser.generate_external_id(entry, feed.id)
@@ -194,11 +214,11 @@ class FeedAggregatorService:
             select(Article).where(Article.external_id == external_id)
         )
         if existing.scalar_one_or_none():
-            return None
+            return None, None
 
         # Parse dos dados do artigo
         article_data = self.parser.parse_entry(entry, journal_name=feed.journal_name)
-        
+
         # Fallback de autor: se não vier no feed, tentar buscar na página (específico para Springer/BAP)
         if not article_data.get("authors") and article_data.get("url"):
             domain = ""
@@ -207,7 +227,7 @@ class FeedAggregatorService:
                 domain = urlparse(article_data["url"]).netloc
             except:
                 pass
-                
+
             # Adicionar domínios que sabemos que precisam disso
             if "springer.com" in domain or "wiley.com" in domain:
                 try:
@@ -241,8 +261,10 @@ class FeedAggregatorService:
             source_type=SourceType.RSS,
             feed_id=feed.id,
             image_url=article_data.get("image_url"),
+            pdf_url=article_data.get("pdf_url"),
             category_id=None, # Será preenchido via background task
             classification_confidence=None,
+            is_open_access=article_data.get("is_open_access", False),
         )
 
         self.db.add(article)
@@ -252,13 +274,13 @@ class FeedAggregatorService:
         author_names = article_data.get("authors", [])
         await self._process_authors(article, author_names)
 
-        return article.id
+        return article.id, article_data
 
     async def _process_authors(self, article: Article, author_names: list[dict]):
         """Processa e associa autores ao artigo."""
         if not author_names:
             return
-            
+
         # Obter autores existentes
         existing_authors = {}
         if author_names: # author_names is now a list of dicts [{'name': '...', 'role': '...'}]
@@ -271,21 +293,22 @@ class FeedAggregatorService:
                     existing_authors = {a.normalized_name: a for a in result.scalars().all()}
 
         # Importar dinamicamente para evitar circular imports se necessário, ou usar o já importado
-        from sqlalchemy import text, insert
-        from app.models.author import article_authors 
+        from sqlalchemy import insert
+
+        from app.models.author import article_authors
 
         for idx, author_info in enumerate(author_names):
             name = author_info.get('name')
             role = author_info.get('role', 'author')
-            
+
             if not name or len(name.strip()) < 2:
                 continue
 
             norm_name = Author.normalize_name(name)
-            
+
             if not norm_name:
                 continue
-            
+
             author = existing_authors.get(norm_name)
             if not author:
                 # Double check in DB to avoid dupes from other concurrent tasks (rare but possible)
@@ -293,7 +316,7 @@ class FeedAggregatorService:
                 stmt = select(Author).where(Author.normalized_name == norm_name)
                 result = await self.db.execute(stmt)
                 author = result.scalar_one_or_none()
-                
+
                 if author:
                     existing_authors[norm_name] = author
                 else:
@@ -301,7 +324,7 @@ class FeedAggregatorService:
                     self.db.add(author)
                     await self.db.flush() # Ensure ID is generated
                     existing_authors[norm_name] = author
-            
+
             check_stmt = select(article_authors).where(
                 article_authors.c.article_id == article.id,
                 article_authors.c.author_id == author.id

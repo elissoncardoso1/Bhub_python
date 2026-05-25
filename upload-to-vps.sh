@@ -78,7 +78,7 @@ rsync -avz --progress \
 # Upload do Frontend
 echo ""
 echo -e "${GREEN}Upload do Frontend...${NC}"
-if [ -d "Frontend/workspace-2a3ac13c-ec98-4e6d-b282-2b37ac9303e6" ]; then
+if [ -d "Frontend" ]; then
     rsync -avz --progress \
       -e "ssh -p $SSH_PORT" \
       --exclude '.git' \
@@ -87,7 +87,7 @@ if [ -d "Frontend/workspace-2a3ac13c-ec98-4e6d-b282-2b37ac9303e6" ]; then
       --exclude '.env.local' \
       --exclude 'dev.log' \
       --exclude 'server.log' \
-      Frontend/workspace-2a3ac13c-ec98-4e6d-b282-2b37ac9303e6/ $VPS_USER@$VPS_HOST:$VPS_PATH/frontend/
+      Frontend/ $VPS_USER@$VPS_HOST:$VPS_PATH/frontend/
 else
     echo -e "${YELLOW}Diretório do frontend não encontrado. Pulando...${NC}"
 fi
@@ -112,4 +112,3 @@ echo "  3. nano .env  # Configure as variáveis"
 echo "  4. sudo bash scripts/vps/setup-vps.sh"
 echo "  5. DOMAIN=seudominio.com bash scripts/vps/deploy.sh"
 echo ""
-

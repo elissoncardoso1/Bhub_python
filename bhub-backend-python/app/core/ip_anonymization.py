@@ -3,22 +3,21 @@ Utilitários para anonimização de endereços IP (LGPD/GDPR compliance).
 """
 
 import ipaddress
-from typing import Optional
 
 
-def anonymize_ip(ip_address: Optional[str]) -> Optional[str]:
+def anonymize_ip(ip_address: str | None) -> str | None:
     """
     Anonimiza um endereço IP removendo o último octeto (IPv4) ou últimos 64 bits (IPv6).
-    
+
     Isso mantém informações geográficas gerais enquanto protege a privacidade
     do usuário individual, em conformidade com LGPD/GDPR.
-    
+
     Args:
         ip_address: Endereço IP a ser anonimizado (ex: "192.168.1.100")
-    
+
     Returns:
         IP anonimizado (ex: "192.168.1.0") ou None se IP inválido
-    
+
     Examples:
         >>> anonymize_ip("192.168.1.100")
         "192.168.1.0"
@@ -31,7 +30,7 @@ def anonymize_ip(ip_address: Optional[str]) -> Optional[str]:
     """
     if not ip_address:
         return None
-    
+
     try:
         # Tentar parsear como IPv4
         ip = ipaddress.IPv4Address(ip_address)
@@ -65,16 +64,15 @@ def anonymize_ip(ip_address: Optional[str]) -> Optional[str]:
 def should_anonymize_ip() -> bool:
     """
     Verifica se IPs devem ser anonimizados baseado em configuração.
-    
+
     Por padrão, sempre anonimizar em produção para compliance LGPD/GDPR.
     """
     from app.config import settings
-    
+
     # Sempre anonimizar em produção
     if settings.is_production:
         return True
-    
+
     # Em desenvolvimento, pode ser configurável via env
     # Por padrão, anonimizar também
     return True
-

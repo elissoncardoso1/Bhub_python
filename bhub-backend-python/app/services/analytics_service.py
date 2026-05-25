@@ -3,17 +3,14 @@ Serviço de analytics para coleta e análise de dados.
 """
 
 import hashlib
-import json
 from datetime import datetime, timedelta
 from typing import Any
-from urllib.parse import urlparse
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.analytics import (
     AnalyticsEvent,
-    AnalyticsMetric,
     AnalyticsSession,
     EventType,
     SessionStatus,
@@ -240,11 +237,24 @@ class AnalyticsService:
             )
         ) or 0
 
-        # Sessões únicas (por user_id ou session_id)
-        unique_visitors = await db.scalar(
+        # Visitantes autenticados únicos (distinct user_id).
+        authenticated_visitors = await db.scalar(
             select(func.count(func.distinct(AnalyticsSession.user_id)))
-            .where(AnalyticsSession.started_at >= start_date)
+            .where(
+                AnalyticsSession.started_at >= start_date,
+                AnalyticsSession.user_id.isnot(None),
+            )
         ) or 0
+
+        # Visitantes anônimos únicos (distinct session_id quando user_id é nulo).
+        anonymous_visitors = await db.scalar(
+            select(func.count(func.distinct(AnalyticsSession.session_id)))
+            .where(
+                AnalyticsSession.started_at >= start_date,
+                AnalyticsSession.user_id.is_(None),
+            )
+        ) or 0
+        unique_visitors = authenticated_visitors + anonymous_visitors
 
         # Total de page views
         total_page_views = await db.scalar(
@@ -379,4 +389,3 @@ class AnalyticsService:
         rows = result.fetchall()
 
         return [{"path": row[0], "views": row[1]} for row in rows]
-

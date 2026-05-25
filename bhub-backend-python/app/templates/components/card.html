@@ -1,0 +1,222 @@
+<article class="article-card{% if compact %} article-card--compact{% endif %}"
+         itemscope
+         itemtype="https://schema.org/ScholarlyArticle"
+         role="article"
+         aria-labelledby="article-title-{{ article.id }}"
+         aria-describedby="article-description-{{ article.id }}">
+    <!-- Cabeçalho: Chip único + Ações -->
+    <div class="article-header">
+        <div class="article-tags" role="list" aria-label="Categorias do artigo">
+            {% if article.category %}
+            <span class="article-tag category-{{ article.category.slug }}" role="listitem" aria-label="Categoria: {{ article.category.name }}">
+                <span class="icon icon-svg" aria-hidden="true">
+                    {% if article.category.slug == 'clinica' %}
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21h-4a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2z"></path><path d="M13 7H9a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"></path><path d="M3 10h2a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2z"></path></svg>
+                    {% elif article.category.slug == 'pesquisa' %}
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg>
+                    {% elif article.category.slug == 'educacao' %}
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                    {% elif article.category.slug == 'organizacional' %}
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+                    {% elif article.category.slug == 'autismo' %}
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                    {% elif article.category.slug == 'behaviorismo-radical' %}
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 1 14 18.469V19a2 2 0 1 1-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+                    {% elif article.category.slug == 'comportamento-verbal' %}
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                    {% elif article.category.slug == 'noticias' %}
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"></path><path d="M18 14h-8"></path><path d="M15 18h-5"></path><path d="M10 6h8v4h-8V6Z"></path></svg>
+                    {% else %}
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path><path d="M16 13H8"></path><path d="M16 17H8"></path><path d="M10 9H8"></path></svg>
+                    {% endif %}
+                </span>
+                <span>{{ article.category.name|upper }}</span>
+            </span>
+            {% endif %}
+        </div>
+
+        <!-- Ícones de ação rápida (alinhados com página de detalhe) -->
+        <div class="article-header-actions" role="group" aria-label="Ações rápidas">
+            <button
+                type="button"
+                class="article-header-icon"
+                aria-label="Salvar artigo"
+                onclick="toggleSaveArticle({{ article.id }})">
+                {{ icon('bookmark', 'w-4 h-4', aria_hidden=True) | safe }}
+                <span class="sr-only">Salvar</span>
+            </button>
+
+            {% if article.doi %}
+            <button
+                type="button"
+                class="article-header-icon"
+                aria-label="Copiar DOI"
+                onclick="copyDOI('{{ article.doi }}')">
+                {{ icon('copy', 'w-4 h-4', aria_hidden=True) | safe }}
+                <span class="sr-only">Copiar DOI</span>
+            </button>
+            {% endif %}
+
+            <button
+                type="button"
+                class="article-header-icon"
+                aria-label="Compartilhar artigo"
+                onclick="shareArticle({{ article.id }}, '{{ (article.title_translated or article.title)|replace("'", "\\'") }}')">
+                {{ icon('share-2', 'w-4 h-4', aria_hidden=True) | safe }}
+                <span class="sr-only">Compartilhar</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Título -->
+    <h3 class="article-title" id="article-title-{{ article.id }}">
+        <a href="/articles/{{ article.id }}"
+           class="article-title-link"
+           itemprop="headline"
+           title="{{ article.title_translated or article.title }}"
+           aria-label="Ver detalhes do artigo: {{ article.title_translated or article.title }}">
+            {{ article.title_translated or article.title }}
+        </a>
+    </h3>
+
+    <!-- Autores: Formato curto -->
+    <div class="article-authors" itemprop="author" itemscope itemtype="https://schema.org/Person">
+        <div class="authors-short">
+            {{ icon('users', 'w-4 h-4', aria_hidden=True) | safe }}
+            <span itemprop="name">
+                {% if article.authors %}
+                    {% set first_author = article.authors[0] %}
+                    <span>{{ first_author.name }}</span>
+                    {% if article.authors|length > 1 %}
+                        <span class="metadata-et-al">et al.</span>
+                    {% endif %}
+                {% else %}
+                    <span>Autores desconhecidos</span>
+                {% endif %}
+            </span>
+        </div>
+    </div>
+
+    <!-- Metadata: Ordem alinhada com página de detalhe (Data • Journal • Idioma • Impacto) -->
+    <div class="article-metadata" role="list" aria-label="Metadados do artigo">
+        <div class="metadata-item metadata-inline" role="listitem">
+            <!-- Data -->
+            {% if article.publication_date %}
+            <time class="metadata-date" datetime="{{ article.publication_date.isoformat() }}" itemprop="datePublished">
+                {{ article.publication_date | date_fmt_br('month_year') if article.publication_date else '' }}
+            </time>
+            <span class="metadata-separator" aria-hidden="true">•</span>
+            {% endif %}
+
+            <!-- Journal/Fonte -->
+            {% if article.journal_name %}
+            <span class="metadata-source" itemprop="publisher" itemscope itemtype="https://schema.org/Organization">
+                <span itemprop="name">{{ article.journal_name }}</span>
+            </span>
+            {% elif article.feed %}
+            <span class="metadata-source">{{ article.feed.name }}</span>
+            {% endif %}
+
+            <!-- Idioma -->
+            {% if article.language %}
+            <span class="metadata-separator" aria-hidden="true">•</span>
+            <span class="metadata-language" itemprop="inLanguage">{{ article.language|upper }}</span>
+            {% endif %}
+
+            <!-- Impacto -->
+            {% if article.impact_score is not none %}
+            <span class="metadata-separator" aria-hidden="true">•</span>
+            <span class="metadata-impact metadata-impact-inline {% if article.impact_score > 7 %}high{% elif article.impact_score > 4 %}medium{% else %}low{% endif %}">
+                {{ "%.1f"|format(article.impact_score) }}
+            </span>
+            {% endif %}
+
+            <!-- DOI (link discreto) -->
+            {% if article.doi %}
+            <span class="metadata-separator" aria-hidden="true">•</span>
+            <a href="https://doi.org/{{ article.doi }}"
+               target="_blank"
+               rel="noopener noreferrer"
+               class="metadata-doi"
+               itemprop="identifier"
+               itemscope
+               itemtype="https://schema.org/PropertyValue">
+                <span itemprop="propertyID">DOI</span>
+                <span itemprop="value">{{ article.doi }}</span>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Descrição -->
+    {% if article.abstract_translated or article.abstract %}
+    <p class="article-description" id="article-description-{{ article.id }}" itemprop="description">
+        {{ article.abstract_translated or article.abstract }}
+    </p>
+    {% endif %}
+
+    <!-- Métricas -->
+    <div class="article-metrics" role="group" aria-label="Métricas do artigo">
+        <!-- Impact Score -->
+        <div class="metric-card impact-card" role="status" aria-label="Score de impacto: {{ article.impact_score|format_float(1) }} de 10">
+            <div class="metric-label">
+                <span class="icon icon-svg" aria-hidden="true">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline><polyline points="16 7 22 7 22 13"></polyline></svg>
+                </span>
+                <span>Impact</span>
+            </div>
+            <div class="metric-value">{{ article.impact_score|format_float(1) }}<span class="metric-unit">/10</span></div>
+            <div class="metric-bar" role="progressbar" aria-valuenow="{{ article.impact_score|float }}" aria-valuemin="0" aria-valuemax="10" aria-label="Score de impacto">
+                <div class="metric-bar-fill" style="width: {{ ((article.impact_score|float / 10 * 100)|round(0))|int }}%"></div>
+            </div>
+        </div>
+
+        <!-- Classification Confidence -->
+        {% if article.classification_confidence is not none %}
+        <div class="metric-card relevance-card" role="status" aria-label="Relevância: {{ article.classification_confidence|format_percent }}">
+            <div class="metric-label">
+                <span class="icon icon-svg" aria-hidden="true">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                </span>
+                <span>Relevância</span>
+            </div>
+            <div class="metric-value">{{ article.classification_confidence|format_percent }}<span class="metric-unit">%</span></div>
+            <div class="metric-bar" role="progressbar" aria-valuenow="{{ article.classification_confidence }}" aria-valuemin="0" aria-valuemax="100" aria-label="Relevância">
+                <div class="metric-bar-fill" style="width: {{ article.classification_confidence|format_percent }}%"></div>
+            </div>
+        </div>
+        {% else %}
+        <div class="metric-card relevance-card metric-card-empty" role="status" aria-label="Relevância não disponível">
+            <div class="metric-label">
+                <span class="icon icon-svg" aria-hidden="true">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                </span>
+                <span>Relevância</span>
+            </div>
+            <div class="metric-value-empty">N/A</div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Footer: Ações principais (alinhadas com página de detalhe) -->
+    <div class="article-footer" role="group" aria-label="Ações do artigo">
+        {% if article.link or article.original_url %}
+        <a href="{{ article.link or article.original_url }}"
+           target="_blank"
+           rel="noopener noreferrer"
+           class="article-button article-button-primary"
+           itemprop="url"
+           aria-label="Ler artigo original em nova aba">
+            {{ icon('external-link', 'w-4 h-4', aria_hidden=True) | safe }}
+            <span>Ler original</span>
+        </a>
+        {% endif %}
+
+        <a href="/articles/{{ article.id }}"
+           class="article-button article-button-secondary"
+           aria-label="Ver detalhes completos do artigo">
+            {{ icon('arrow-right', 'w-4 h-4', aria_hidden=True) | safe }}
+            <span>Ver detalhes</span>
+        </a>
+    </div>
+</article>

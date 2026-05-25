@@ -5,7 +5,7 @@ Rotas públicas de banners.
 from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, status
-from sqlalchemy import and_, or_, select
+from sqlalchemy import or_, select
 
 from app.api.deps import DBSession
 from app.models import Banner, BannerPosition
@@ -21,7 +21,7 @@ async def get_banners_by_position(
 ):
     """Retorna banners ativos para uma posição."""
     now = datetime.utcnow()
-    
+
     result = await db.execute(
         select(Banner)
         .where(
@@ -32,14 +32,14 @@ async def get_banners_by_position(
         )
         .order_by(Banner.priority.desc())
     )
-    
+
     banners = result.scalars().all()
-    
+
     # Incrementar visualizações
     for banner in banners:
         banner.view_count += 1
     await db.commit()
-    
+
     return BannerListResponse(
         banners=[BannerResponse.model_validate(b) for b in banners]
     )
@@ -55,14 +55,14 @@ async def track_banner_click(
         select(Banner).where(Banner.id == request.banner_id)
     )
     banner = result.scalar_one_or_none()
-    
+
     if not banner:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Banner não encontrado",
         )
-    
+
     banner.click_count += 1
     await db.commit()
-    
+
     return {"success": True}

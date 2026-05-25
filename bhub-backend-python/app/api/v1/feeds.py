@@ -3,7 +3,7 @@ Rotas públicas de feeds (fontes).
 """
 
 from fastapi import APIRouter
-from sqlalchemy import select, and_
+from sqlalchemy import select
 
 from app.api.deps import DBSession
 from app.models import Feed
@@ -21,7 +21,7 @@ async def list_feeds(db: DBSession):
         .order_by(Feed.name)
     )
     feeds = result.scalars().all()
-    
+
     return FeedListResponse(
         feeds=[FeedResponse.model_validate(f) for f in feeds],
         total=len(feeds)
@@ -38,12 +38,12 @@ async def get_feed(
         select(Feed).where(Feed.id == feed_id)
     )
     feed = result.scalar_one_or_none()
-    
+
     if not feed:
         from fastapi import HTTPException, status
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Feed não encontrado",
         )
-    
+
     return FeedResponse.model_validate(feed)

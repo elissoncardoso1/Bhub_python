@@ -1,0 +1,348 @@
+<nav class="sticky top-0 z-40 w-full bg-white border-b border-slate-200 shadow-sm" role="navigation" aria-label="Navegação principal">
+    <div class="container mx-auto px-4 h-16 flex items-center justify-between">
+        <!-- Logo -->
+        <a href="/" class="flex items-center gap-2 group min-h-[44px] min-w-[44px]" aria-label="BHUB - Behavior Hub - Página inicial">
+            <span class="bg-primary-500 text-white p-1.5 rounded-lg group-hover:bg-primary-600 transition-colors">
+                {{ icon('brain', 'w-6 h-6', aria_hidden=True) | safe }}
+            </span>
+            <div class="flex flex-col">
+                <span class="font-bold text-xl text-slate-900 leading-none">BHUB</span>
+                <span class="text-xs text-slate-500 font-medium hidden sm:block">Behavior Hub</span>
+            </div>
+        </a>
+
+        <!-- Desktop Navigation -->
+        <div class="hidden lg:flex items-center gap-8" role="menubar">
+            <a href="/" role="menuitem" class="text-slate-600 hover:text-primary-600 font-medium transition-colors {% if request.url.path == '/' %}text-primary-600 border-b-2 border-primary-500{% endif %} py-5 min-h-[44px] flex items-center">
+                Início
+            </a>
+            <a href="/articles" role="menuitem" class="text-slate-600 hover:text-primary-600 font-medium transition-colors {% if request.url.path.startswith('/articles') %}text-primary-600 border-b-2 border-primary-500{% endif %} py-5 min-h-[44px] flex items-center">
+                Artigos
+            </a>
+            <a href="/categories" role="menuitem" class="text-slate-600 hover:text-primary-600 font-medium transition-colors {% if request.url.path.startswith('/categories') %}text-primary-600 border-b-2 border-primary-500{% endif %} py-5 min-h-[44px] flex items-center">
+                Análises
+            </a>
+            <a href="/about" role="menuitem" class="text-slate-600 hover:text-primary-600 font-medium transition-colors {% if request.url.path.startswith('/about') %}text-primary-600 border-b-2 border-primary-500{% endif %} py-5 min-h-[44px] flex items-center">
+                Sobre
+            </a>
+            <a href="/contact" role="menuitem" class="text-slate-600 hover:text-primary-600 font-medium transition-colors {% if request.url.path.startswith('/contact') %}text-primary-600 border-b-2 border-primary-500{% endif %} py-5 min-h-[44px] flex items-center">
+                Contato
+            </a>
+        </div>
+
+        <!-- Right Side Actions -->
+        <div class="flex items-center gap-2 sm:gap-4">
+            <!-- Mobile Search Button -->
+            <button
+                type="button"
+                id="mobile-search-btn"
+                aria-label="Abrir busca"
+                aria-expanded="false"
+                aria-controls="mobile-search-modal"
+                class="sm:hidden flex items-center justify-center w-11 h-11 rounded-lg hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-primary-400 transition-colors"
+                onclick="openMobileSearch()"
+            >
+                {{ icon('search', 'w-5 h-5 text-slate-600', aria_hidden=True) | safe }}
+            </button>
+
+            <!-- Desktop Search -->
+            <div class="relative hidden sm:block">
+                <label for="search-input" class="sr-only">
+                    Buscar artigos científicos
+                </label>
+                <input
+                    id="search-input"
+                    type="search"
+                    name="search"
+                    placeholder="Buscar artigos..."
+                    aria-label="Buscar artigos científicos"
+                    aria-describedby="search-description"
+                    aria-controls="search-results"
+                    aria-expanded="false"
+                    autocomplete="off"
+                    class="w-48 md:w-64 pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent text-sm transition-all min-h-[44px]"
+                    hx-get="/search-suggestions"
+                    hx-trigger="keyup changed delay:500ms, search"
+                    hx-target="#search-results"
+                    hx-indicator="#search-spinner"
+                    hx-swap="innerHTML"
+                >
+                <div class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" aria-hidden="true">
+                    {{ icon('search', 'w-4 h-4', aria_hidden=True) | safe }}
+                </div>
+                <div id="search-spinner" class="htmx-indicator absolute right-3 top-1/2 -translate-y-1/2" aria-hidden="true">
+                    <span class="sr-only">Buscando...</span>
+                    {{ icon('loader-2', 'w-4 h-4 animate-spin text-primary-400', aria_hidden=True) | safe }}
+                </div>
+                <div id="search-description" class="sr-only">
+                    Digite para buscar artigos. Use as setas para navegar e Enter para selecionar.
+                </div>
+                <!-- Search Dropdown Results -->
+                <div
+                    id="search-results"
+                    role="listbox"
+                    aria-label="Resultados da busca"
+                    class="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-xl border border-slate-100 hidden empty:hidden z-50 max-h-96 overflow-y-auto"
+                ></div>
+            </div>
+
+            <!-- Profile/Login -->
+            {% if current_user %}
+            <div class="relative">
+                <button
+                    type="button"
+                    aria-label="Menu do usuário"
+                    aria-expanded="false"
+                    aria-haspopup="true"
+                    id="user-menu-button"
+                    class="flex items-center gap-2 p-1.5 rounded-full hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 transition-colors min-w-[44px] min-h-[44px] justify-center"
+                    onclick="toggleUserMenu()"
+                >
+                    <div class="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-semibold border border-primary-200">
+                        {{ current_user.email[0].upper() }}
+                    </div>
+                    <span class="sr-only">Abrir menu do usuário</span>
+                </button>
+                <!-- User Dropdown -->
+                <div
+                    id="user-menu"
+                    role="menu"
+                    aria-labelledby="user-menu-button"
+                    class="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 py-1 hidden z-50"
+                >
+                    <div class="px-4 py-2 border-b border-slate-50">
+                        <p class="text-sm font-medium text-slate-900 truncate" role="none">{{ current_user.email }}</p>
+                    </div>
+                    {% if current_user.is_superuser %}
+                    <a href="/admin" role="menuitem" class="flex items-center gap-2 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-inset min-h-[44px]">
+                        {{ icon('shield', 'w-4 h-4', aria_hidden=True) | safe }} Admin
+                    </a>
+                    {% endif %}
+                    <a href="/profile" role="menuitem" class="flex items-center gap-2 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-inset min-h-[44px]">
+                        {{ icon('user', 'w-4 h-4', aria_hidden=True) | safe }} Perfil
+                    </a>
+                    <a href="/auth/logout" role="menuitem" class="flex items-center gap-2 px-4 py-3 text-sm text-red-600 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-inset min-h-[44px]">
+                        {{ icon('log-out', 'w-4 h-4', aria_hidden=True) | safe }} Sair
+                    </a>
+                </div>
+            </div>
+            {% else %}
+            <div class="hidden sm:flex items-center gap-2">
+                <a href="/login" class="text-sm font-semibold text-slate-700 hover:text-primary-600 transition-colors px-3 py-2 min-h-[44px] flex items-center">
+                    Entrar
+                </a>
+                <a href="/register" class="bg-primary-500 hover:bg-primary-600 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition-all hover:shadow-md min-h-[44px] flex items-center">
+                    Cadastrar
+                </a>
+            </div>
+            {% endif %}
+
+            <!-- Mobile Menu Button -->
+            <button
+                type="button"
+                id="mobile-menu-btn"
+                aria-label="Abrir menu"
+                aria-expanded="false"
+                aria-controls="mobile-menu"
+                class="lg:hidden flex items-center justify-center w-11 h-11 rounded-lg hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-primary-400 transition-colors"
+                onclick="toggleMobileMenu()"
+            >
+                <span id="mobile-menu-icon-open" aria-hidden="true">
+                    {{ icon('menu', 'w-6 h-6 text-slate-600', aria_hidden=True) | safe }}
+                </span>
+                <span id="mobile-menu-icon-close" class="hidden" aria-hidden="true">
+                    {{ icon('x', 'w-6 h-6 text-slate-600', aria_hidden=True) | safe }}
+                </span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Mobile Menu Drawer -->
+    <div
+        id="mobile-menu"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Menu de navegação"
+        class="fixed inset-0 z-50 hidden"
+    >
+        <!-- Overlay -->
+        <div
+            id="mobile-menu-overlay"
+            class="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300 opacity-0"
+            onclick="closeMobileMenu()"
+            aria-hidden="true"
+        ></div>
+
+        <!-- Drawer -->
+        <div
+            id="mobile-menu-drawer"
+            class="fixed top-0 right-0 h-full w-80 max-w-[85vw] bg-white shadow-2xl transform translate-x-full transition-transform duration-300 ease-out overflow-y-auto"
+        >
+            <!-- Drawer Header -->
+            <div class="flex items-center justify-between p-4 border-b border-slate-200">
+                <span class="font-bold text-lg text-slate-900">Menu</span>
+                <button
+                    type="button"
+                    aria-label="Fechar menu"
+                    class="flex items-center justify-center w-11 h-11 rounded-lg hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-primary-400 transition-colors"
+                    onclick="closeMobileMenu()"
+                >
+                    {{ icon('x', 'w-6 h-6 text-slate-600', aria_hidden=True) | safe }}
+                </button>
+            </div>
+
+            <!-- Navigation Links -->
+            <nav class="p-4" aria-label="Menu principal">
+                <ul class="space-y-1" role="menu">
+                    <li role="none">
+                        <a href="/" role="menuitem" class="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-700 hover:bg-slate-50 hover:text-primary-600 transition-colors min-h-[48px] {% if request.url.path == '/' %}bg-primary-50 text-primary-600 font-medium{% endif %}">
+                            {{ icon('home', 'w-5 h-5', aria_hidden=True) | safe }}
+                            <span>Início</span>
+                        </a>
+                    </li>
+                    <li role="none">
+                        <a href="/articles" role="menuitem" class="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-700 hover:bg-slate-50 hover:text-primary-600 transition-colors min-h-[48px] {% if request.url.path.startswith('/articles') %}bg-primary-50 text-primary-600 font-medium{% endif %}">
+                            {{ icon('file-text', 'w-5 h-5', aria_hidden=True) | safe }}
+                            <span>Artigos</span>
+                        </a>
+                    </li>
+                    <li role="none">
+                        <a href="/categories" role="menuitem" class="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-700 hover:bg-slate-50 hover:text-primary-600 transition-colors min-h-[48px] {% if request.url.path.startswith('/categories') %}bg-primary-50 text-primary-600 font-medium{% endif %}">
+                            {{ icon('bar-chart-2', 'w-5 h-5', aria_hidden=True) | safe }}
+                            <span>Análises</span>
+                        </a>
+                    </li>
+                    <li role="none">
+                        <a href="/about" role="menuitem" class="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-700 hover:bg-slate-50 hover:text-primary-600 transition-colors min-h-[48px] {% if request.url.path.startswith('/about') %}bg-primary-50 text-primary-600 font-medium{% endif %}">
+                            {{ icon('info', 'w-5 h-5', aria_hidden=True) | safe }}
+                            <span>Sobre</span>
+                        </a>
+                    </li>
+                    <li role="none">
+                        <a href="/contact" role="menuitem" class="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-700 hover:bg-slate-50 hover:text-primary-600 transition-colors min-h-[48px] {% if request.url.path.startswith('/contact') %}bg-primary-50 text-primary-600 font-medium{% endif %}">
+                            {{ icon('mail', 'w-5 h-5', aria_hidden=True) | safe }}
+                            <span>Contato</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- Divider -->
+            <div class="border-t border-slate-200 mx-4"></div>
+
+            <!-- User Section -->
+            <div class="p-4">
+                {% if current_user %}
+                <div class="bg-slate-50 rounded-lg p-4 mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-semibold border border-primary-200">
+                            {{ current_user.email[0].upper() }}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium text-slate-900 truncate">{{ current_user.email }}</p>
+                            <p class="text-xs text-slate-500">Usuário logado</p>
+                        </div>
+                    </div>
+                </div>
+                <ul class="space-y-1" role="menu">
+                    {% if current_user.is_superuser %}
+                    <li role="none">
+                        <a href="/admin" role="menuitem" class="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-700 hover:bg-slate-50 hover:text-primary-600 transition-colors min-h-[48px]">
+                            {{ icon('shield', 'w-5 h-5', aria_hidden=True) | safe }}
+                            <span>Painel Admin</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                    <li role="none">
+                        <a href="/profile" role="menuitem" class="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-700 hover:bg-slate-50 hover:text-primary-600 transition-colors min-h-[48px]">
+                            {{ icon('user', 'w-5 h-5', aria_hidden=True) | safe }}
+                            <span>Meu Perfil</span>
+                        </a>
+                    </li>
+                    <li role="none">
+                        <a href="/auth/logout" role="menuitem" class="flex items-center gap-3 px-4 py-3 rounded-lg text-red-600 hover:bg-red-50 transition-colors min-h-[48px]">
+                            {{ icon('log-out', 'w-5 h-5', aria_hidden=True) | safe }}
+                            <span>Sair</span>
+                        </a>
+                    </li>
+                </ul>
+                {% else %}
+                <div class="space-y-3">
+                    <a href="/login" class="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-primary-300 transition-colors min-h-[48px] font-medium">
+                        {{ icon('log-in', 'w-5 h-5', aria_hidden=True) | safe }}
+                        <span>Entrar</span>
+                    </a>
+                    <a href="/register" class="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-lg bg-primary-500 text-white hover:bg-primary-600 transition-colors min-h-[48px] font-medium shadow-sm">
+                        {{ icon('user-plus', 'w-5 h-5', aria_hidden=True) | safe }}
+                        <span>Criar Conta</span>
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Search Modal -->
+    <div
+        id="mobile-search-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Buscar artigos"
+        class="fixed inset-0 z-50 hidden"
+    >
+        <!-- Overlay -->
+        <div
+            class="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300"
+            onclick="closeMobileSearch()"
+            aria-hidden="true"
+        ></div>
+
+        <!-- Search Panel -->
+        <div class="fixed top-0 left-0 right-0 bg-white shadow-xl transform transition-transform duration-300">
+            <div class="container mx-auto p-4">
+                <div class="flex items-center gap-3">
+                    <div class="relative flex-1">
+                        <label for="mobile-search-input" class="sr-only">
+                            Buscar artigos científicos
+                        </label>
+                        <input
+                            id="mobile-search-input"
+                            type="search"
+                            name="search"
+                            placeholder="Buscar artigos..."
+                            aria-label="Buscar artigos científicos"
+                            autocomplete="off"
+                            class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent text-base min-h-[48px]"
+                            hx-get="/search-suggestions"
+                            hx-trigger="keyup changed delay:500ms, search"
+                            hx-target="#mobile-search-results"
+                            hx-indicator="#mobile-search-spinner"
+                            hx-swap="innerHTML"
+                        >
+                        <div class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" aria-hidden="true">
+                            {{ icon('search', 'w-5 h-5', aria_hidden=True) | safe }}
+                        </div>
+                        <div id="mobile-search-spinner" class="htmx-indicator absolute right-3 top-1/2 -translate-y-1/2" aria-hidden="true">
+                            {{ icon('loader-2', 'w-5 h-5 animate-spin text-primary-400', aria_hidden=True) | safe }}
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        aria-label="Fechar busca"
+                        class="flex items-center justify-center w-11 h-11 rounded-lg hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-primary-400 transition-colors"
+                        onclick="closeMobileSearch()"
+                    >
+                        {{ icon('x', 'w-6 h-6 text-slate-600', aria_hidden=True) | safe }}
+                    </button>
+                </div>
+                <!-- Mobile Search Results -->
+                <div
+                    id="mobile-search-results"
+                    role="listbox"
+                    aria-label="Resultados da busca"
+                    class="mt-4 empty:hidden max-h-[60vh] overflow-y-auto"
+                ></div>
+            </div>
+        </div>
+    </div>
+</nav>

@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+
+{% block title %}BHUB - Agregação Inteligente de Artigos{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="mb-8 sm:mb-12 text-center py-8 sm:py-12 bg-gradient-to-b from-primary-50 to-white rounded-2xl sm:rounded-3xl border border-primary-100 relative overflow-hidden">
+    <!-- Decorative elements -->
+    <div class="absolute top-0 left-0 w-40 sm:w-64 h-40 sm:h-64 bg-primary-100 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
+    <div class="absolute top-0 right-0 w-40 sm:w-64 h-40 sm:h-64 bg-accent-light rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
+
+    <div class="relative z-10 max-w-4xl mx-auto px-4">
+        <h1 class="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-slate-900 tracking-tight mb-4">
+            Agregação Inteligente de <br class="hidden sm:block">
+            <span class="text-primary-500 bg-clip-text text-transparent bg-gradient-to-r from-primary-500 to-primary-700">
+                Análise do Comportamento
+            </span>
+        </h1>
+        <p class="text-base sm:text-xl md:text-2xl text-slate-600 mb-6 sm:mb-8 max-w-2xl mx-auto leading-relaxed">
+            Descubra, analise e acesse as últimas pesquisas científicas em um único lugar, potencializado por Machine Learning.
+        </p>
+
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+            <a href="#articles-section" class="flex items-center justify-center px-6 sm:px-8 py-3.5 text-base font-semibold text-white bg-primary-500 rounded-xl hover:bg-primary-600 active:bg-primary-700 hover:shadow-lg hover:-translate-y-0.5 transition-all w-full sm:w-auto min-h-[48px]">
+                Explorar Artigos
+            </a>
+            <a href="/about" class="flex items-center justify-center px-6 sm:px-8 py-3.5 text-base font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 hover:text-primary-600 active:bg-slate-100 transition-all w-full sm:w-auto min-h-[48px]">
+                Saiba como funciona
+            </a>
+        </div>
+
+        <!-- Stats Mini-bar -->
+        <div class="mt-8 sm:mt-12 flex flex-wrap items-center justify-center gap-4 sm:gap-8 md:gap-16 text-slate-500 text-xs sm:text-sm font-medium">
+            <div class="flex items-center gap-2">
+                {{ icon('file-text', 'w-4 sm:w-5 h-4 sm:h-5 text-primary-500', aria_hidden=True) | safe }}
+                <span>+{{ total or '1000' }} Artigos</span>
+            </div>
+            <div class="flex items-center gap-2">
+                {{ icon('book-open', 'w-4 sm:w-5 h-4 sm:h-5 text-purple-500', aria_hidden=True) | safe }}
+                <span>Diversas Fontes</span>
+            </div>
+            <div class="flex items-center gap-2 hidden xs:flex">
+                {{ icon('activity', 'w-4 sm:w-5 h-4 sm:h-5 text-green-500', aria_hidden=True) | safe }}
+                <span>Atualização Diária</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Mobile Filter Toggle -->
+<div class="md:hidden mb-4">
+    <button
+        type="button"
+        id="mobile-filter-toggle"
+        class="w-full flex items-center justify-between gap-2 px-4 py-3 bg-white rounded-xl border border-slate-200 shadow-sm text-slate-700 font-medium min-h-[48px]"
+        onclick="toggleMobileFilters()"
+        aria-expanded="false"
+        aria-controls="mobile-filters"
+    >
+        <span class="flex items-center gap-2">
+            {{ icon('sliders', 'w-5 h-5 text-slate-500', aria_hidden=True) | safe }}
+            Filtros
+        </span>
+        <span id="filter-toggle-icon" class="transition-transform">
+            {{ icon('chevron-down', 'w-5 h-5 text-slate-500', aria_hidden=True) | safe }}
+        </span>
+    </button>
+</div>
+
+<!-- Filters & Content Section -->
+<section id="articles-section" class="scroll-mt-20 sm:scroll-mt-24">
+    <div class="flex flex-col md:flex-row gap-6 md:gap-8">
+        <!-- Sidebar Filters (Mobile Collapsible + Desktop Fixed) -->
+        <aside id="mobile-filters" class="w-full md:w-64 flex-shrink-0 hidden md:block" aria-label="Filtros de busca">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6 md:sticky md:top-24">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-bold text-slate-900">Filtros</h3>
+                    <button
+                        type="button"
+                        class="text-xs text-primary-600 hover:underline focus:outline-none focus:ring-2 focus:ring-primary-400 rounded px-2 py-1 min-h-[32px]"
+                        hx-get="/articles?page=1"
+                        hx-target="#articles-grid"
+                        hx-include="[name='search']"
+                        onclick="document.getElementById('filter-form').reset()"
+                    >
+                        Limpar
+                    </button>
+                </div>
+
+                <form id="filter-form" hx-get="/articles" hx-target="#articles-grid" hx-indicator="#loading-indicator">
+                    <!-- Search local -->
+                    <div class="mb-4">
+                        <label for="search-filter" class="block text-xs font-semibold text-slate-500 uppercase mb-2">Busca</label>
+                        <input
+                            type="text"
+                            id="search-filter"
+                            name="search"
+                            placeholder="Palavras-chave..."
+                            class="w-full px-3 py-2.5 sm:py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-400 focus:border-transparent min-h-[44px]"
+                        >
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="block text-xs font-semibold text-slate-500 uppercase mb-2">Categorias</label>
+                        <div class="space-y-1 max-h-48 sm:max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                            {% for cat in categories %}
+                            <label class="flex items-center gap-2 text-sm text-slate-700 hover:text-primary-600 cursor-pointer p-2 rounded-lg hover:bg-slate-50 min-h-[44px]">
+                                <input type="checkbox" name="category_id" value="{{ cat.id }}" class="rounded text-primary-500 focus:ring-primary-400 border-slate-300 w-5 h-5">
+                                <span class="flex-grow truncate">{{ cat.name }}</span>
+                                <span class="text-xs text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">{{ cat.article_count }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="mb-6">
+                        <label for="source-category" class="block text-xs font-semibold text-slate-500 uppercase mb-2">Fonte</label>
+                        <select
+                            id="source-category"
+                            name="source_category"
+                            class="w-full px-3 py-2.5 sm:py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-400 min-h-[44px]"
+                        >
+                            <option value="">Todas</option>
+                            <option value="journal">Periódicos (Journals)</option>
+                            <option value="portal">Portais & Blogs</option>
+                        </select>
+                    </div>
+
+                    <div class="pt-4 border-t border-slate-100">
+                        <button
+                            type="submit"
+                            class="w-full py-3 sm:py-2.5 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 active:bg-primary-700 transition-colors shadow-sm min-h-[48px] sm:min-h-[44px]"
+                        >
+                            Aplicar Filtros
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 min-w-0" id="main-content">
+            <!-- Toolbar (Hidden in Default View to keep it clean, or adapted) -->
+            {% if not is_default_view %}
+            <div class="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <div class="flex items-center gap-2 text-sm text-slate-600">
+                    <span class="font-semibold text-slate-900">{{ total }}</span>
+                    <span class="hidden xs:inline">resultados encontrados</span>
+                    <span class="xs:hidden">resultados</span>
+                    <div id="loading-indicator" class="htmx-indicator ml-2" role="status" aria-live="polite">
+                        <span class="sr-only">Carregando resultados...</span>
+                        {{ icon('loader-2', 'w-4 h-4 animate-spin text-primary-400', aria_hidden=True) | safe }}
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <label for="sort_by" class="text-sm font-medium text-slate-700 whitespace-nowrap">Ordenar:</label>
+                    <select
+                        id="sort_by"
+                        name="sort_by"
+                        form="filter-form"
+                        class="flex-1 sm:flex-none text-sm border-slate-200 rounded-lg focus:border-primary-400 focus:ring-primary-400 py-2 sm:py-1.5 min-h-[44px] sm:min-h-0"
+                        onchange="this.form.requestSubmit()"
+                    >
+                        <option value="publication_date" {% if filters.sort_by == 'publication_date' %}selected{% endif %}>Data</option>
+                        <option value="impact_score" {% if filters.sort_by == 'impact_score' %}selected{% endif %}>Impacto</option>
+                        <option value="view_count" {% if filters.sort_by == 'view_count' %}selected{% endif %}>Views</option>
+                    </select>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Articles Content -->
+            <div id="articles-grid" class="animate-in fade-in duration-500">
+                {% if is_default_view %}
+                    <!-- Two Column Layout for Default View -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-start">
+
+                        <!-- Column 1: Scientific Journals -->
+                        <div class="flex flex-col gap-4 sm:gap-6">
+                            <div class="flex items-center gap-3 pb-3 sm:pb-4 border-b border-slate-200">
+                                <div class="w-9 sm:w-10 h-9 sm:h-10 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center flex-shrink-0">
+                                    {{ icon('book-open', 'w-5 sm:w-6 h-5 sm:h-6', aria_hidden=True) | safe }}
+                                </div>
+                                <div>
+                                    <h2 class="text-lg sm:text-xl font-bold text-slate-900">Periódicos Científicos</h2>
+                                    <p class="text-xs sm:text-sm text-slate-500">Publicações revisadas por pares</p>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 gap-4 sm:gap-6">
+                                {% for article in journal_articles %}
+                                    {% include 'components/card.html' %}
+                                {% else %}
+                                    {% include 'components/empty.html' with context %}
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <!-- Column 2: Blogs/Portals -->
+                        <div class="flex flex-col gap-4 sm:gap-6">
+                            <div class="flex items-center gap-3 pb-3 sm:pb-4 border-b border-slate-200">
+                                <div class="w-9 sm:w-10 h-9 sm:h-10 rounded-lg bg-orange-50 text-orange-500 flex items-center justify-center flex-shrink-0">
+                                    {{ icon('rss', 'w-5 sm:w-6 h-5 sm:h-6', aria_hidden=True) | safe }}
+                                </div>
+                                <div>
+                                    <h2 class="text-lg sm:text-xl font-bold text-slate-900">Blogs e Portais</h2>
+                                    <p class="text-xs sm:text-sm text-slate-500">Notícias e artigos informativos</p>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 gap-4 sm:gap-6">
+                                {% for article in portal_articles %}
+                                    {% include 'components/card.html' %}
+                                {% else %}
+                                    {% include 'components/empty.html' with context %}
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                    </div>
+                {% else %}
+                    <!-- Regular Grid for Filtered View -->
+                    {% include 'partials/articles/list.html' %}
+                {% endif %}
+
+                <!-- Skeleton Loader inicial (mostra apenas se não houver artigos e não for default view) -->
+                {% if not is_default_view and not articles %}
+                    {% from "components/loading.html" import article_card_list_skeleton %}
+                    <div id="initial-skeleton" role="status" aria-live="polite">
+                        {{ article_card_list_skeleton(6) }}
+                        <span class="sr-only">Carregando artigos iniciais, por favor aguarde.</span>
+                    </div>
+                {% endif %}
+            </div>
+        </main>
+    </div>
+</section>
+
+<style>
+    @keyframes blob {
+        0% { transform: translate(0px, 0px) scale(1); }
+        33% { transform: translate(30px, -50px) scale(1.1); }
+        66% { transform: translate(-20px, 20px) scale(0.9); }
+        100% { transform: translate(0px, 0px) scale(1); }
+    }
+    .animate-blob {
+        animation: blob 7s infinite;
+    }
+    .animation-delay-2000 {
+        animation-delay: 2s;
+    }
+
+    /* Custom scrollbar for filters */
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 2px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 2px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+</style>
+{% endblock %}

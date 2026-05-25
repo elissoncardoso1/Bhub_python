@@ -1,0 +1,97 @@
+<footer class="bg-slate-900 text-slate-300 mt-20" role="contentinfo">
+    <div class="container mx-auto px-4 py-12">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <!-- Brand -->
+            <div class="space-y-4">
+                <div class="flex items-center gap-2">
+                    <span class="bg-blue-600 text-white p-1.5 rounded-lg" aria-hidden="true">
+                        {{ icon('brain', 'w-6 h-6') | safe }}
+                    </span>
+                    <span class="font-bold text-xl text-white">BHUB</span>
+                </div>
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    Plataforma inteligente para agregação e análise de artigos científicos em Análise do Comportamento.
+                </p>
+                <nav class="flex gap-4 pt-2" aria-label="Redes sociais do BHUB">
+                    <a
+                        href="https://github.com/bhub"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="footer-social-link text-slate-400 hover:text-white transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 rounded"
+                        aria-label="GitHub do BHUB"
+                        title="GitHub do BHUB">
+                        {{ icon('github', 'w-5 h-5') | safe }}
+                    </a>
+                    <a
+                        href="https://twitter.com/bhub"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="footer-social-link text-slate-400 hover:text-white transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 rounded"
+                        aria-label="Twitter do BHUB"
+                        title="Twitter do BHUB">
+                        {{ icon('twitter', 'w-5 h-5') | safe }}
+                    </a>
+                    <a
+                        href="https://linkedin.com/company/bhub"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="footer-social-link text-slate-400 hover:text-white transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 rounded"
+                        aria-label="LinkedIn do BHUB"
+                        title="LinkedIn do BHUB">
+                        {{ icon('linkedin', 'w-5 h-5') | safe }}
+                    </a>
+                </nav>
+            </div>
+
+            <!-- Links -->
+            <nav aria-labelledby="footer-explore-heading">
+                <h3 id="footer-explore-heading" class="text-white font-semibold mb-4">Explorar</h3>
+                <ul class="space-y-2 text-sm">
+                    <li><a href="/" class="footer-link hover:text-blue-400 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 rounded">Início</a></li>
+                    <li><a href="/articles" class="footer-link hover:text-blue-400 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 rounded">Artigos Recentes</a></li>
+                    <li><a href="/categories" class="footer-link hover:text-blue-400 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 rounded">Análises e Tendências</a></li>
+                    <li><a href="/about" class="footer-link hover:text-blue-400 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 rounded">Sobre o Projeto</a></li>
+                </ul>
+            </nav>
+
+            <!-- Resources -->
+            <nav aria-labelledby="footer-resources-heading">
+                <h3 id="footer-resources-heading" class="text-white font-semibold mb-4">Recursos</h3>
+                <ul class="space-y-2 text-sm">
+                    <li><a href="/faq" class="footer-link hover:text-blue-400 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 rounded">FAQ</a></li>
+                    <li><a href="/api" class="footer-link hover:text-blue-400 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 rounded">API Docs</a></li>
+                    <li><a href="/terms" class="footer-link hover:text-blue-400 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 rounded">Termos de Uso</a></li>
+                    <li><a href="/privacy" class="footer-link hover:text-blue-400 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 rounded">Privacidade</a></li>
+                </ul>
+            </nav>
+
+            <!-- Contact -->
+            <div>
+                <h3 class="text-white font-semibold mb-4">Contato</h3>
+                <ul class="space-y-3 text-sm">
+                    <li class="flex items-start gap-3">
+                        <span class="text-blue-500 mt-0.5 flex-shrink-0" aria-hidden="true">{{ icon('mail', 'w-4 h-4') | safe }}</span>
+                        <a
+                            href="mailto:contato@bhub.example.com"
+                            class="hover:text-blue-400 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 rounded"
+                            aria-label="Enviar email para contato@bhub.example.com">
+                            contato@bhub.example.com
+                        </a>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <span class="text-blue-500 mt-0.5 flex-shrink-0" aria-hidden="true">{{ icon('map-pin', 'w-4 h-4') | safe }}</span>
+                        <span>São Paulo, SP - Brasil</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Bar -->
+    <div class="border-t border-slate-800">
+        <div class="container mx-auto px-4 py-6 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-slate-500">
+            <p>&copy; {{ now().year }} BHUB. Todos os direitos reservados.</p>
+            <p class="text-slate-500">Desenvolvido com <span class="text-red-500" aria-label="amor">♥</span> e Python.</p>
+        </div>
+    </div>
+</footer>

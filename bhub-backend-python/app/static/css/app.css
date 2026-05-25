@@ -1,0 +1,562 @@
+/* ============================================
+   APP.CSS - Componentes Genéricos
+   Usa tokens semânticos de design-tokens.css
+   ============================================
+
+   📋 CONVENÇÃO: TAILWIND vs CSS MANUAL
+   ============================================
+
+   Este projeto usa uma abordagem híbrida: Tailwind para layout/utilitários
+   e CSS semântico para componentes reutilizáveis.
+
+   ┌─────────────────────────────────────────────────────────────┐
+   │ TAILWIND CSS (output.css)                                    │
+   ├─────────────────────────────────────────────────────────────┤
+   │ ✅ Layout: flex, grid, gap, padding, margin                  │
+   │ ✅ Utilitários: w-full, h-screen, rounded-lg, shadow-sm     │
+   │ ✅ Responsividade: sm:, md:, lg:, xl:                        │
+   │ ✅ Estados: hover:, focus:, active:                         │
+   │ ✅ Posicionamento: absolute, relative, sticky, fixed         │
+   │ ✅ Espaçamento: p-4, m-2, gap-3, space-y-2                  │
+   │ ✅ Cores utilitárias: bg-white, text-gray-600, border-gray-300│
+   │                                                              │
+   │ ❌ NÃO usar para:                                            │
+   │    - Componentes reutilizáveis (.btn, .card, .badge)         │
+   │    - Lógica complexa de estados (.btn.primary:hover)         │
+   │    - Animações customizadas                                  │
+   │    - Acessibilidade (focus-visible, reduced-motion)         │
+   └─────────────────────────────────────────────────────────────┘
+
+   ┌─────────────────────────────────────────────────────────────┐
+   │ CSS MANUAL (app.css, article-card.css, etc.)                │
+   ├─────────────────────────────────────────────────────────────┤
+   │ ✅ Componentes: .btn, .card, .badge, .panel, .toast         │
+   │ ✅ Estados complexos: .btn.primary:hover, .card.is-active   │
+   │ ✅ Design tokens: var(--color-*), var(--space-*), etc.      │
+   │ ✅ Acessibilidade: focus-visible, reduced-motion             │
+   │ ✅ Animações: @keyframes, transitions complexas              │
+   │ ✅ Componentes específicos: .article-card, .site-header    │
+   │                                                              │
+   │ ❌ NÃO usar para:                                            │
+   │    - Layout simples (use Tailwind: flex, grid, gap)           │
+   │    - Espaçamento simples (use Tailwind: p-4, m-2)            │
+   │    - Cores hardcoded (use tokens: var(--color-*))            │
+   └─────────────────────────────────────────────────────────────┘
+
+   📐 ESPECIFICIDADE E CONFLITOS
+   ============================================
+
+   Para evitar conflitos entre Tailwind e CSS manual:
+
+   1. Componentes CSS têm especificidade suficiente:
+      ✅ .btn.primary (especificidade: 0,2,0)
+      ✅ .card.is-active (especificidade: 0,2,0)
+      ❌ Evitar: .btn (especificidade: 0,1,0) - pode ser sobrescrito
+
+   2. Tailwind utilities podem ser sobrescritas por componentes:
+      <button class="btn bg-red-500">  → .btn ganha (especificidade maior)
+      <div class="card p-4">           → ambos funcionam (propriedades diferentes)
+
+   3. Quando necessário, aumentar especificidade:
+      ✅ .btn.btn-primary (em vez de .btn.primary)
+      ✅ .card.card-active (em vez de .card.is-active)
+      ❌ Evitar !important (exceto reduced-motion)
+
+   🎨 DESIGN TOKENS
+   ============================================
+
+   Fonte da verdade: design-tokens.css
+
+   ✅ Usar sempre: var(--color-*), var(--space-*), var(--font-*)
+   ❌ Nunca: cores hardcoded (#fff, rgb(), rgba())
+   ❌ Nunca: espaçamento hardcoded (8px, 12px, 16px)
+
+   📁 ESTRUTURA DE ARQUIVOS
+   ============================================
+
+   design-tokens.css  → Tokens semânticos (cores, espaços, fontes)
+   app.css            → Componentes genéricos (.btn, .card, .badge)
+   article-card.css   → Componente específico (.article-card)
+   accessibility.css  → Regras de acessibilidade (sr-only, focus-visible)
+   animations.css     → Animações e reduced-motion
+   responsive.css     → Media queries específicas
+   input.css          → Source do Tailwind (@tailwind directives)
+   output.css         → Tailwind compilado (gerado automaticamente)
+
+   🔧 MANUTENÇÃO
+   ============================================
+
+   - Adicionar novo componente? → app.css ou arquivo específico
+   - Mudar cor/espaço? → design-tokens.css
+   - Ajustar layout? → Usar Tailwind no HTML
+   - Conflito de especificidade? → Aumentar especificidade do componente CSS
+
+   ============================================ */
+
+/* Variáveis locais mapeadas para tokens semânticos */
+:root {
+  /* Backgrounds - mapeados para tokens */
+  --app-bg: var(--color-bg-primary);
+  --app-panel: var(--color-bg-secondary);
+  --app-panel-2: var(--color-bg-tertiary);
+
+  /* Textos - mapeados para tokens */
+  --app-text: var(--color-text-primary);
+  --app-muted: var(--color-text-muted);
+
+  /* Borders - mapeados para tokens */
+  --app-border: var(--color-border-light);
+
+  /* Cores de ação - mapeadas para tokens */
+  --app-brand: var(--color-primary-400);
+  --app-danger: var(--color-error-500);
+  --app-ok: var(--color-success-500);
+
+  /* Sombras e radius - mapeados para tokens */
+  --app-shadow: var(--shadow-xl);
+  --app-radius: var(--radius-xl);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
+    "Apple Color Emoji", "Segoe UI Emoji");
+  background: var(--app-bg);
+  color: var(--app-text);
+  line-height: var(--line-height-normal, 1.5);
+}
+
+/* Gradiente decorativo apenas em dark mode (opcional) */
+[data-theme="dark"] body,
+@media (prefers-color-scheme: dark) {
+  body {
+    background: radial-gradient(800px 500px at 15% -20%, color-mix(in srgb, var(--color-primary-400) 30%, transparent), transparent 55%),
+      radial-gradient(700px 500px at 90% 0%, color-mix(in srgb, var(--color-primary-300) 18%, transparent), transparent 50%),
+      var(--app-bg);
+  }
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+.container {
+  width: min(1100px, calc(100% - var(--space-8)));
+  margin: 0 auto;
+}
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: color-mix(in srgb, var(--app-bg) 70%, transparent);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--app-border);
+}
+
+.site-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) 0;
+  gap: var(--space-3);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: var(--font-weight-bold, 700);
+  letter-spacing: 0.6px;
+}
+
+.brand-badge {
+  width: var(--space-8);
+  height: var(--space-8);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, var(--app-brand), var(--color-primary-300));
+  box-shadow: var(--shadow-md);
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.nav a {
+  color: var(--app-muted);
+  padding: var(--space-2) var(--space-2);
+  border-radius: var(--radius-lg);
+  transition: var(--transition-fast);
+}
+
+.nav a:hover {
+  color: var(--app-text);
+  background: var(--color-bg-hover);
+  text-decoration: none;
+}
+
+.nav a:focus-visible {
+  outline: 2px solid var(--app-brand);
+  outline-offset: 2px;
+}
+
+main {
+  padding: var(--space-6) 0 var(--space-10);
+}
+
+.grid {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.grid.cols-2 {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 980px) {
+  .grid.cols-2 {
+    grid-template-columns: 320px 1fr;
+    align-items: start;
+  }
+}
+
+/* Componente .panel - especificidade aumentada para evitar conflitos com Tailwind */
+div.panel,
+section.panel {
+  background: var(--app-panel);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+  box-shadow: var(--app-shadow);
+}
+
+.panel .panel-body {
+  padding: var(--space-4);
+}
+
+.panel .panel-title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-sm);
+  letter-spacing: 0.5px;
+  color: var(--app-muted);
+  text-transform: uppercase;
+  font-weight: var(--font-weight-semibold);
+}
+
+.muted {
+  color: var(--app-muted);
+}
+
+.row {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.row.wrap {
+  flex-wrap: wrap;
+}
+
+.field {
+  display: grid;
+  gap: var(--space-1);
+  margin-bottom: var(--space-3);
+}
+
+.label {
+  color: var(--app-muted);
+  font-size: var(--font-size-sm);
+}
+
+input[type="text"],
+input[type="search"],
+input[type="email"],
+input[type="password"],
+input[type="url"],
+textarea,
+select {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--app-border);
+  background: var(--app-panel);
+  color: var(--app-text);
+  font-size: var(--font-size-base);
+  transition: var(--transition-fast);
+}
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--app-brand);
+  outline-offset: 2px;
+  border-color: var(--app-brand);
+}
+
+textarea {
+  min-height: 140px;
+  resize: vertical;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--app-muted);
+  opacity: 0.7;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-2);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--app-border);
+  background: var(--app-panel-2);
+}
+
+.checkbox input {
+  width: var(--space-4);
+  height: var(--space-4);
+}
+
+.checkbox:focus-within {
+  outline: 2px solid var(--app-brand);
+  outline-offset: 2px;
+}
+
+/* Componente .btn - especificidade aumentada para evitar conflitos com Tailwind */
+button.btn,
+a.btn,
+[role="button"].btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--app-border);
+  background: var(--app-panel);
+  color: var(--app-text);
+  cursor: pointer;
+  text-decoration: none;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  transition: var(--transition-fast);
+  min-height: 44px; /* WCAG: touch target mínimo */
+}
+
+.btn:hover {
+  background: var(--color-bg-hover);
+  text-decoration: none;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--app-brand);
+  outline-offset: 2px;
+}
+
+.btn.primary {
+  border-color: var(--app-brand);
+  background: linear-gradient(135deg, var(--app-brand), var(--color-primary-300));
+  color: var(--color-text-primary);
+}
+
+.btn.primary:hover {
+  background: linear-gradient(135deg, var(--color-primary-500), var(--color-primary-400));
+}
+
+.btn.danger {
+  border-color: var(--app-danger);
+  background: color-mix(in srgb, var(--app-danger) 20%, var(--app-panel));
+  color: var(--app-danger);
+}
+
+.btn.danger:hover {
+  background: color-mix(in srgb, var(--app-danger) 30%, var(--app-panel));
+}
+
+.btn.small {
+  padding: var(--space-2) var(--space-2);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  min-height: 36px;
+}
+
+/* Componente .badge - especificidade aumentada para evitar conflitos com Tailwind */
+span.badge,
+div.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  color: var(--app-muted);
+  border: 1px solid var(--app-border);
+  background: var(--app-panel-2);
+}
+
+.badge.ok {
+  color: var(--app-ok);
+  border-color: color-mix(in srgb, var(--app-ok) 35%, transparent);
+  background: color-mix(in srgb, var(--app-ok) 10%, var(--app-panel-2));
+}
+
+.badge.warn {
+  color: var(--color-warning-500);
+  border-color: color-mix(in srgb, var(--color-warning-500) 35%, transparent);
+  background: color-mix(in srgb, var(--color-warning-500) 10%, var(--app-panel-2));
+}
+
+/* Componente .card - especificidade aumentada para evitar conflitos com Tailwind */
+div.card,
+article.card,
+section.card {
+  padding: var(--space-4);
+  border-radius: var(--app-radius);
+  border: 1px solid var(--app-border);
+  background: var(--app-panel-2);
+}
+
+.card-title {
+  margin: 0 0 var(--space-1);
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height-tight);
+  font-weight: var(--font-weight-bold);
+  color: var(--app-text);
+}
+
+.card-meta {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  flex-wrap: wrap;
+  color: var(--app-muted);
+  font-size: var(--font-size-sm);
+  margin: var(--space-1) 0 var(--space-2);
+}
+
+.card-actions {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: var(--space-3);
+}
+
+.divider {
+  height: 1px;
+  background: var(--app-border);
+  margin: var(--space-3) 0;
+}
+
+.pagination {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  padding: var(--space-3) 0 0;
+}
+
+.empty {
+  padding: var(--space-4);
+  color: var(--app-muted);
+  border: 1px dashed var(--app-border);
+  border-radius: var(--app-radius);
+  text-align: center;
+}
+
+.toast {
+  position: fixed;
+  right: var(--space-4);
+  bottom: var(--space-4);
+  max-width: min(420px, calc(100% - var(--space-8)));
+  display: grid;
+  gap: var(--space-2);
+  z-index: 50;
+}
+
+.toast-item {
+  padding: var(--space-3) var(--space-3);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--app-border);
+  background: color-mix(in srgb, var(--app-panel) 95%, transparent);
+  backdrop-filter: blur(8px);
+  box-shadow: var(--app-shadow);
+  color: var(--app-text);
+}
+
+.toast-item.ok {
+  border-color: color-mix(in srgb, var(--app-ok) 35%, transparent);
+  background: color-mix(in srgb, var(--color-success-50) 95%, transparent);
+}
+
+.toast-item.err {
+  border-color: color-mix(in srgb, var(--app-danger) 35%, transparent);
+  background: color-mix(in srgb, var(--color-error-50) 95%, transparent);
+}
+
+.site-footer {
+  padding: var(--space-6) 0 var(--space-10);
+  border-top: 1px solid var(--app-border);
+  color: var(--app-muted);
+  font-size: var(--font-size-sm);
+}
+
+.spinner {
+  display: inline-flex;
+  width: var(--space-4);
+  height: var(--space-4);
+  border: 2px solid color-mix(in srgb, var(--app-text) 25%, transparent);
+  border-top-color: var(--app-text);
+  border-radius: var(--radius-full);
+  animation: spin 0.9s linear infinite;
+}
+
+.htmx-indicator {
+  display: none;
+}
+
+.htmx-request .htmx-indicator,
+.htmx-request.htmx-indicator {
+  display: inline-flex;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ============================================
+   REDUCED MOTION
+   ============================================ */
+/* Nota: Regra global está em animations.css
+ * Regra específica abaixo complementa
+ */
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none !important;
+  }
+}

@@ -7,7 +7,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field, ValidationError, field_validator, model_validator
+from pydantic import Field, computed_field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -30,26 +30,19 @@ class Settings(BaseSettings):
     # Server
     host: str = "0.0.0.0"
     port: int = 8000
-    allowed_origins: list[str] = Field(
-        default=["http://localhost:3000", "http://localhost:8000"]
+    allowed_origins_str: str = Field(
+        default="http://localhost:3000,http://localhost:8000",
+        alias="allowed_origins"
     )
 
-    @field_validator("allowed_origins", mode="before")
-    @classmethod
-    def parse_origins(cls, v: str | list[str]) -> list[str]:
-        if isinstance(v, str):
-            return [origin.strip() for origin in v.split(",")]
-        return v
+    @computed_field
+    @property
+    def allowed_origins(self) -> list[str]:
+        """Parse origins from comma-separated string."""
+        origins = [origin.strip() for origin in self.allowed_origins_str.split(",") if origin.strip()]
 
-    @field_validator("allowed_origins", mode="after")
-    @classmethod
-    def validate_origins_production(cls, v: list[str], info) -> list[str]:
-        """Valida que não há wildcards em produção."""
-        # Verificar se estamos validando para produção
-        environment = info.data.get("environment", "development")
-        
-        if environment == "production":
-            for origin in v:
+        if self.environment == "production":
+            for origin in origins:
                 if "*" in origin or origin == "*":
                     raise ValueError(
                         "Wildcards não são permitidos em ALLOWED_ORIGINS em produção. "
@@ -59,10 +52,14 @@ class Settings(BaseSettings):
                     raise ValueError(
                         f"Origem inválida: {origin}. Deve começar com http:// ou https://"
                     )
-        return v
+        return origins
 
     # Database
     database_url: str = "sqlite+aiosqlite:///./bhub.db"
+
+    # Persistent jobs (ARQ/Redis)
+    redis_url: str = "redis://localhost:6379/0"
+    enable_arq: bool = False
 
     # Security
     secret_key: str = Field(default="change-this-secret-key-in-production")
@@ -75,7 +72,7 @@ class Settings(BaseSettings):
     def validate_secret_key(cls, v: str, info) -> str:
         """Valida que SECRET_KEY foi alterado em produção."""
         environment = info.data.get("environment", "development")
-        
+
         if environment == "production":
             default_values = [
                 "change-this-secret-key-in-production",
@@ -96,6 +93,9 @@ class Settings(BaseSettings):
     openrouter_api_key: str | None = None
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
     huggingface_api_key: str | None = None
+    ai_timeout_seconds: int = 30
+    ai_external_max_chars: int = 3000
+    ai_rate_limit_daily: str = "100/day"
 
     # Image Services
     unsplash_access_key: str | None = None
@@ -105,6 +105,9 @@ class Settings(BaseSettings):
     cron_secret: str | None = None
     enable_scheduler: bool = True
     sync_interval_hours: int = 1
+
+    # Scheduler Mode: "app" (rodar no app), "worker" (worker separado), "off" (desabilitado)
+    scheduler_mode: Literal["app", "worker", "off"] = "app"
 
     # Paths
     base_dir: Path = Field(default_factory=lambda: Path(__file__).parent.parent)
@@ -125,6 +128,16 @@ class Settings(BaseSettings):
     embedding_model: str = "paraphrase-multilingual-MiniLM-L12-v2"
     classification_threshold: float = 0.3
 
+    # Local LLM (llama.cpp)
+    local_llm_enabled: bool = False
+    local_llm_model_path: str | None = None
+    local_llm_model_name: str = "Phi-3-mini-4k-instruct"
+    local_llm_n_ctx: int = 4096
+    local_llm_n_threads: int = 4  # 0 = auto-detect
+    local_llm_n_gpu_layers: int = 0  # 0 = CPU apenas
+    local_llm_temperature: float = 0.1
+    local_llm_max_tokens: int = 100
+
     # Rate Limiting
     rate_limit_requests: int = 100
     rate_limit_period: int = 60  # segundos
@@ -133,6 +146,16 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     log_rotation: str = "10 MB"
     log_retention: str = "1 month"
+    log_json: bool = False
+
+    # Alertas mínimos (opcional)
+    alert_webhook_url: str | None = None
+    alert_min_level: str = "ERROR"
+    alert_timeout_seconds: int = 5
+
+    # Observability
+    enable_telemetry: bool = False
+    telemetry_service_name: str = "bhub-backend"
 
     # Analytics
     enable_analytics: bool = True
@@ -159,11 +182,11 @@ class Settings(BaseSettings):
             # Validar que DEBUG está desabilitado
             if self.debug:
                 raise ValueError("DEBUG deve ser False em produção")
-            
+
             # Validar que há pelo menos uma origem permitida
             if not self.allowed_origins:
                 raise ValueError("ALLOWED_ORIGINS deve conter pelo menos uma origem em produção")
-        
+
         return self
 
 

@@ -2,32 +2,33 @@
 Helpers para rate limiting nas rotas da API.
 """
 
+from collections.abc import Awaitable, Callable
 from functools import wraps
-from typing import Callable
 
 from fastapi import Request
-from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-from app.main import limiter
+from app.core.limiter import limiter
 
 
 def rate_limit(limit: str, key_func: Callable = None):
     """
     Decorator para aplicar rate limiting em rotas.
-    
+
     Args:
         limit: String no formato "X/minute", "Y/hour", etc.
         key_func: Função para obter a chave de rate limiting (default: IP)
-    
+
     Exemplos:
         @rate_limit("100/minute")  # 100 requisições por minuto
         @rate_limit("10/minute", key_func=lambda r: r.user.id)  # Por usuário
     """
     if key_func is None:
         key_func = get_remote_address
-    
+
     def decorator(func: Callable):
+        limited_func = limiter.limit(limit, key_func=key_func)(func)
+
         @wraps(func)
         async def wrapper(*args, **kwargs):
             # Encontrar Request nos argumentos
@@ -36,19 +37,22 @@ def rate_limit(limit: str, key_func: Callable = None):
                 if isinstance(arg, Request):
                     request = arg
                     break
-            
+
             if request is None:
                 for key, value in kwargs.items():
                     if isinstance(value, Request):
                         request = value
                         break
-            
-            if request:
-                # Aplicar rate limit
-                limiter.limit(limit, key_func=key_func)(func)(*args, **kwargs)
-            
-            return await func(*args, **kwargs)
-        
+
+            if request is None:
+                result = func(*args, **kwargs)
+            else:
+                result = limited_func(*args, **kwargs)
+
+            if isinstance(result, Awaitable):
+                return await result
+            return result
+
         return wrapper
     return decorator
 
@@ -66,6 +70,7 @@ def get_user_id_for_rate_limit(request: Request) -> str:
         # Usamos apenas para rate limiting, então não validamos completamente
         try:
             from jose import jwt
+
             from app.config import settings
             # Decodificar sem verificar expiração (apenas para rate limiting)
             payload = jwt.decode(
@@ -80,7 +85,6 @@ def get_user_id_for_rate_limit(request: Request) -> str:
         except Exception:
             # Se falhar, usar IP
             pass
-    
+
     # Fallback para IP
     return get_remote_address(request)
-

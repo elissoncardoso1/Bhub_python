@@ -16,6 +16,7 @@ from sqlalchemy import (
     String,
     Text,
 )
+from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.author import article_authors
@@ -72,6 +73,7 @@ class Article(BaseModel):
     # Status
     highlighted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
     is_published: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    is_open_access: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
 
     # Fonte
     source_type: Mapped[SourceType] = mapped_column(
@@ -92,11 +94,25 @@ class Article(BaseModel):
     # Cache de tradução
     translation_cache: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON
 
+    # Busca PostgreSQL: no SQLite, o tipo cai para Text e permanece compatível.
+    search_vector: Mapped[str | None] = mapped_column(
+        TSVECTOR().with_variant(Text(), "sqlite"),
+        nullable=True,
+        deferred=True,
+    )
+
     # Relacionamentos
-    category: Mapped["Category"] = relationship(
+    category: Mapped["Category | None"] = relationship(
         "Category",
+        foreign_keys=[category_id],
         back_populates="articles",
         lazy="joined",
+    )
+    categories: Mapped[list["Category"]] = relationship(
+        "Category",
+        secondary="article_categories",
+        back_populates="articles_many",
+        lazy="selectin",
     )
     feed: Mapped["Feed"] = relationship(
         "Feed",
@@ -121,6 +137,17 @@ class Article(BaseModel):
         Index("ix_articles_category_date", "category_id", "publication_date"),
         Index("ix_articles_highlighted_date", "highlighted", "publication_date"),
         Index("ix_articles_feed_date", "feed_id", "publication_date"),
+        Index(
+            "idx_articles_search_vector",
+            "search_vector",
+            postgresql_using="gin",
+        ),
+        Index(
+            "idx_articles_title_trgm",
+            "title",
+            postgresql_using="gin",
+            postgresql_ops={"title": "gin_trgm_ops"},
+        ),
     )
 
     @property

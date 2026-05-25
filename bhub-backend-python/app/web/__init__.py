@@ -1,0 +1,3 @@
+"""
+Camada web (SSR + HTMX).
+"""

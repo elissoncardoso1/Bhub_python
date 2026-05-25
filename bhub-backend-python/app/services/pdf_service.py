@@ -4,6 +4,7 @@ Serviço de processamento de PDFs.
 
 import hashlib
 import re
+import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import BinaryIO
@@ -12,9 +13,8 @@ import fitz  # PyMuPDF
 import pdfplumber
 
 from app.config import settings
-from app.core.exceptions import DuplicateError, PDFProcessingError
+from app.core.exceptions import PDFProcessingError
 from app.core.logging import log
-from app.models import ProcessingStatus
 
 
 class PDFService:
@@ -33,11 +33,11 @@ class PDFService:
     ) -> dict:
         """
         Processa um arquivo PDF e extrai metadados.
-        
+
         Args:
             file: Arquivo PDF em bytes
             filename: Nome original do arquivo
-            
+
         Returns:
             dict com dados extraídos do PDF
         """
@@ -105,11 +105,11 @@ class PDFService:
 
         # Validações de segurança: verificar conteúdo perigoso
         content_lower = content.lower()
-        
+
         # Bloquear JavaScript embutido
         if b'/javascript' in content_lower or b'/js' in content_lower:
             raise PDFProcessingError("PDF contém JavaScript, não permitido por segurança")
-        
+
         # Bloquear ações perigosas
         dangerous_actions = [b'/launch', b'/gotor', b'/uri', b'/submitform', b'/resetform']
         for action in dangerous_actions:
@@ -117,14 +117,14 @@ class PDFService:
                 raise PDFProcessingError(
                     f"PDF contém ações perigosas ({action.decode('utf-8', errors='ignore')}), não permitido"
                 )
-        
+
         # Limitar complexidade: contar objetos
         object_count = content.count(b'obj')
         if object_count > 10000:
             raise PDFProcessingError(
                 f"PDF muito complexo ({object_count} objetos). Máximo permitido: 10000"
             )
-        
+
         # Verificar se não é um zip bomb (PDFs podem conter streams comprimidos)
         # Limitar tamanho após descompressão estimada (PDFs geralmente comprimem 2-3x)
         estimated_decompressed = len(content) * 3
@@ -136,13 +136,13 @@ class PDFService:
             doc = fitz.open(stream=content, filetype="pdf")
             if doc.page_count == 0:
                 raise PDFProcessingError("PDF não contém páginas")
-            
+
             # Validar que não há páginas excessivas (possível DoS)
             if doc.page_count > 1000:
                 raise PDFProcessingError(
                     f"PDF contém muitas páginas ({doc.page_count}). Máximo permitido: 1000"
                 )
-            
+
             doc.close()
         except fitz.FileDataError as e:
             raise PDFProcessingError(f"PDF corrompido ou inválido: {e}")
@@ -301,23 +301,21 @@ class PDFService:
         now = datetime.utcnow()
         year_month = now.strftime("%Y/%m")
 
-        # Sanitizar nome do arquivo
-        safe_name = re.sub(r"[^\w\-.]", "_", filename)
+        # Sanitizar extensão e gerar nome seguro via UUID
+        safe_ext = re.sub(r"[^a-z0-9.]", "", Path(filename).suffix.lower()) or ".pdf"
+        final_name = f"{uuid.uuid4().hex}{safe_ext}"
 
-        # Adicionar timestamp para evitar conflitos
-        timestamp = now.strftime("%Y%m%d_%H%M%S")
-        name_parts = safe_name.rsplit(".", 1)
+        target_path = (self.upload_path / year_month / final_name).resolve()
+        base_path = self.upload_path.resolve()
+        if not str(target_path).startswith(str(base_path)):
+            raise PDFProcessingError("Caminho inválido para salvar PDF")
 
-        if len(name_parts) == 2:
-            final_name = f"{name_parts[0]}_{timestamp}.{name_parts[1]}"
-        else:
-            final_name = f"{safe_name}_{timestamp}.pdf"
-
-        return self.upload_path / year_month / final_name
+        return target_path
 
     async def check_duplicate(self, file_hash: str, db) -> bool:
         """Verifica se PDF já existe pelo hash."""
         from sqlalchemy import select
+
         from app.models import PDFMetadata
 
         result = await db.execute(
@@ -359,4 +357,98 @@ class PDFService:
 
         except Exception as e:
             log.error(f"Erro ao obter info do PDF: {e}")
+            return None
+
+    async def download_pdf_from_url(
+        self,
+        pdf_url: str,
+        article_title: str,
+        db,
+    ) -> dict | None:
+        """
+        Baixa um PDF de uma URL e processa.
+
+        Args:
+            pdf_url: URL do PDF para baixar
+            article_title: Título do artigo (para nome do arquivo)
+            db: Sessão do banco de dados
+
+        Returns:
+            dict com dados do PDF processado ou None se falhar
+        """
+        from urllib.parse import urlparse
+
+        import httpx
+
+        log.info(f"Baixando PDF de: {pdf_url}")
+
+        # Validar URL (prevenir SSRF)
+        parsed = urlparse(pdf_url)
+        if parsed.scheme not in ['http', 'https']:
+            log.error(f"URL inválida: {pdf_url}")
+            return None
+
+        # Validar que é realmente um PDF
+        if not (pdf_url.lower().endswith('.pdf') or 'pdf' in pdf_url.lower()):
+            log.warning(f"URL não parece ser um PDF: {pdf_url}")
+            # Mas vamos tentar mesmo assim, pode ser um redirect
+
+        try:
+            # Fazer download com timeout
+            async with httpx.AsyncClient(
+                timeout=60.0,  # Timeout maior para PDFs
+                follow_redirects=True,
+                headers={
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                    "Accept": "application/pdf, */*",
+                },
+            ) as client:
+                response = await client.get(pdf_url)
+                response.raise_for_status()
+
+                # Verificar content-type
+                content_type = response.headers.get("content-type", "").lower()
+                if "pdf" not in content_type and not pdf_url.lower().endswith('.pdf'):
+                    log.warning(f"Content-Type não é PDF: {content_type}")
+                    # Mas vamos processar mesmo assim
+
+                # Ler conteúdo
+                content = response.content
+
+                # Validar tamanho
+                if len(content) > self.MAX_FILE_SIZE:
+                    log.error(f"PDF muito grande: {len(content)} bytes (máximo: {self.MAX_FILE_SIZE})")
+                    return None
+
+                # Validar que é um PDF válido
+                if not content.startswith(b"%PDF"):
+                    log.error("Arquivo baixado não é um PDF válido")
+                    return None
+
+                # Gerar nome de arquivo seguro
+                safe_title = re.sub(r"[^\w\-.]", "_", article_title[:100])
+                filename = f"{safe_title}.pdf"
+
+                # Processar PDF usando o método existente
+                import io
+                file_obj = io.BytesIO(content)
+                pdf_data = await self.process_pdf(file_obj, filename)
+
+                # Verificar duplicata
+                if await self.check_duplicate(pdf_data["file_hash"], db):
+                    log.info(f"PDF já existe no sistema (hash: {pdf_data['file_hash'][:8]}...)")
+                    # Retornar None para indicar que não precisa processar
+                    return None
+
+                log.info(f"PDF baixado e processado com sucesso: {pdf_data['file_path']}")
+                return pdf_data
+
+        except httpx.TimeoutException:
+            log.error(f"Timeout ao baixar PDF: {pdf_url}")
+            return None
+        except httpx.HTTPStatusError as e:
+            log.error(f"Erro HTTP ao baixar PDF: {e.response.status_code} - {pdf_url}")
+            return None
+        except Exception as e:
+            log.error(f"Erro ao baixar PDF de {pdf_url}: {e}")
             return None

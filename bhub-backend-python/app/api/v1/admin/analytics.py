@@ -2,10 +2,9 @@
 Rotas admin de analytics.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime
 
-from fastapi import APIRouter, Query, Request
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Query
 
 from app.api.deps import DBSession
 from app.core import CurrentAdmin
@@ -105,4 +104,3 @@ async def get_top_pages(
     """Retorna páginas mais visitadas."""
     pages = await AnalyticsService.get_top_pages(db, days=days, limit=limit)
     return [TopPageResponse(**item) for item in pages]
-

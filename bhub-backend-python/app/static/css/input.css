@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Nota: .sr-only é fornecido pelo Tailwind via output.css
+ * e também definido em accessibility.css como fallback
+ * Não é necessário duplicar aqui
+ */

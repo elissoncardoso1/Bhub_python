@@ -8,9 +8,9 @@ from datetime import datetime
 from typing import Any
 
 from sqlalchemy import (
-    Boolean,
     DateTime,
     Enum,
+    Float,
     Index,
     Integer,
     String,
@@ -171,12 +171,11 @@ class AnalyticsMetric(BaseModel):
 
     # Métricas de engajamento
     avg_session_duration: Mapped[float | None] = mapped_column(
-        Integer, nullable=True
+        Float, nullable=True
     )  # em segundos
-    bounce_rate: Mapped[float | None] = mapped_column(Integer, nullable=True)  # porcentagem
+    bounce_rate: Mapped[float | None] = mapped_column(Float, nullable=True)  # porcentagem
 
     # Índices compostos
     __table_args__ = (
         Index("ix_analytics_metrics_date_period", "metric_date", "period_type"),
     )
-

@@ -24,63 +24,63 @@ async def get_admin_stats(
     now = datetime.utcnow()
     month_ago = now - timedelta(days=30)
     week_ago = now - timedelta(days=7)
-    
+
     # Total de artigos
     total_articles = await db.scalar(
         select(func.count()).select_from(Article)
     ) or 0
-    
+
     # Total de feeds
     total_feeds = await db.scalar(
         select(func.count()).select_from(Feed)
     ) or 0
-    
+
     # Total de categorias
     total_categories = await db.scalar(
         select(func.count()).select_from(Category)
     ) or 0
-    
+
     # Total de autores
     total_authors = await db.scalar(
         select(func.count()).select_from(Author)
     ) or 0
-    
+
     # Total de PDFs
     total_pdfs = await db.scalar(
         select(func.count()).select_from(PDFMetadata)
     ) or 0
-    
+
     # Artigos este mês
     articles_this_month = await db.scalar(
         select(func.count())
         .select_from(Article)
         .where(Article.created_at >= month_ago)
     ) or 0
-    
+
     # Artigos esta semana
     articles_this_week = await db.scalar(
         select(func.count())
         .select_from(Article)
         .where(Article.created_at >= week_ago)
     ) or 0
-    
+
     # Artigos destacados
     highlighted_articles = await db.scalar(
         select(func.count())
         .select_from(Article)
         .where(Article.highlighted == True)
     ) or 0
-    
+
     # Total de visualizações
     views_total = await db.scalar(
         select(func.sum(Article.view_count))
     ) or 0
-    
+
     # Total de downloads
     downloads_total = await db.scalar(
         select(func.sum(Article.download_count))
     ) or 0
-    
+
     return StatsResponse(
         total_articles=total_articles,
         total_feeds=total_feeds,
@@ -111,12 +111,12 @@ async def get_detailed_stats(
         .group_by(Category.id)
         .order_by(func.count(Article.id).desc())
     )
-    
+
     categories = [
         {"name": row[0], "count": row[1]}
         for row in category_stats.fetchall()
     ]
-    
+
     # Top feeds por artigos
     feed_stats = await db.execute(
         select(
@@ -129,12 +129,12 @@ async def get_detailed_stats(
         .order_by(func.count(Article.id).desc())
         .limit(10)
     )
-    
+
     top_feeds = [
         {"name": row[0], "count": row[1]}
         for row in feed_stats.fetchall()
     ]
-    
+
     # Top autores
     author_stats = await db.execute(
         select(
@@ -144,21 +144,21 @@ async def get_detailed_stats(
         .order_by(Author.article_count.desc())
         .limit(10)
     )
-    
+
     top_authors = [
         {"name": row[0], "count": row[1]}
         for row in author_stats.fetchall()
     ]
-    
+
     # Mensagens não lidas
     from app.models import MessageStatus
-    
+
     unread_messages = await db.scalar(
         select(func.count())
         .select_from(ContactMessage)
         .where(ContactMessage.status == MessageStatus.UNREAD)
     ) or 0
-    
+
     return {
         "categories": categories,
         "top_feeds": top_feeds,
