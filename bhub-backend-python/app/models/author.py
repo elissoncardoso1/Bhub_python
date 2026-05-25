@@ -2,11 +2,18 @@
 Modelo de autor e relacionamento com artigos.
 """
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from sqlalchemy import Column, ForeignKey, Integer, String, Table, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 from app.models.base import BaseModel
+
+if TYPE_CHECKING:
+    from app.models.article import Article
 
 # Tabela de associação many-to-many entre Article e Author
 article_authors = Table(

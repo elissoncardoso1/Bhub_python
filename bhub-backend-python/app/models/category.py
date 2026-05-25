@@ -2,10 +2,17 @@
 Modelo de categoria para classificação de artigos.
 """
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from sqlalchemy import String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import BaseModel
+
+if TYPE_CHECKING:
+    from app.models.article import Article
 
 
 class Category(BaseModel):

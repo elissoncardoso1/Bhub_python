@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from app.database import Base, get_async_session
+from app.database import Base, close_db, get_async_session
 from app.main import app
 
 
@@ -39,6 +39,13 @@ def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
     loop = asyncio.get_event_loop_policy().new_event_loop()
     yield loop
     loop.close()
+
+
+def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
+    """Fecha engines async para não deixar threads do aiosqlite vivas após os testes."""
+    del session, exitstatus
+    asyncio.run(engine_test.dispose())
+    asyncio.run(close_db())
 
 
 @pytest_asyncio.fixture(scope="function")

@@ -32,11 +32,17 @@ env/
 *.sqlite
 *.sqlite3
 
-# Environment variables
+# Environment variables / local secrets
 .env
 .env.local
 .env.production
+.env.save
 .env.*.local
+
+# SSH keys / deployment secrets
+ssh/
+*.pem
+*.key
 
 # Logs
 *.log
