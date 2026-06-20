@@ -1,0 +1,34 @@
+/* ============================================================================
+   BHUB — Self-hosted brand fonts
+   ----------------------------------------------------------------------------
+   Elms Sans is the DATA / METRICS face (var(--font-data)). It is a licensed
+   typeface, so the .woff2 binaries are NOT committed to the repo. Drop the
+   files into app/static/fonts/ (see fonts/README.md for exact names) and they
+   activate automatically — until then, every rule below degrades gracefully to
+   the next family in the stack (Reddit Sans, tabular-nums), which is the
+   current visual baseline. `font-display: swap` guarantees text stays visible.
+   ============================================================================ */
+
+@font-face {
+  font-family: "Elms Sans";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../fonts/ElmsSans-Regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Elms Sans";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("../fonts/ElmsSans-SemiBold.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Elms Sans";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("../fonts/ElmsSans-Bold.woff2") format("woff2");
+}

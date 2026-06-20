@@ -113,3 +113,9 @@ alembic/versions/*.pyc
 # Local configuration
 config/local/
 local_settings.py
+
+# Licensed self-hosted fonts (drop binaries locally; never commit — see app/static/fonts/README.md)
+bhub-backend-python/app/static/fonts/*.woff2
+bhub-backend-python/app/static/fonts/*.woff
+bhub-backend-python/app/static/fonts/*.ttf
+bhub-backend-python/app/static/fonts/*.otf

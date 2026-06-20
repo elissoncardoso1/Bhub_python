@@ -28,6 +28,9 @@
     <!-- Additional Meta Tags -->
     {% block extra_meta %}{% endblock %}
 
+    <!-- Self-hosted brand fonts (Elms Sans / data face) -->
+    <link rel="stylesheet" href="{{ url_for('static', path='css/fonts.css') }}">
+
     <!-- Design Tokens (Paleta Oficial) -->
     <link rel="stylesheet" href="{{ url_for('static', path='css/design-tokens.css') }}">
 

@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Query, Request
 from pydantic import BaseModel
 from sqlalchemy import func, select
 
@@ -14,6 +14,7 @@ from app.api.deps import DBSession
 from app.core.csrf import CSRFValid, get_csrf_token
 from app.core.security import CurrentAdmin
 from app.models import Article, Author, Category, Feed, PDFMetadata
+from app.services.analytics_service import AnalyticsService
 from app.services.feed_aggregator import FeedAggregatorService
 from app.web.templating import get_templates
 
@@ -81,6 +82,51 @@ async def admin_dashboard(
             "current_user": admin,
             "stats": stats,
             "action_result": None,
+        },
+    )
+
+
+@router.get("/analytics")
+async def admin_analytics(
+    request: Request,
+    db: DBSession,
+    admin: CurrentAdmin,
+    days: int = Query(default=30, ge=1, le=365),
+):
+    """Painel de analytics (SSR) — tráfego, conteúdo, eventos e série temporal."""
+    templates = get_templates()
+    csrf_token = await get_csrf_token(request)
+
+    traffic = await AnalyticsService.get_traffic_stats(db, days=days)
+    content = await AnalyticsService.get_content_stats(db, days=days)
+    events = await AnalyticsService.get_events_stats(
+        db, start_date=datetime.utcnow() - timedelta(days=days)
+    )
+    time_series = await AnalyticsService.get_time_series_data(db, days=days, period="day")
+    top_pages = await AnalyticsService.get_top_pages(db, days=days, limit=8)
+
+    # Escala dos gráficos (evita divisão por zero no template).
+    series_max = max((p["count"] for p in time_series), default=0) or 1
+    pages_max = max((p["views"] for p in top_pages), default=0) or 1
+    events_total = events.get("total_events", 0) or 1
+
+    return templates.TemplateResponse(
+        "pages/admin/analytics.html",
+        {
+            "request": request,
+            "title": "Analytics",
+            "csrf_token": csrf_token,
+            "static_version": f"{templates.env.globals['settings'].app_version}",
+            "current_user": admin,
+            "days": days,
+            "traffic": traffic,
+            "content": content,
+            "events": events,
+            "time_series": time_series,
+            "top_pages": top_pages,
+            "series_max": series_max,
+            "pages_max": pages_max,
+            "events_total": events_total,
         },
     )
 
