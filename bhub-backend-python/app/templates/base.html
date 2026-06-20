@@ -69,15 +69,17 @@
     <!-- Marked.js for Markdown rendering -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
-    <!-- Inter Font -->
+    <!-- Brand fonts: Reddit Sans (UI) + Chivo Mono (code/tokens) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Reddit+Sans:ital,wght@0,200..900;1,200..900&family=Chivo+Mono:ital,wght@0,100..900;1,100..900&display=swap"
       rel="stylesheet"
     />
 
     <style>
       body {
-        font-family: "Inter", sans-serif;
+        font-family: "Reddit Sans", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
       }
       .htmx-indicator {
         opacity: 0;
@@ -96,7 +98,7 @@
 
     {% block extra_head %}{% endblock %}
   </head>
-  <body class="bg-slate-50 font-sans antialiased min-h-screen flex flex-col">
+  <body class="bg-paper font-sans antialiased min-h-screen flex flex-col">
     <!-- Skip to main content -->
     <a href="#main-content" class="skip-to-main focus:top-0">
       Pular para o conteúdo principal

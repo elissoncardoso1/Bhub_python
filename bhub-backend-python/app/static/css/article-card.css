@@ -21,8 +21,8 @@
 }
 
 .article-card:hover {
-    border-color: var(--color-primary-400);
-    box-shadow: var(--shadow-md);
+    border-color: var(--color-primary-600);
+    box-shadow: var(--shadow-card-hover);
     transform: translateY(-2px);
 }
 
@@ -91,85 +91,86 @@
     height: 100%;
 }
 
-/* Categorias - usando paleta oficial com contraste WCAG AA */
+/* Categorias - chips soft-tint (fundo claro + texto saturado + borda 1px) */
 .article-tag.category-clinica,
 .article-tag.category-clínica {
-    background: #0d7370;
-    color: #ffffff;
-    border: 1px solid rgba(13, 115, 112, 0.5);
+    background: var(--cat-clinica-bg);
+    color: var(--cat-clinica-fg);
+    border: 1px solid var(--cat-clinica-bd);
 }
 
 .article-tag.category-pesquisa {
-    background: #1e40af;
-    color: #ffffff;
-    border: 1px solid rgba(30, 64, 175, 0.5);
+    background: var(--cat-pesquisa-bg);
+    color: var(--cat-pesquisa-fg);
+    border: 1px solid var(--cat-pesquisa-bd);
 }
 
 .article-tag.category-educacao,
 .article-tag.category-educação {
-    background: #5b21b6;
-    color: #ffffff;
-    border: 1px solid rgba(91, 33, 182, 0.5);
+    background: var(--cat-educacao-bg);
+    color: var(--cat-educacao-fg);
+    border: 1px solid var(--cat-educacao-bd);
 }
 
 .article-tag.category-organizacional {
-    background: #c2410c;
-    color: #ffffff;
-    border: 1px solid rgba(194, 65, 12, 0.5);
+    background: var(--cat-organizacional-bg);
+    color: var(--cat-organizacional-fg);
+    border: 1px solid var(--cat-organizacional-bd);
 }
 
 .article-tag.category-autismo {
-    background: #be185d;
-    color: #ffffff;
-    border: 1px solid rgba(190, 24, 93, 0.5);
+    background: var(--cat-autismo-bg);
+    color: var(--cat-autismo-fg);
+    border: 1px solid var(--cat-autismo-bd);
 }
 
 .article-tag.category-behaviorismo-radical {
-    background: #6d28d9;
-    color: #ffffff;
-    border: 1px solid rgba(109, 40, 217, 0.5);
+    background: var(--cat-behaviorismo-bg);
+    color: var(--cat-behaviorismo-fg);
+    border: 1px solid var(--cat-behaviorismo-bd);
 }
 
 .article-tag.category-comportamento-verbal {
-    background: #15803d;
-    color: #ffffff;
-    border: 1px solid rgba(21, 128, 61, 0.5);
+    background: var(--cat-verbal-bg);
+    color: var(--cat-verbal-fg);
+    border: 1px solid var(--cat-verbal-bd);
 }
 
 .article-tag.category-noticias,
 .article-tag.category-notícias {
-    background: #c2410c;
-    color: #ffffff;
-    border: 1px solid rgba(194, 65, 12, 0.5);
+    background: var(--cat-noticias-bg);
+    color: var(--cat-noticias-fg);
+    border: 1px solid var(--cat-noticias-bd);
 }
 
 .article-tag.category-outros {
-    background: #374151;
-    color: #ffffff;
-    border: 1px solid rgba(55, 65, 81, 0.5);
+    background: var(--cat-outros-bg);
+    color: var(--cat-outros-fg);
+    border: 1px solid var(--cat-outros-bd);
 }
 
+/* Marcadores de tipo — outline-only (burgundy / tan / sage) */
 .article-tag.type-portal {
-    background: #c2410c;
-    color: #ffffff;
-    border: 1px solid rgba(194, 65, 12, 0.5);
+    background: transparent;
+    color: var(--color-tan-500);
+    border: 1px solid var(--color-tan-300);
 }
 
 .article-tag.type-periodico {
-    background: #6d28d9;
-    color: #ffffff;
-    border: 1px solid rgba(109, 40, 217, 0.5);
+    background: transparent;
+    color: var(--color-primary-600);
+    border: 1px solid var(--color-primary-300);
 }
 
 .article-tag.type-open-access {
-    background: #15803d;
-    color: #ffffff;
-    border: 1px solid rgba(21, 128, 61, 0.5);
+    background: transparent;
+    color: var(--color-sage-600);
+    border: 1px solid var(--color-sage-300);
 }
 
 .article-tag:hover {
-    opacity: 0.9;
-    transform: scale(1.05);
+    opacity: 0.92;
+    transform: scale(1.03);
 }
 
 /* Ícones do cabeçalho */
@@ -259,7 +260,7 @@
 }
 
 .article-title-link:hover {
-    color: var(--color-primary-400);
+    color: var(--color-primary-600);
 }
 
 .article-title-link:focus-visible {
@@ -413,11 +414,11 @@
 }
 
 .metric-card.impact-card {
-    background: linear-gradient(135deg, var(--color-info-50) 0%, var(--color-info-100) 100%);
+    background: linear-gradient(135deg, var(--color-primary-50) 0%, var(--color-primary-100) 100%);
 }
 
 .metric-card.relevance-card {
-    background: linear-gradient(135deg, var(--color-success-50) 0%, var(--color-primary-50) 100%);
+    background: linear-gradient(135deg, var(--color-sage-50) 0%, var(--color-sage-100) 100%);
 }
 
 .metric-card-empty {
@@ -432,12 +433,12 @@
     display: flex;
     align-items: center;
     gap: var(--space-1);
-    color: var(--color-info-600);
+    color: var(--color-primary-600);
     margin: 0;
 }
 
 .metric-card.relevance-card .metric-label {
-    color: var(--color-success-700);
+    color: var(--color-sage-600);
     font-weight: var(--font-weight-bold);
 }
 
@@ -459,9 +460,11 @@
 }
 
 .metric-value {
+    font-family: var(--font-data);
+    font-variant-numeric: tabular-nums;
     font-size: var(--font-size-xl);
     font-weight: var(--font-weight-bold);
-    color: var(--color-info-600);
+    color: var(--color-primary-700);
     margin: 0;
     display: flex;
     align-items: baseline;
@@ -470,7 +473,7 @@
 }
 
 .metric-card.relevance-card .metric-value {
-    color: var(--color-success-700);
+    color: var(--color-sage-600);
     font-size: var(--font-size-2xl);
 }
 
@@ -489,25 +492,25 @@
 .metric-bar {
     width: 100%;
     height: 3px;
-    background: var(--color-info-100);
+    background: var(--color-primary-100);
     border-radius: var(--radius-sm);
     overflow: hidden;
     margin-top: auto;
 }
 
 .metric-card.relevance-card .metric-bar {
-    background: var(--color-success-100);
+    background: var(--color-sage-100);
 }
 
 .metric-bar-fill {
     height: 100%;
-    background: var(--color-info-600);
+    background: var(--color-primary-600);
     border-radius: var(--radius-sm);
     transition: width var(--transition-base);
 }
 
 .metric-card.relevance-card .metric-bar-fill {
-    background: var(--color-success-700);
+    background: var(--color-sage-400);
 }
 
 /* ============================================
@@ -541,18 +544,18 @@
 }
 
 .article-button-primary {
-    background-color: var(--color-primary-400);
-    color: var(--color-text-primary);
+    background-color: var(--color-primary-600);
+    color: #ffffff;
 }
 
 .article-button-primary:hover {
-    background-color: var(--color-primary-500);
+    background-color: var(--color-primary-700);
     transform: translateY(-1px);
     box-shadow: var(--shadow-md);
 }
 
 .article-button-primary:active {
-    background-color: var(--color-primary-600);
+    background-color: var(--color-primary-900);
     transform: translateY(0);
 }
 
