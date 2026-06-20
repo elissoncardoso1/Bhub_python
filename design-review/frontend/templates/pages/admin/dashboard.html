@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <section class="panel">
+    <div class="panel-body">
+      <div class="row wrap" style="justify-content: space-between;">
+        <div>
+          <h1 style="margin: 0 0 6px;">Admin</h1>
+          <div class="muted">Painel de controle do {{ settings.app_name }}</div>
+        </div>
+        <div class="row wrap">
+          <a class="btn" href="/docs">Docs API</a>
+          <a class="btn danger" href="/logout">Sair</a>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+        <div class="card">
+          <div class="panel-title">Artigos</div>
+          <div style="font-size: 26px; font-weight: 800;">{{ stats.total_articles }}</div>
+          <div class="muted">+{{ stats.articles_this_week }} semana · +{{ stats.articles_this_month }} mês</div>
+        </div>
+        <div class="card">
+          <div class="panel-title">Feeds</div>
+          <div style="font-size: 26px; font-weight: 800;">{{ stats.total_feeds }}</div>
+          <div class="muted">Fontes ativas/inativas</div>
+        </div>
+        <div class="card">
+          <div class="panel-title">Categorias</div>
+          <div style="font-size: 26px; font-weight: 800;">{{ stats.total_categories }}</div>
+          <div class="muted">Catálogo</div>
+        </div>
+        <div class="card">
+          <div class="panel-title">Autores</div>
+          <div style="font-size: 26px; font-weight: 800;">{{ stats.total_authors }}</div>
+          <div class="muted">Normalização ativa</div>
+        </div>
+        <div class="card">
+          <div class="panel-title">PDFs</div>
+          <div style="font-size: 26px; font-weight: 800;">{{ stats.total_pdfs }}</div>
+          <div class="muted">Metadados extraídos</div>
+        </div>
+        <div class="card">
+          <div class="panel-title">Engajamento</div>
+          <div class="card-meta" style="margin: 0;">
+            <span>Views: {{ stats.views_total }}</span>
+            <span>Downloads: {{ stats.downloads_total }}</span>
+          </div>
+          <div class="muted">Destaques: {{ stats.highlighted_articles }}</div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <h2 class="panel-title">Ações</h2>
+      <div class="row wrap">
+        <button
+          class="btn primary"
+          hx-post="/admin/sync-feeds"
+          hx-target="#admin-action-result"
+          hx-swap="innerHTML"
+        >
+          <span class="spinner htmx-indicator" aria-hidden="true"></span>
+          Sincronizar feeds (agora)
+        </button>
+      </div>
+
+      <div id="admin-action-result" style="margin-top: 14px;">
+        {% if action_result %}
+          {% include "partials/admin/action_result.html" %}
+        {% endif %}
+      </div>
+    </div>
+  </section>
+{% endblock %}
+

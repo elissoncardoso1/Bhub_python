@@ -1,0 +1,142 @@
+{# Componente de Loading Reutilizável #}
+
+{# Spinner Simples #}
+{% macro spinner(size="md", text="") %}
+<div class="flex items-center justify-center gap-3" role="status" aria-live="polite">
+    {% if size == "sm" %}
+    <div class="w-4 h-4 border-4 border-primary-200 border-t-primary-400 rounded-full animate-spin" aria-hidden="true"></div>
+    {% elif size == "lg" %}
+    <div class="w-12 h-12 border-4 border-primary-200 border-t-primary-400 rounded-full animate-spin" aria-hidden="true"></div>
+    {% else %}
+    <div class="w-8 h-8 border-4 border-primary-200 border-t-primary-400 rounded-full animate-spin" aria-hidden="true"></div>
+    {% endif %}
+    {% if text %}
+    <span class="text-sm text-primary-700 font-medium">{{ text }}</span>
+    {% endif %}
+    <span class="sr-only">Carregando conteúdo, por favor aguarde.</span>
+</div>
+{% endmacro %}
+
+{# Spinner para HTMX #}
+{% macro htmx_spinner(size="md", text="") %}
+<div class="htmx-indicator flex items-center justify-center gap-3 p-4" role="status" aria-live="polite">
+    {% if size == "sm" %}
+    <div class="w-4 h-4 border-4 border-primary-200 border-t-primary-400 rounded-full animate-spin" aria-hidden="true"></div>
+    {% elif size == "lg" %}
+    <div class="w-12 h-12 border-4 border-primary-200 border-t-primary-400 rounded-full animate-spin" aria-hidden="true"></div>
+    {% else %}
+    <div class="w-8 h-8 border-4 border-primary-200 border-t-primary-400 rounded-full animate-spin" aria-hidden="true"></div>
+    {% endif %}
+    {% if text %}
+    <span class="text-sm text-primary-700 font-medium">{{ text }}</span>
+    {% endif %}
+    <span class="sr-only">Carregando conteúdo, por favor aguarde.</span>
+</div>
+{% endmacro %}
+
+{# Skeleton Loader para Cards Genérico #}
+{% macro card_skeleton() %}
+<div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 animate-pulse" aria-hidden="true">
+    <div class="flex justify-between items-start mb-4">
+        <div class="h-6 w-24 bg-slate-200 rounded"></div>
+        <div class="h-4 w-20 bg-slate-200 rounded"></div>
+    </div>
+    <div class="h-6 w-full bg-slate-200 rounded mb-2"></div>
+    <div class="h-6 w-3/4 bg-slate-200 rounded mb-4"></div>
+    <div class="h-4 w-full bg-slate-200 rounded mb-2"></div>
+    <div class="h-4 w-5/6 bg-slate-200 rounded"></div>
+</div>
+{% endmacro %}
+
+{# Skeleton Loader Específico para Article Card #}
+{% macro article_card_skeleton() %}
+<article class="article-card animate-pulse" aria-hidden="true" role="presentation">
+    <!-- Tags Skeleton -->
+    <div class="article-tags">
+        <div class="h-6 w-20 bg-slate-200 rounded-full"></div>
+        <div class="h-6 w-16 bg-slate-200 rounded-full"></div>
+    </div>
+    
+    <!-- Título Skeleton -->
+    <div class="article-title">
+        <div class="h-5 w-full bg-slate-200 rounded mb-2"></div>
+        <div class="h-5 w-4/5 bg-slate-200 rounded"></div>
+    </div>
+    
+    <!-- Metadata Skeleton -->
+    <div class="article-metadata">
+        <div class="h-4 w-3/4 bg-slate-200 rounded"></div>
+        <div class="h-4 w-1/2 bg-slate-200 rounded"></div>
+        <div class="h-4 w-1/3 bg-slate-200 rounded"></div>
+    </div>
+    
+    <!-- Descrição Skeleton -->
+    <div class="article-description">
+        <div class="h-3 w-full bg-slate-200 rounded mb-2"></div>
+        <div class="h-3 w-5/6 bg-slate-200 rounded mb-2"></div>
+        <div class="h-3 w-4/5 bg-slate-200 rounded"></div>
+    </div>
+    
+    <!-- Métricas Skeleton -->
+    <div class="article-metrics">
+        <div class="metric-card impact-card">
+            <div class="metric-label">
+                <div class="h-3 w-16 bg-slate-300 rounded"></div>
+            </div>
+            <div class="h-5 w-12 bg-slate-300 rounded"></div>
+            <div class="metric-bar">
+                <div class="h-1 w-3/4 bg-slate-300 rounded"></div>
+            </div>
+        </div>
+        <div class="metric-card relevance-card">
+            <div class="metric-label">
+                <div class="h-3 w-20 bg-slate-300 rounded"></div>
+            </div>
+            <div class="h-5 w-16 bg-slate-300 rounded"></div>
+            <div class="metric-bar">
+                <div class="h-1 w-2/3 bg-slate-300 rounded"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Footer Skeleton -->
+    <div class="article-footer">
+        <div class="h-11 flex-1 bg-slate-200 rounded"></div>
+        <div class="article-icons">
+            <div class="w-11 h-11 bg-slate-200 rounded"></div>
+            <div class="w-11 h-11 bg-slate-200 rounded"></div>
+        </div>
+    </div>
+</article>
+{% endmacro %}
+
+{# Skeleton Loader para Lista de Cards Genéricos #}
+{% macro card_list_skeleton(count=3) %}
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" aria-label="Carregando artigos">
+    {% for _ in range(count) %}
+        {{ card_skeleton() }}
+    {% endfor %}
+</div>
+{% endmacro %}
+
+{# Skeleton Loader para Lista de Article Cards #}
+{% macro article_card_list_skeleton(count=6) %}
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" aria-label="Carregando artigos" role="status" aria-live="polite">
+    {% for _ in range(count) %}
+        {{ article_card_skeleton() }}
+    {% endfor %}
+    <span class="sr-only">Carregando lista de artigos, por favor aguarde.</span>
+</div>
+{% endmacro %}
+
+{# Loading Overlay (para modais/páginas) #}
+{% macro overlay(text="Carregando...") %}
+<div class="fixed inset-0 bg-white bg-opacity-80 backdrop-blur-sm flex items-center justify-center z-50" role="status" aria-live="polite">
+    <div class="flex flex-col items-center gap-4">
+        <div class="w-12 h-12 border-4 border-primary-200 border-t-primary-400 rounded-full animate-spin" aria-hidden="true"></div>
+        <span class="text-base text-primary-700 font-medium">{{ text }}</span>
+        <span class="sr-only">{{ text }}</span>
+    </div>
+</div>
+{% endmacro %}
+

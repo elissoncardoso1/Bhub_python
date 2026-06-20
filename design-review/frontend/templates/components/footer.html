@@ -1,0 +1,74 @@
+<footer class="bg-slate-900 text-slate-300 mt-20">
+    <div class="container mx-auto px-4 py-12">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <!-- Brand -->
+            <div class="space-y-4">
+                <div class="flex items-center gap-2">
+                    <span class="bg-blue-600 text-white p-1.5 rounded-lg">
+                        {{ icon('brain', 'w-6 h-6') | safe }}
+                    </span>
+                    <span class="font-bold text-xl text-white">BHUB</span>
+                </div>
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    Plataforma inteligente para agregação e análise de artigos científicos em Análise do Comportamento.
+                </p>
+                <div class="flex gap-4 pt-2">
+                    <a href="#" class="text-slate-400 hover:text-white transition-colors">
+                        {{ icon('github', 'w-5 h-5') | safe }}
+                    </a>
+                    <a href="#" class="text-slate-400 hover:text-white transition-colors">
+                        {{ icon('twitter', 'w-5 h-5') | safe }}
+                    </a>
+                    <a href="#" class="text-slate-400 hover:text-white transition-colors">
+                        {{ icon('linkedin', 'w-5 h-5') | safe }}
+                    </a>
+                </div>
+            </div>
+
+            <!-- Links -->
+            <div>
+                <h3 class="text-white font-semibold mb-4">Explorar</h3>
+                <ul class="space-y-2 text-sm">
+                    <li><a href="/" class="hover:text-blue-400 transition-colors">Início</a></li>
+                    <li><a href="/articles" class="hover:text-blue-400 transition-colors">Artigos Recentes</a></li>
+                    <li><a href="/categories" class="hover:text-blue-400 transition-colors">Análises e Tendências</a></li>
+                    <li><a href="/about" class="hover:text-blue-400 transition-colors">Sobre o Projeto</a></li>
+                </ul>
+            </div>
+
+            <!-- Resources -->
+            <div>
+                <h3 class="text-white font-semibold mb-4">Recursos</h3>
+                <ul class="space-y-2 text-sm">
+                    <li><a href="/faq" class="hover:text-blue-400 transition-colors">FAQ</a></li>
+                    <li><a href="/api" class="hover:text-blue-400 transition-colors">API Docs</a></li>
+                    <li><a href="#" class="hover:text-blue-400 transition-colors">Termos de Uso</a></li>
+                    <li><a href="#" class="hover:text-blue-400 transition-colors">Privacidade</a></li>
+                </ul>
+            </div>
+
+            <!-- Contact -->
+            <div>
+                <h3 class="text-white font-semibold mb-4">Contato</h3>
+                <ul class="space-y-3 text-sm">
+                    <li class="flex items-start gap-3">
+                        <span class="text-blue-500 mt-0.5">{{ icon('mail', 'w-4 h-4') | safe }}</span>
+                        <span>contato@bhub.example.com</span>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <span class="text-blue-500 mt-0.5">{{ icon('map-pin', 'w-4 h-4') | safe }}</span>
+                        <span>São Paulo, SP - Brasil</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bottom Bar -->
+    <div class="border-t border-slate-800">
+        <div class="container mx-auto px-4 py-6 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-slate-500">
+            <p>&copy; {{ now().year if now else '2024' }} BHUB. Todos os direitos reservados.</p>
+            <p>Desenvolvido com <span class="text-red-500">♥</span> e Python.</p>
+        </div>
+    </div>
+</footer>

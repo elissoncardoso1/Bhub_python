@@ -1,0 +1,234 @@
+<div class="bg-white rounded-lg shadow-sm max-w-4xl mx-auto p-6 sm:p-8 border border-primary-200" 
+     itemscope 
+     itemtype="https://schema.org/ScholarlyArticle">
+    <!-- Badge de Categoria -->
+    <div class="inline-flex items-center gap-2 bg-primary-50 text-primary-700 border border-primary-200 px-4 sm:px-6 py-2 sm:py-3 rounded-full text-xs font-semibold uppercase tracking-wide mb-4 sm:mb-6">
+        {{ icon('book-open', 'w-4 h-4', aria_hidden=True) | safe }}
+        <span itemprop="articleSection">{{ article.category.name if article.category else 'Geral' }}</span>
+    </div>
+
+    <!-- Metadados do Artigo -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-6 sm:mb-8">
+        <div class="flex items-center gap-2">
+            <span class="bg-primary-50 text-primary-700 border border-primary-200 px-3 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm font-medium">
+                {{ article.category.name if article.category else 'Artigo' }}
+            </span>
+        </div>
+        <time datetime="{{ article.publication_date.isoformat() if article.publication_date else '' }}" 
+              class="text-primary-600 text-xs sm:text-sm font-medium flex items-center gap-1.5"
+              itemprop="datePublished">
+            {{ icon('calendar', 'w-4 h-4', aria_hidden=True) | safe }}
+            <span>{{ article.publication_date | date_fmt_br('full') }}</span>
+        </time>
+    </div>
+
+    <!-- Título do Artigo -->
+    <h1 class="font-serif text-2xl sm:text-3xl md:text-4xl text-primary-900 font-bold leading-tight mb-4 sm:mb-6" 
+        itemprop="headline">
+        {{ article.title_translated or article.title }}
+    </h1>
+
+    <!-- Autor(es) -->
+    <div class="mb-4 sm:mb-6" itemprop="author" itemscope itemtype="https://schema.org/Person">
+        <p class="text-base sm:text-lg text-primary-700 italic flex items-center gap-2">
+            {{ icon('users', 'w-5 h-5 text-primary-500', aria_hidden=True) | safe }}
+            <span itemprop="name">
+                {% if article.authors %}
+                    {{ article.authors|map(attribute='name')|join(', ') }}
+                {% else %}
+                    Autores desconhecidos
+                {% endif %}
+            </span>
+        </p>
+    </div>
+
+    <!-- Informações Bibliográficas -->
+    <div class="flex flex-wrap gap-4 sm:gap-6 text-primary-700 text-sm sm:text-[15px] mb-4 sm:mb-6">
+        <div class="flex items-center gap-2">
+            <span class="text-primary-500 font-bold" aria-hidden="true">•</span>
+            <span class="font-semibold">Periódico:</span>
+            <span itemprop="publisher" itemscope itemtype="https://schema.org/Organization">
+                <span itemprop="name">{{ article.journal_name or article.feed.name or 'N/A' }}</span>
+            </span>
+        </div>
+        {% if article.doi %}
+        <div class="flex items-center gap-2">
+            <span class="text-primary-500 font-bold" aria-hidden="true">•</span>
+            <span class="font-semibold">DOI:</span>
+            <a href="https://doi.org/{{ article.doi }}" 
+               target="_blank" 
+               rel="noopener noreferrer"
+               class="text-primary-600 hover:text-primary-700 hover:underline transition-colors"
+               itemprop="identifier"
+               itemscope
+               itemtype="https://schema.org/PropertyValue">
+                <span itemprop="propertyID">DOI</span>
+                <span itemprop="value">{{ article.doi }}</span>
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Informações Complementares (Idioma e Impacto) -->
+    <div class="flex flex-wrap gap-4 sm:gap-8 text-sm text-primary-600 mb-6 sm:mb-10">
+        <div class="flex items-center gap-2">
+            <span class="text-primary-500">{{ icon('globe', 'w-4 h-4', aria_hidden=True) | safe }}</span>
+            <span>Idioma:</span>
+            <span class="font-semibold text-primary-700 ml-1" itemprop="inLanguage">{{ article.language|upper }}</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="text-primary-500">{{ icon('trending-up', 'w-4 h-4', aria_hidden=True) | safe }}</span>
+            <span>Impacto:</span>
+            <strong class="font-semibold ml-1 {% if article.impact_score > 7 %}text-success-600{% elif article.impact_score > 4 %}text-warning-600{% else %}text-primary-700{% endif %}">
+                {{ "%.1f"|format(article.impact_score) }}
+            </strong>
+        </div>
+    </div>
+
+    <!-- Container do Abstract/Resumo -->
+    <div class="relative bg-primary-50 border-l-4 border-primary-400 p-4 sm:p-6 md:p-8 rounded-r-lg mb-6 sm:mb-10">
+        <!-- Quote Decoration -->
+        <span class="absolute top-3 sm:top-4 left-3 sm:left-4 text-3xl sm:text-4xl text-primary-200 font-serif leading-none select-none" aria-hidden="true">❝</span>
+        
+        <!-- Abstract Content (Original or Translated) -->
+        <div id="abstract-content" 
+             class="relative z-10 text-base sm:text-[17px] leading-relaxed text-primary-900 pl-4 sm:pl-6"
+             itemprop="abstract">
+            {{ article.abstract_translated or article.abstract or 'Resumo não disponível.' }}
+        </div>
+        
+        <!-- Translate Button (Below Abstract) -->
+        {% if article.abstract and (not article.abstract_translated or article.abstract != article.abstract_translated) %}
+        <div class="mt-4 sm:mt-6 pt-4 border-t border-primary-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+            <button 
+                id="translate-btn"
+                type="button"
+                aria-label="Traduzir resumo para português"
+                class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-primary-300 shadow-sm rounded-lg text-sm font-medium text-primary-700 hover:text-primary-600 hover:border-primary-400 hover:bg-primary-50 active:bg-primary-100 transition-all focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 min-h-[44px]"
+                hx-post="/translate"
+                hx-ext="json-enc"
+                hx-vals="{{ {'text': article.abstract or '', 'source_lang': 'en', 'target_lang': 'pt', 'element_id': 'abstract-content', 'article_id': article.id} | tojson }}"
+                hx-target="#abstract-content"
+                hx-swap="innerHTML"
+                hx-disabled-elt="this"
+            >
+                <span class="translate-icon">{{ icon('languages', 'w-4 h-4', aria_hidden=True) | safe }}</span>
+                <span class="translate-label">Traduzir para Português</span>
+            </button>
+            
+            <span class="text-xs text-primary-500 flex items-center gap-1">
+                {{ icon('info', 'w-3 h-3', aria_hidden=True) | safe }}
+                <span>Idioma original: {{ article.language | upper }}</span>
+            </span>
+        </div>
+        {% endif %}
+    </div>
+
+    <style>
+        /* Button loading state via HTMX */
+        #translate-btn.htmx-request .translate-icon {
+            display: none;
+        }
+        #translate-btn.htmx-request .translate-label {
+            display: none;
+        }
+        #translate-btn.htmx-request::before {
+            content: '';
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--color-primary-400, #3fb5a3);
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+        }
+        #translate-btn.htmx-request::after {
+            content: 'Traduzindo...';
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+    
+    <!-- Keywords -->
+    {% if article.keywords %}
+    <div class="mb-6 sm:mb-10">
+        <h4 class="text-xs font-bold text-primary-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+            {{ icon('tag', 'w-4 h-4', aria_hidden=True) | safe }}
+            <span>Palavras-chave</span>
+        </h4>
+        <div class="flex flex-wrap gap-2" itemprop="keywords">
+             {% for keyword in article.keywords.split(',') %}
+             <span class="text-xs sm:text-sm text-primary-700 bg-primary-50 border border-primary-200 px-2 sm:px-3 py-1 rounded-md">
+                 {{ keyword.strip() }}
+             </span>
+             {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Actions -->
+    <div class="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 mt-6 sm:mt-8 border-t border-primary-200 pt-6 sm:pt-8">
+         {% if article.link %}
+         <a href="{{ article.link }}" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            itemprop="url"
+            class="inline-flex items-center justify-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 active:bg-primary-700 transition-all active:scale-95 shadow-sm hover:shadow focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 min-h-[44px]">
+             {{ icon('external-link', 'w-4 h-4', aria_hidden=True) | safe }}
+             <span>Acessar Artigo Completo</span>
+         </a>
+         {% endif %}
+         
+         {% if article.pdf_file_path %}
+         <a href="/download/{{ article.id }}" 
+            target="_blank"
+            rel="noopener noreferrer"
+            download
+            class="inline-flex items-center justify-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 bg-white text-primary-700 border border-primary-300 rounded-lg font-medium hover:bg-primary-50 active:bg-primary-100 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 min-h-[44px]">
+             {{ icon('download', 'w-4 h-4', aria_hidden=True) | safe }}
+             <span>Download PDF</span>
+         </a>
+         {% endif %}
+    </div>
+    
+    <!-- Original Title Info -->
+    {% if article.title_translated and article.title != article.title_translated %}
+    <div class="mt-8 sm:mt-12 pt-4 sm:pt-6 border-t border-dashed border-primary-300 text-xs sm:text-sm text-primary-500">
+        <span class="font-medium">Título Original:</span> 
+        <span class="italic">"{{ article.title }}"</span>
+    </div>
+    {% endif %}
+
+    <!-- Structured Data JSON-LD -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "ScholarlyArticle",
+      "headline": {{ (article.title_translated or article.title) | tojson }},
+      "description": {{ (article.abstract_translated or article.abstract or '') | tojson }},
+      "datePublished": {{ (article.publication_date.isoformat() if article.publication_date else '') | tojson }},
+      "author": {
+        "@type": "Person",
+        "name": {{ (article.authors|map(attribute='name')|join(', ') if article.authors else 'Autores desconhecidos') | tojson }}
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": {{ (article.journal_name or article.feed.name or 'BHUB') | tojson }}
+      }{% if article.doi %},
+      "identifier": {
+        "@type": "PropertyValue",
+        "propertyID": "DOI",
+        "value": {{ article.doi | tojson }}
+      }{% endif %}{% if article.link %},
+      "url": {{ article.link | tojson }}{% endif %}
+    }
+    </script>
+</div>
+
+<style>
+    /* Custom font overrides for this specific component if needed */
+    .font-serif {
+        font-family: Georgia, 'Times New Roman', Times, serif;
+    }
+</style>

@@ -1,0 +1,76 @@
+{# Componente de Estado Vazio Reutilizável #}
+
+{# Estado Vazio Genérico #}
+{% macro empty_state(title="Nenhum resultado encontrado", message="Tente ajustar os filtros ou fazer uma nova busca.", icon_name="inbox", action_text="", action_url="", action_onclick="") %}
+<div class="text-center py-12 px-4" role="status" aria-live="polite">
+    <div class="mx-auto w-16 h-16 text-slate-300 mb-4" aria-hidden="true">
+        {{ icon(icon_name, 'w-16 h-16') | safe }}
+    </div>
+    <h3 class="text-lg font-semibold text-slate-900 mb-2">{{ title }}</h3>
+    <p class="text-slate-600 mb-6 max-w-md mx-auto">{{ message }}</p>
+    {% if action_text %}
+        {% if action_url %}
+        <a 
+            href="{{ action_url }}" 
+            class="inline-flex items-center gap-2 px-4 py-2 bg-primary-400 hover:bg-primary-500 text-white rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2"
+        >
+            {{ action_text }}
+        </a>
+        {% elif action_onclick %}
+        <button 
+            type="button"
+            onclick="{{ action_onclick }}"
+            class="inline-flex items-center gap-2 px-4 py-2 bg-primary-400 hover:bg-primary-500 text-white rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2"
+        >
+            {{ action_text }}
+        </button>
+        {% endif %}
+    {% endif %}
+    <span class="sr-only">{{ title }}. {{ message }}</span>
+</div>
+{% endmacro %}
+
+{# Estado Vazio para Busca #}
+{% macro empty_search(query="") %}
+{{ empty_state(
+    title="Nenhum resultado encontrado",
+    message=query and "Não encontramos artigos para '{}'. Tente usar termos diferentes ou verificar a ortografia.".format(query) or "Não encontramos artigos. Tente ajustar os termos de busca.",
+    icon_name="search",
+    action_text="Limpar busca",
+    action_onclick="document.getElementById('search-input')?.value = ''; document.getElementById('search-input')?.focus();"
+) }}
+{% endmacro %}
+
+{# Estado Vazio para Lista de Artigos #}
+{% macro empty_articles() %}
+{{ empty_state(
+    title="Nenhum artigo disponível",
+    message="Ainda não há artigos cadastrados. Os artigos aparecerão aqui quando estiverem disponíveis.",
+    icon_name="file-text",
+    action_text="Ver todas as categorias",
+    action_url="/categories"
+) }}
+{% endmacro %}
+
+{# Estado Vazio para Filtros #}
+{% macro empty_filters() %}
+{{ empty_state(
+    title="Nenhum resultado com esses filtros",
+    message="Tente remover alguns filtros ou ajustar os critérios de busca.",
+    icon_name="filter",
+    action_text="Limpar filtros",
+    action_onclick="document.getElementById('filter-form')?.reset(); document.getElementById('filter-form')?.requestSubmit();"
+) }}
+{% endmacro %}
+
+{# Estado Vazio para Categorias #}
+{% macro empty_categories() %}
+{{ empty_state(
+    title="Nenhuma categoria disponível",
+    message="Ainda não há categorias cadastradas.",
+    icon_name="folder",
+    action_text="Voltar para início",
+    action_url="/"
+) }}
+{% endmacro %}
+

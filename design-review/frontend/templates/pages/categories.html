@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <section class="panel">
+    <div class="panel-body">
+      <h1 style="margin: 0 0 10px;">Categorias</h1>
+      <div class="muted" style="margin-bottom: 16px;">
+        Selecione uma categoria para filtrar os artigos.
+      </div>
+
+      <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
+        {% for cat in categories %}
+          <a class="card" href="/?category_id={{ cat.id }}">
+            <div class="card-title" style="font-size: 16px; margin: 0 0 8px;">
+              {{ cat.name }}
+            </div>
+            <div class="card-meta">
+              <span>{{ cat.article_count }} artigos</span>
+            </div>
+          </a>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+{% endblock %}
+

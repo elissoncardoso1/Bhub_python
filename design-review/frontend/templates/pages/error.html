@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% from "components/error.html" import page_error %}
+
+{% block content %}
+  {{ page_error(
+    title=error_title or "Erro",
+    message=message or "Ocorreu um erro inesperado.",
+    action_text="Voltar para início",
+    action_url="/"
+  ) }}
+{% endblock %}
+

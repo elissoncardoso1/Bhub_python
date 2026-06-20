@@ -1,0 +1,54 @@
+{% if not request.headers.get("HX-Request") %}
+    {% extends "base.html" %}
+    
+    {% block meta_description %}{{ meta_description or (article.abstract_translated or article.abstract or '')[:160] }}{% endblock %}
+    
+    {% block og_type %}article{% endblock %}
+    {% block og_url %}{{ base_url }}/articles/{{ article.id }}{% endblock %}
+    {% block og_title %}{{ article.title_translated or article.title }}{% endblock %}
+    {% block og_description %}{{ article.abstract_translated or article.abstract or '' }}{% endblock %}
+    {% block og_image %}{{ base_url }}/api/v1/og/articles/{{ article.id }}/image{% endblock %}
+    
+    {% block twitter_card %}summary_large_image{% endblock %}
+    {% block twitter_title %}{{ article.title_translated or article.title }}{% endblock %}
+    {% block twitter_description %}{{ article.abstract_translated or article.abstract or '' }}{% endblock %}
+    {% block twitter_image %}{{ base_url }}/api/v1/og/articles/{{ article.id }}/image{% endblock %}
+    
+    {% block extra_meta %}
+    {% if article.publication_date %}
+    <meta property="article:published_time" content="{{ article.publication_date.isoformat() }}" />
+    {% endif %}
+    {% if article.authors %}
+    <meta property="article:author" content="{{ article.authors|map(attribute='name')|join(', ') }}" />
+    {% endif %}
+    {% if article.category %}
+    <meta property="article:section" content="{{ article.category.name }}" />
+    {% endif %}
+    {% endblock %}
+    
+    {% block content %}
+    <div class="max-w-4xl mx-auto">
+        {% include 'pages/article_detail_content.html' %}
+    </div>
+    {% endblock %}
+{% else %}
+    <!-- Modal Backdrop -->
+    <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity" onclick="window.closeModal()" aria-hidden="true"></div>
+    
+    <!-- Modal Content -->
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto transform transition-all animate-in fade-in zoom-in-95 duration-200" id="modal-content">
+            <button 
+                type="button"
+                aria-label="Fechar modal"
+                class="absolute top-4 right-4 p-2 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-500 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 transition-colors z-10"
+                onclick="window.closeModal()"
+            >
+                <span class="sr-only">Fechar</span>
+                {{ icon('x', 'w-5 h-5') | safe }}
+            </button>
+            
+            {% include 'pages/article_detail_content.html' %}
+        </div>
+    </div>
+{% endif %}

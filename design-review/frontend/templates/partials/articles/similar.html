@@ -1,0 +1,22 @@
+{% if similar_articles and similar_articles|length > 0 %}
+  <div class="grid">
+    {% for a in similar_articles %}
+      <a class="card" href="/articles/{{ a.id }}">
+        <div class="card-title" style="font-size: 15px; margin: 0 0 6px;">
+          {{ a.title_translated or a.title }}
+        </div>
+        <div class="card-meta">
+          {% if a.publication_date %}
+            <span>{{ a.publication_date|date_fmt }}</span>
+          {% endif %}
+          {% if a.has_pdf %}
+            <span class="badge ok">PDF</span>
+          {% endif %}
+        </div>
+      </a>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="empty">Sem recomendações para este artigo.</div>
+{% endif %}
+

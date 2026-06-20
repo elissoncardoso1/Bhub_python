@@ -1,0 +1,16 @@
+{% if action_result.success %}
+  <div class="toast-item ok">
+    {{ action_result.message }}
+    {% if action_result.details %}
+      <div class="muted" style="margin-top: 6px;">{{ action_result.details }}</div>
+    {% endif %}
+  </div>
+{% else %}
+  <div class="toast-item err">
+    {{ action_result.message }}
+    {% if action_result.details %}
+      <div class="muted" style="margin-top: 6px;">{{ action_result.details }}</div>
+    {% endif %}
+  </div>
+{% endif %}
+
