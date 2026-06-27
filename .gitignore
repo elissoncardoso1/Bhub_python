@@ -114,8 +114,10 @@ alembic/versions/*.pyc
 config/local/
 local_settings.py
 
-# Licensed self-hosted fonts (drop binaries locally; never commit — see app/static/fonts/README.md)
-bhub-backend-python/app/static/fonts/*.woff2
-bhub-backend-python/app/static/fonts/*.woff
+# Self-hosted fonts: the served .woff2 are OFL-licensed and committed (see
+# app/static/fonts/README.md). Ignore only raw/source font formats.
 bhub-backend-python/app/static/fonts/*.ttf
 bhub-backend-python/app/static/fonts/*.otf
+
+# Raw font source material (TTFs + zip) — not for the repo; woff2 are derived from these
+/assets/

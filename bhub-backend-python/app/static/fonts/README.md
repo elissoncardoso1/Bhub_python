@@ -1,26 +1,30 @@
 # BHUB self-hosted fonts
 
-This directory holds the **licensed** brand binaries that cannot live in Google
-Fonts. They are intentionally **git-ignored** — never commit the `.woff2` files
-(licensing). The `@font-face` rules live in `app/static/css/fonts.css`.
+Self-hosted brand binaries served by `app/static/css/fonts.css`.
 
 ## Elms Sans (data / metrics face — `var(--font-data)`)
 
-Drop these files here, exact names:
+Shipped as a **variable** woff2 covering the full 200–900 weight range:
 
-| File | weight |
-|------|--------|
-| `ElmsSans-Regular.woff2`  | 400 |
-| `ElmsSans-SemiBold.woff2` | 600 |
-| `ElmsSans-Bold.woff2`     | 700 |
+| File | axis | style |
+|------|------|-------|
+| `ElmsSans-Variable.woff2`        | `wght` 200–900 | normal |
+| `ElmsSans-Italic-Variable.woff2` | `wght` 200–900 | italic |
 
-`.woff2` only. To convert from `.otf`/`.ttf`:
+Licensed under the **SIL Open Font License** (`ElmsSans-OFL.txt`), so the
+`.woff2` are committed with the repo. Metric numbers (`.metric-value`,
+`font-data`) render in Elms Sans; if a binary is ever missing the stack falls
+back to Reddit Sans with `tabular-nums`.
+
+### Regenerating from source TTF
+
+Source TTFs live outside the repo (`/assets/.../Elms_Sans/`). To rebuild the
+woff2:
 
 ```bash
 pip install fonttools brotli
-fonttools ttLib.woff2 compress ElmsSans-Regular.otf   # → ElmsSans-Regular.woff2
+python -c "from fontTools.ttLib import woff2; \
+  woff2.compress('ElmsSans-VariableFont_wght.ttf', 'ElmsSans-Variable.woff2')"
 ```
 
-Until the files are present, metric numbers fall back to **Reddit Sans with
-`tabular-nums`** (the current baseline). No code change is needed when you add
-them — `font-display: swap` + the fallback stack handle activation.
+Raw `.ttf`/`.otf` are git-ignored here — only the optimized `.woff2` ship.
