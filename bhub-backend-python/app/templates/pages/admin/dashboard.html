@@ -1,78 +1,114 @@
 {% extends "base.html" %}
 
+{% block title %}Admin — BHUB{% endblock %}
+
 {% block content %}
-  <section class="panel">
-    <div class="panel-body">
-      <div class="row wrap" style="justify-content: space-between;">
+<div class="max-w-6xl mx-auto">
+
+  <!-- Header -->
+  <header class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
+    <div>
+      <div class="flex items-center gap-2 text-sm text-primary-600 font-semibold mb-1">
+        {{ icon('shield', 'w-4 h-4', aria_hidden=True) | safe }}
+        <span class="uppercase tracking-wide">Painel</span>
+      </div>
+      <h1 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">Admin</h1>
+      <p class="text-slate-600 mt-1">Painel de controle do {{ settings.app_name }}</p>
+    </div>
+    <nav class="flex flex-wrap items-center gap-2 self-start" aria-label="Ações de administração">
+      <a href="/admin/analytics"
+         class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-primary-600 rounded-xl hover:bg-primary-700 active:bg-primary-800 transition-all shadow-sm hover:shadow hover:-translate-y-0.5">
+        {{ icon('activity', 'w-4 h-4', aria_hidden=True) | safe }}
+        Analytics
+      </a>
+      <a href="/docs"
+         class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-primary-700 bg-white border border-primary-200 rounded-xl hover:bg-primary-50 transition-colors">
+        {{ icon('book-open', 'w-4 h-4', aria_hidden=True) | safe }}
+        Docs API
+      </a>
+      <a href="/logout"
+         class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-error-600 bg-white border border-error-100 rounded-xl hover:bg-error-50 transition-colors">
+        {{ icon('log-out', 'w-4 h-4', aria_hidden=True) | safe }}
+        Sair
+      </a>
+    </nav>
+  </header>
+
+  <!-- KPI cards -->
+  {% set cards = [
+    {'icon': 'file-text', 'label': 'Artigos',    'value': stats.total_articles,   'tone': 'primary',
+     'hint': '+' ~ stats.articles_this_week ~ ' semana · +' ~ stats.articles_this_month ~ ' mês'},
+    {'icon': 'rss',       'label': 'Feeds',      'value': stats.total_feeds,      'tone': 'sage', 'hint': 'Fontes ativas/inativas'},
+    {'icon': 'folder',    'label': 'Categorias', 'value': stats.total_categories, 'tone': 'tan',  'hint': 'Catálogo'},
+    {'icon': 'users',     'label': 'Autores',    'value': stats.total_authors,    'tone': 'primary', 'hint': 'Normalização ativa'},
+    {'icon': 'file',      'label': 'PDFs',       'value': stats.total_pdfs,       'tone': 'sage', 'hint': 'Metadados extraídos'}
+  ] %}
+  <section class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mb-5" aria-label="Indicadores do catálogo">
+    {% for c in cards %}
+    <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-card-hover transition-shadow">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg
+                     {% if c.tone == 'sage' %}bg-sage-50 text-sage-600{% elif c.tone == 'tan' %}bg-tan-50 text-tan-600{% else %}bg-primary-50 text-primary-600{% endif %}">
+          {{ icon(c.icon, 'w-4 h-4', aria_hidden=True) | safe }}
+        </span>
+        <span class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ c.label }}</span>
+      </div>
+      <div class="font-data tabular-nums text-3xl font-bold leading-none
+                  {% if c.tone == 'sage' %}text-sage-600{% elif c.tone == 'tan' %}text-tan-600{% else %}text-primary-700{% endif %}">
+        {{ c.value }}
+      </div>
+      <div class="text-xs text-slate-400 mt-1.5">{{ c.hint }}</div>
+    </div>
+    {% endfor %}
+
+    <!-- Engagement card (spans 2 on small, 4th col on large) -->
+    <div class="col-span-2 lg:col-span-1 bg-cream-100 rounded-2xl border border-cream-300 p-5">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-white text-primary-600 shadow-sm">
+          {{ icon('trending-up', 'w-4 h-4', aria_hidden=True) | safe }}
+        </span>
+        <span class="text-xs font-semibold uppercase tracking-wide text-slate-600">Engajamento</span>
+      </div>
+      <div class="flex items-baseline gap-4">
         <div>
-          <h1 style="margin: 0 0 6px;">Admin</h1>
-          <div class="muted">Painel de controle do {{ settings.app_name }}</div>
+          <div class="font-data tabular-nums text-2xl font-bold text-primary-800 leading-none">{{ stats.views_total }}</div>
+          <div class="text-xs text-slate-500 mt-1">views</div>
         </div>
-        <div class="row wrap">
-          <a class="btn primary" href="/admin/analytics">Analytics</a>
-          <a class="btn" href="/docs">Docs API</a>
-          <a class="btn danger" href="/logout">Sair</a>
-        </div>
-      </div>
-
-      <div class="divider"></div>
-
-      <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
-        <div class="card">
-          <div class="panel-title">Artigos</div>
-          <div style="font-size: 26px; font-weight: 800;">{{ stats.total_articles }}</div>
-          <div class="muted">+{{ stats.articles_this_week }} semana · +{{ stats.articles_this_month }} mês</div>
-        </div>
-        <div class="card">
-          <div class="panel-title">Feeds</div>
-          <div style="font-size: 26px; font-weight: 800;">{{ stats.total_feeds }}</div>
-          <div class="muted">Fontes ativas/inativas</div>
-        </div>
-        <div class="card">
-          <div class="panel-title">Categorias</div>
-          <div style="font-size: 26px; font-weight: 800;">{{ stats.total_categories }}</div>
-          <div class="muted">Catálogo</div>
-        </div>
-        <div class="card">
-          <div class="panel-title">Autores</div>
-          <div style="font-size: 26px; font-weight: 800;">{{ stats.total_authors }}</div>
-          <div class="muted">Normalização ativa</div>
-        </div>
-        <div class="card">
-          <div class="panel-title">PDFs</div>
-          <div style="font-size: 26px; font-weight: 800;">{{ stats.total_pdfs }}</div>
-          <div class="muted">Metadados extraídos</div>
-        </div>
-        <div class="card">
-          <div class="panel-title">Engajamento</div>
-          <div class="card-meta" style="margin: 0;">
-            <span>Views: {{ stats.views_total }}</span>
-            <span>Downloads: {{ stats.downloads_total }}</span>
-          </div>
-          <div class="muted">Destaques: {{ stats.highlighted_articles }}</div>
+        <div>
+          <div class="font-data tabular-nums text-2xl font-bold text-sage-600 leading-none">{{ stats.downloads_total }}</div>
+          <div class="text-xs text-slate-500 mt-1">downloads</div>
         </div>
       </div>
-
-      <div class="divider"></div>
-
-      <h2 class="panel-title">Ações</h2>
-      <div class="row wrap">
-        <button
-          class="btn primary"
-          hx-post="/admin/sync-feeds"
-          hx-target="#admin-action-result"
-          hx-swap="innerHTML"
-        >
-          <span class="spinner htmx-indicator" aria-hidden="true"></span>
-          Sincronizar feeds (agora)
-        </button>
-      </div>
-
-      <div id="admin-action-result" style="margin-top: 14px;">
-        {% if action_result %}
-          {% include "partials/admin/action_result.html" %}
-        {% endif %}
-      </div>
+      <div class="text-xs text-slate-500 mt-3">Destaques: <span class="font-data tabular-nums font-semibold text-primary-700">{{ stats.highlighted_articles }}</span></div>
     </div>
   </section>
+
+  <!-- Actions -->
+  <section class="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm mb-12">
+    <h2 class="font-bold text-slate-900 flex items-center gap-2 mb-1">
+      {{ icon('zap', 'w-5 h-5 text-primary-600', aria_hidden=True) | safe }}
+      Ações
+    </h2>
+    <p class="text-sm text-slate-500 mb-4">Operações manuais de manutenção.</p>
+
+    <button
+      type="button"
+      class="group inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-primary-600 rounded-xl hover:bg-primary-700 active:bg-primary-800 transition-all shadow-sm hover:shadow disabled:opacity-60"
+      hx-post="/admin/sync-feeds"
+      hx-target="#admin-action-result"
+      hx-swap="innerHTML"
+    >
+      <span class="htmx-indicator inline-block w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" aria-hidden="true"></span>
+      {{ icon('refresh-cw', 'w-4 h-4 group-[.htmx-request]:hidden', aria_hidden=True) | safe }}
+      Sincronizar feeds (agora)
+    </button>
+
+    <div id="admin-action-result" class="mt-4">
+      {% if action_result %}
+        {% include "partials/admin/action_result.html" %}
+      {% endif %}
+    </div>
+  </section>
+
+</div>
 {% endblock %}

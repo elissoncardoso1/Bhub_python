@@ -1,15 +1,21 @@
 {% if action_result.success %}
-  <div class="toast-item ok">
-    {{ action_result.message }}
-    {% if action_result.details %}
-      <div class="muted" style="margin-top: 6px;">{{ action_result.details }}</div>
-    {% endif %}
+  <div class="flex items-start gap-3 rounded-xl border border-success-100 bg-success-50 px-4 py-3" role="status">
+    <span class="shrink-0 mt-0.5 text-success-600">{{ icon('check-circle', 'w-5 h-5', aria_hidden=True) | safe }}</span>
+    <div>
+      <p class="text-sm font-semibold text-success-700">{{ action_result.message }}</p>
+      {% if action_result.details %}
+        <p class="text-xs text-slate-600 mt-1 font-data tabular-nums">{{ action_result.details }}</p>
+      {% endif %}
+    </div>
   </div>
 {% else %}
-  <div class="toast-item err">
-    {{ action_result.message }}
-    {% if action_result.details %}
-      <div class="muted" style="margin-top: 6px;">{{ action_result.details }}</div>
-    {% endif %}
+  <div class="flex items-start gap-3 rounded-xl border border-error-100 bg-error-50 px-4 py-3" role="alert">
+    <span class="shrink-0 mt-0.5 text-error-600">{{ icon('alert-circle', 'w-5 h-5', aria_hidden=True) | safe }}</span>
+    <div>
+      <p class="text-sm font-semibold text-error-700">{{ action_result.message }}</p>
+      {% if action_result.details %}
+        <p class="text-xs text-slate-600 mt-1">{{ action_result.details }}</p>
+      {% endif %}
+    </div>
   </div>
 {% endif %}
