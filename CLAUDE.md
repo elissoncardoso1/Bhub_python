@@ -103,6 +103,12 @@ SQLite (dev) / PostgreSQL (prod) + Redis (ARQ job queue)
 | `app/jobs/scheduler.py` | APScheduler periodic jobs |
 | `app/services/task_dispatcher.py` | ARQ/Redis async job queue |
 | `app/web/templating.py` | Jinja2 environment + custom filters |
+| `app/web/routes.py` | Public SSR routes (home, articles, categories, about, contact) |
+| `app/web/admin.py` | Admin SSR routes (`/admin` dashboard, `/admin/analytics`) |
+| `app/services/analytics_service.py` | Traffic / content / events / time-series stats |
+| `app/static/css/design-tokens.css` | **Design system v3 tokens** (warm burgundy/sage palette) — source of truth |
+| `app/static/css/fonts.css` + `app/static/fonts/` | Self-hosted variable fonts (Reddit Sans · Chivo Mono · Elms Sans) |
+| `tailwind.config.js` | Tailwind colors/fonts remapped to the v3 palette (compiles to `static/css/output.css`) |
 
 ### Article Ingestion Flow
 1. APScheduler triggers feed sync (hourly)
@@ -122,6 +128,15 @@ SQLite (dev) / PostgreSQL (prod) + Redis (ARQ job queue)
 - `app/ai/manager.py` handles selection, retries, fallback
 - `app/ai/local_llm_service.py` wraps llama.cpp (optional, enabled via env)
 - ML classification can run offline using `sentence-transformers` (no API key needed)
+
+### Frontend / Design System (v3 — warm burgundy/sage)
+
+- SSR via Jinja2 + HTMX; styling via Tailwind compiled locally to `app/static/css/output.css`
+- **Tokens are the source of truth** — `design-tokens.css` (CSS variables) + `tailwind.config.js` (utility scales). Reference tokens/utilities; don't hardcode hex. Tailwind's `slate-*` is remapped to warm stone, so legacy `slate-*` warms up automatically.
+- Brand palette: burgundy `#58272d` (primary), sage `#a3a16e`, tan `#a48c68`, cream `#f0eebd`, paper `#f4f0f1`. See `docs/ui-ux/PALETA_CORES.md`.
+- Fonts are **self-hosted** (no Google Fonts CDN): Reddit Sans (UI), Chivo Mono (code), Elms Sans (`font-data`, metrics) — variable woff2 under `app/static/fonts/` (OFL, committed)
+- **Recompile after template/CSS class changes:** `npx tailwindcss@3.4.0 -i ./app/static/css/input.css -o ./app/static/css/output.css --minify`
+- Admin (`/admin`, `/admin/analytics`) and public pages both use the v3 system; the legacy `app.css` (`.panel/.btn/.toast-item`) remains only for the JS toast runtime
 
 ---
 
@@ -147,7 +162,20 @@ OPENROUTER_API_KEY  # fallback LLM provider
 From `BHUB_REFACTORING_PLAN.md`:
 1. **Background Tasks** — Some tasks bypass ARQ and use `BackgroundTasks` directly; migrate to `task_dispatcher.py`
 2. **Dependency Injection** — Several services are manually instantiated; the plan is to use `Depends()` + Protocol interfaces (`app/interfaces/`)
-3. **SQLite in Production** — FTS5 works only on SQLite; switch to PostgreSQL + pg_trgm for production search scale
+3. **SQLite in Production** — dev uses SQLite FTS5; migration `008_postgres_fts` adds a PostgreSQL `TSVECTOR` `search_vector` (+ trigger, GIN/pg_trgm indexes) and a plain `search_vector` column on SQLite. Production search scale → PostgreSQL.
+
+---
+
+## Gotchas
+
+- **`search_vector` "no such column" on `/articles`** — the DB is behind on migrations. The `Article.search_vector` column is `deferred=True`, but that is **not** honored when the entity is wrapped in `.subquery()` (e.g. the count query), so the column is selected and a stale DB 500s. Fix: `alembic upgrade head`. If `alembic_version` is out of sync with the actual schema (tables from later revisions already present), `stamp` to the right revision first, then upgrade.
+- **Tailwind output is committed** — after editing template classes or CSS, recompile `output.css` (see Frontend / Design System) or new utilities won't exist at runtime.
+
+---
+
+## Documentation
+
+Full docs live in `docs/` — start at [`docs/README.md`](docs/README.md) (indexed by Arquitetura / Configuração / Deploy / Segurança / UI-UX / Implementação / Refatoração). Design system: `docs/ui-ux/PALETA_CORES.md` + the in-code tokens.
 
 ---
 
