@@ -1,14 +1,55 @@
 /* ============================================================================
    BHUB — Self-hosted brand fonts
    ----------------------------------------------------------------------------
-   Elms Sans is the DATA / METRICS face (var(--font-data)). Shipped as a single
-   variable woff2 covering weights 100–900, self-hosted under app/static/fonts/.
-   Open-source under the SIL Open Font License (see ElmsSans-OFL.txt), so the
-   binaries are committed with the repo. `font-display: swap` keeps text visible
-   while the file loads; the stack still degrades to Reddit Sans tabular-nums if
-   a binary is ever missing.
+   All three brand families are self-hosted from app/static/fonts/ as variable
+   woff2 (roman + italic), so the app has zero runtime dependency on the Google
+   Fonts CDN (privacy / LGPD, offline, performance):
+
+     · Reddit Sans  — UI / body          (var(--font-sans))
+     · Chivo Mono   — code / tokens       (var(--font-mono))
+     · Elms Sans    — data / metrics face (var(--font-data))
+
+   Every file is open-source under the SIL Open Font License (the matching
+   *-OFL.txt ships alongside), so the binaries are committed with the repo.
+   `font-display: swap` keeps text visible while a file loads, and each family's
+   token stack still degrades to a system fallback if a binary is ever missing.
    ============================================================================ */
 
+/* ── Reddit Sans — UI / body ─────────────────────────────────────────────── */
+@font-face {
+  font-family: "Reddit Sans";
+  font-style: normal;
+  font-weight: 200 900;
+  font-display: swap;
+  src: url("../fonts/RedditSans-Variable.woff2") format("woff2-variations");
+}
+
+@font-face {
+  font-family: "Reddit Sans";
+  font-style: italic;
+  font-weight: 200 900;
+  font-display: swap;
+  src: url("../fonts/RedditSans-Italic-Variable.woff2") format("woff2-variations");
+}
+
+/* ── Chivo Mono — code / tokens ──────────────────────────────────────────── */
+@font-face {
+  font-family: "Chivo Mono";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("../fonts/ChivoMono-Variable.woff2") format("woff2-variations");
+}
+
+@font-face {
+  font-family: "Chivo Mono";
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("../fonts/ChivoMono-Italic-Variable.woff2") format("woff2-variations");
+}
+
+/* ── Elms Sans — data / metrics ──────────────────────────────────────────── */
 @font-face {
   font-family: "Elms Sans";
   font-style: normal;

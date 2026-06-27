@@ -28,7 +28,8 @@
     <!-- Additional Meta Tags -->
     {% block extra_meta %}{% endblock %}
 
-    <!-- Self-hosted brand fonts (Elms Sans / data face) -->
+    <!-- Self-hosted brand fonts (Reddit Sans · Chivo Mono · Elms Sans) -->
+    <link rel="preload" href="{{ url_for('static', path='fonts/RedditSans-Variable.woff2') }}" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="{{ url_for('static', path='css/fonts.css') }}">
 
     <!-- Design Tokens (Paleta Oficial) -->
@@ -72,13 +73,7 @@
     <!-- Marked.js for Markdown rendering -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
-    <!-- Brand fonts: Reddit Sans (UI) + Chivo Mono (code/tokens) -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Reddit+Sans:ital,wght@0,200..900;1,200..900&family=Chivo+Mono:ital,wght@0,100..900;1,100..900&display=swap"
-      rel="stylesheet"
-    />
+    <!-- Brand fonts are self-hosted in css/fonts.css (no Google Fonts CDN) -->
 
     <style>
       body {
