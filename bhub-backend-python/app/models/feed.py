@@ -78,6 +78,10 @@ class Feed(BaseModel):
     last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
     max_errors: Mapped[int] = mapped_column(Integer, default=5, nullable=False)
 
+    # Cache HTTP (conditional GET)
+    http_etag: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    http_last_modified: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
     # Estatísticas
     total_articles: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     articles_last_sync: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
