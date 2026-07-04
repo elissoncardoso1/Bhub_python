@@ -226,8 +226,40 @@ class WebScrapingService:
             "external_id": self._generate_external_id(url),
         }
 
+        # Fallback: quando os seletores não encontram título/abstract, tenta trafilatura
+        if data["title"] == "Sem título" or not data["abstract"]:
+            self._apply_trafilatura_fallback(html, data)
+
         log.info(f"Scraping concluído: {data['title'][:50]}...")
         return data
+
+    def _apply_trafilatura_fallback(self, html: str, data: dict) -> None:
+        """
+        Completa campos vazios usando trafilatura (extração em cascata,
+        estado da arte em boilerplate removal). Nunca sobrescreve dados existentes.
+        """
+        try:
+            import trafilatura
+
+            extracted = trafilatura.bare_extraction(html, with_metadata=True)
+        except Exception as e:
+            log.warning(f"Fallback trafilatura falhou: {e}")
+            return
+
+        if not extracted:
+            return
+
+        if data.get("title") in (None, "", "Sem título") and extracted.title:
+            data["title"] = extracted.title
+
+        if not data.get("abstract") and extracted.text:
+            text = extracted.text.strip()
+            data["abstract"] = text[:5000] if len(text) > 5000 else text
+
+        if not data.get("authors") and extracted.author:
+            data["authors"] = [
+                a.strip() for a in extracted.author.split(";") if a.strip()
+            ]
 
     def _extract_title(self, soup: BeautifulSoup) -> str:
         """Extrai título do artigo."""
