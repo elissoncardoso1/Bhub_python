@@ -14,7 +14,7 @@ def make_fetcher(handler) -> FeedFetcher:
 
 @pytest.mark.asyncio
 async def test_fetch_ok_retorna_texto_e_headers_de_cache():
-    def handler(request: httpx.Request) -> httpx.Response:
+    def handler(_request: httpx.Request) -> httpx.Response:
         return httpx.Response(
             200,
             text="<rss/>",
@@ -64,7 +64,7 @@ async def test_fetch_aplica_custom_headers():
 @pytest.mark.asyncio
 @pytest.mark.parametrize("status_code", [404, 410])
 async def test_fetch_404_410_retorna_gone(status_code):
-    fetcher = make_fetcher(lambda request: httpx.Response(status_code))
+    fetcher = make_fetcher(lambda _request: httpx.Response(status_code))
     result = await fetcher.fetch("https://example.com/feed")
     assert result.status is FetchStatus.GONE
     assert str(status_code) in (result.error or "")
@@ -72,14 +72,14 @@ async def test_fetch_404_410_retorna_gone(status_code):
 
 @pytest.mark.asyncio
 async def test_fetch_5xx_retorna_transitorio():
-    fetcher = make_fetcher(lambda request: httpx.Response(502))
+    fetcher = make_fetcher(lambda _request: httpx.Response(502))
     result = await fetcher.fetch("https://example.com/feed")
     assert result.status is FetchStatus.TRANSIENT_ERROR
 
 
 @pytest.mark.asyncio
 async def test_fetch_erro_de_rede_retorna_transitorio():
-    def handler(request: httpx.Request) -> httpx.Response:
+    def handler(_request: httpx.Request) -> httpx.Response:
         raise httpx.ConnectError("connection refused")
 
     fetcher = make_fetcher(handler)
@@ -91,12 +91,12 @@ async def test_fetch_erro_de_rede_retorna_transitorio():
 async def test_fetch_403_dispara_fallback_impersonado(monkeypatch):
     calls: list[str] = []
 
-    async def fake_impersonated(self, url, headers):
+    async def fake_impersonated(_self, url, _headers):
         calls.append(url)
         return FetchResult(status=FetchStatus.OK, text="<rss/>")
 
     monkeypatch.setattr(FeedFetcher, "_fetch_impersonated", fake_impersonated)
-    fetcher = make_fetcher(lambda request: httpx.Response(403))
+    fetcher = make_fetcher(lambda _request: httpx.Response(403))
     result = await fetcher.fetch("https://example.com/feed")
     assert calls == ["https://example.com/feed"]
     assert result.status is FetchStatus.OK
@@ -104,10 +104,10 @@ async def test_fetch_403_dispara_fallback_impersonado(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_fetch_403_com_fallback_bloqueado_retorna_blocked(monkeypatch):
-    async def fake_impersonated(self, url, headers):
+    async def fake_impersonated(_self, _url, _headers):
         return FetchResult(status=FetchStatus.BLOCKED, error="HTTP 403 (impersonado)")
 
     monkeypatch.setattr(FeedFetcher, "_fetch_impersonated", fake_impersonated)
-    fetcher = make_fetcher(lambda request: httpx.Response(403))
+    fetcher = make_fetcher(lambda _request: httpx.Response(403))
     result = await fetcher.fetch("https://example.com/feed")
     assert result.status is FetchStatus.BLOCKED

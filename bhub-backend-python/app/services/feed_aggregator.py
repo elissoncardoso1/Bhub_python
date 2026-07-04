@@ -456,7 +456,9 @@ class FeedAggregatorService:
             log.warning(f"Redescoberta de feed falhou para {feed.name}: {e}")
             return None
 
-        for candidate in candidates or []:
+        # find_feed_urls pode devolver links de artigos quando não acha feed real;
+        # a validação abaixo rejeita, mas limitamos o número de fetches
+        for candidate in (candidates or [])[:5]:
             if candidate == feed.feed_url:
                 continue
             try:

@@ -79,7 +79,7 @@ async def test_rediscover_valida_candidato_e_retorna_url(monkeypatch):
     )
     monkeypatch.setattr(
         "trafilatura.feeds.find_feed_urls",
-        lambda url: ["https://example.com/feed-novo"],
+        lambda _url: ["https://example.com/feed-novo"],
     )
     new_url = await service._rediscover_feed_url(feed)
     assert new_url == "https://example.com/feed-novo"
@@ -98,7 +98,7 @@ async def test_rediscover_ignora_candidato_igual_ou_invalido(monkeypatch):
     )
     monkeypatch.setattr(
         "trafilatura.feeds.find_feed_urls",
-        lambda url: ["https://example.com/feed-antigo", "https://example.com/feed-quebrado"],
+        lambda _url: ["https://example.com/feed-antigo", "https://example.com/feed-quebrado"],
     )
     assert await service._rediscover_feed_url(feed) is None
 
