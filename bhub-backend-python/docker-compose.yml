@@ -1,6 +1,4 @@
 # BHUB Backend - Docker Compose
-version: "3.8"
-
 services:
   backend:
     build:
@@ -43,6 +41,10 @@ services:
     container_name: bhub-arq-worker
     restart: unless-stopped
     command: arq app.jobs.tasks.WorkerSettings
+    # The worker has no HTTP server, so the image's curl-based healthcheck never
+    # passes. Disable it here (worker liveness is managed by arq + restart policy).
+    healthcheck:
+      disable: true
     volumes:
       - ./uploads:/app/uploads
       - ./logs:/app/logs

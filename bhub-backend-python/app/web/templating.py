@@ -48,6 +48,10 @@ def _format_date_br(value: datetime | None, mode: str = "full") -> str:
     if mode == "month_year":
         return f"{month_name} de {value.year}"
 
+    if mode == "compact":
+        # "12 mar 2025" — abreviação de 3 letras (padrão do Design System)
+        return f"{value.day} {month_name[:3].lower()} {value.year}"
+
     # Default is full date
     return f"{value.day} de {month_name} de {value.year}"
 

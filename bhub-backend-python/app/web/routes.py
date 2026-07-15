@@ -273,6 +273,26 @@ async def home(
 
     total_pages = max(1, (total + filters.page_size - 1) // filters.page_size) if total else 1
 
+    # Hero stats — números reais para a seção hero da home
+    from app.models import Feed
+
+    total_articles = await db.scalar(
+        select(func.count()).select_from(Article).where(Article.is_published == True)
+    ) or 0
+    total_feeds = await db.scalar(
+        select(func.count()).select_from(Feed).where(Feed.is_active == True)
+    ) or 0
+    oa_count = await db.scalar(
+        select(func.count())
+        .select_from(Article)
+        .where(Article.is_published == True, Article.is_open_access == True)
+    ) or 0
+    hero_stats = {
+        "articles": int(total_articles),
+        "feeds": int(total_feeds),
+        "open_access_pct": round(100 * oa_count / total_articles) if total_articles else 0,
+    }
+
     context = {
         "request": request,
         "title": "Artigos",
@@ -285,6 +305,7 @@ async def home(
         "journal_articles": journal_articles,
         "portal_articles": portal_articles,
         "is_default_view": is_default_view,
+        "hero_stats": hero_stats,
         "total": total,
         "page": filters.page,
         "page_size": filters.page_size,

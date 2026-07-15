@@ -17,6 +17,18 @@ from app.services.article_parser import ArticleParserService
 from app.services.task_dispatcher import dispatch_classify_article, dispatch_download_pdf
 
 
+def _truncate(value: str | None, max_length: int) -> str | None:
+    """Trunca strings ao limite da coluna para evitar StringDataRightTruncationError.
+
+    Feeds podem trazer URLs/títulos maiores que o tamanho das colunas
+    (ex.: image_url do Blogger com alt-text codificado). Cortar aqui impede
+    que uma única entrada inválida derrube o flush e aborte a sincronização.
+    """
+    if value is None:
+        return None
+    return value[:max_length]
+
+
 class FeedAggregatorService:
     """Serviço para agregação de feeds RSS/Atom."""
 
@@ -130,7 +142,13 @@ class FeedAggregatorService:
             articles_to_download_pdf = []
             for entry in parsed.entries:
                 try:
-                    created_article_id, article_data = await self._process_feed_entry(feed, entry)
+                    # Savepoint por entrada: se o flush de uma entrada falhar, só ela
+                    # é revertida — a transação do feed continua válida e as demais
+                    # entradas (e o commit final) seguem normalmente.
+                    async with self.db.begin_nested():
+                        created_article_id, article_data = await self._process_feed_entry(
+                            feed, entry
+                        )
                     if created_article_id:
                         new_articles += 1
                         articles_to_classify.append(created_article_id)
@@ -248,20 +266,22 @@ class FeedAggregatorService:
         # Classificação movida para background_tasks
 
         # Criar artigo
+        # Truncar campos VARCHAR ao limite da coluna (ver _truncate). Abstract/keywords
+        # são TEXT e não precisam de corte.
         article = Article(
-            external_id=external_id,
-            title=article_data["title"],
+            external_id=_truncate(external_id, 255),
+            title=_truncate(article_data["title"], 500),
             abstract=article_data.get("abstract"),
             keywords=article_data.get("keywords"),
-            original_url=article_data.get("url"),
+            original_url=_truncate(article_data.get("url"), 500),
             publication_date=article_data.get("publication_date"),
-            doi=article_data.get("doi"),
-            journal_name=feed.journal_name or article_data.get("journal"),
-            language=article_data.get("language", "en"),
+            doi=_truncate(article_data.get("doi"), 100),
+            journal_name=_truncate(feed.journal_name or article_data.get("journal"), 255),
+            language=_truncate(article_data.get("language", "en"), 10),
             source_type=SourceType.RSS,
             feed_id=feed.id,
-            image_url=article_data.get("image_url"),
-            pdf_url=article_data.get("pdf_url"),
+            image_url=_truncate(article_data.get("image_url"), 500),
+            pdf_url=_truncate(article_data.get("pdf_url"), 500),
             category_id=None, # Será preenchido via background task
             classification_confidence=None,
             is_open_access=article_data.get("is_open_access", False),
