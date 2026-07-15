@@ -329,12 +329,12 @@
 <style>
     /* ============================================
        FILTERS PANEL - REFINED DESIGN
-       Paleta: #14b8a6 (teal), grays, white
+       Paleta: var(--color-primary-600) (teal), grays, white
     ============================================ */
 
     /* Painel principal */
     .filters-panel {
-        border-left: 4px solid #14b8a6;
+        border-left: 4px solid var(--color-primary-600);
         background-color: #ffffff;
         border-radius: 8px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
@@ -362,20 +362,20 @@
         align-items: center;
         justify-content: space-between;
         padding: 8px 12px;
-        background-color: rgba(20, 184, 166, 0.05);
+        background-color: rgba(88, 39, 45, 0.05);
         border-radius: 6px;
-        border: 1px solid rgba(20, 184, 166, 0.2);
+        border: 1px solid rgba(88, 39, 45, 0.2);
     }
 
     .filters-active-text {
         font-size: 12px;
-        color: #0d9488;
+        color: var(--color-primary-700);
     }
 
     .filters-clear-all {
         font-size: 11px;
         font-weight: 500;
-        color: #14b8a6;
+        color: var(--color-primary-600);
         background: transparent;
         border: none;
         padding: 4px 8px;
@@ -385,19 +385,19 @@
     }
 
     .filters-clear-all:hover {
-        background-color: rgba(20, 184, 166, 0.1);
-        color: #0d9488;
+        background-color: rgba(88, 39, 45, 0.1);
+        color: var(--color-primary-700);
     }
 
     .filters-clear-all:focus {
         outline: none;
-        box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.2);
+        box-shadow: 0 0 0 2px rgba(88, 39, 45, 0.2);
     }
 
     .filters-title {
         font-size: 18px;
         font-weight: 600;
-        color: #1f2937;
+        color: var(--color-neutral-800);
         margin: 0;
     }
 
@@ -408,7 +408,7 @@
         gap: 6px;
         font-size: 12px;
         font-weight: 500;
-        color: #14b8a6;
+        color: var(--color-primary-600);
         background-color: transparent;
         border: none;
         padding: 6px 12px;
@@ -419,13 +419,13 @@
     }
 
     .clear-button:hover {
-        background-color: rgba(20, 184, 166, 0.1);
-        color: #0d9488;
+        background-color: rgba(88, 39, 45, 0.1);
+        color: var(--color-primary-700);
     }
 
     .clear-button:focus {
         outline: none;
-        box-shadow: 0 0 0 2px #14b8a6, 0 0 0 4px rgba(20, 184, 166, 0.1);
+        box-shadow: 0 0 0 2px var(--color-primary-600), 0 0 0 4px rgba(88, 39, 45, 0.1);
     }
 
     /* Form container */
@@ -438,7 +438,7 @@
     /* Seções de filtro */
     .filter-section {
         padding: 12px 0;
-        border-bottom: 1px solid #f1f5f9;
+        border-bottom: 1px solid var(--color-neutral-100);
     }
 
     .filter-section:last-child {
@@ -453,7 +453,7 @@
         font-weight: 500;
         text-transform: uppercase;
         letter-spacing: 0.5px;
-        color: #6b7280;
+        color: var(--color-neutral-500);
         margin-bottom: 12px;
         margin-top: 0;
     }
@@ -462,7 +462,7 @@
     .filter-hint {
         margin-top: 8px;
         font-size: 11px;
-        color: #9ca3af;
+        color: var(--color-neutral-400);
         line-height: 1.4;
     }
 
@@ -484,17 +484,17 @@
     }
 
     .filter-categories-list::-webkit-scrollbar-track {
-        background: #f1f5f9;
+        background: var(--color-neutral-100);
         border-radius: 2px;
     }
 
     .filter-categories-list::-webkit-scrollbar-thumb {
-        background: #cbd5e1;
+        background: var(--color-neutral-300);
         border-radius: 2px;
     }
 
     .filter-categories-list::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8;
+        background: var(--color-neutral-400);
     }
 
     /* Item de opção (checkbox + label) */
@@ -510,19 +510,19 @@
     }
 
     .filter-option-item:hover {
-        background-color: rgba(20, 184, 166, 0.08);
+        background-color: rgba(88, 39, 45, 0.08);
         transform: translateX(2px);
     }
 
     .filter-option-item:hover .filter-checkbox {
-        border-color: #14b8a6;
+        border-color: var(--color-primary-600);
     }
 
     /* Texto da opção */
     .filter-option-text {
         font-size: 14px;
         font-weight: 400;
-        color: #374151;
+        color: var(--color-neutral-700);
         flex: 1;
     }
 
@@ -536,23 +536,23 @@
         flex: 1;
         justify-content: center;
         background-color: #ffffff;
-        border: 2px solid #e2e8f0;
+        border: 2px solid var(--color-neutral-200);
         padding: 10px 16px;
     }
 
     .filter-radio-item:hover {
-        border-color: #14b8a6;
-        background-color: rgba(20, 184, 166, 0.05);
+        border-color: var(--color-primary-600);
+        background-color: rgba(88, 39, 45, 0.05);
     }
 
     .filter-radio-item-active {
-        background-color: rgba(20, 184, 166, 0.1);
-        border-color: #14b8a6;
-        color: #0d9488;
+        background-color: rgba(88, 39, 45, 0.1);
+        border-color: var(--color-primary-600);
+        color: var(--color-primary-700);
     }
 
     .filter-radio-item-active .filter-option-text {
-        color: #0d9488;
+        color: var(--color-primary-700);
         font-weight: 500;
     }
 
@@ -562,7 +562,7 @@
         width: 18px;
         height: 18px;
         flex-shrink: 0;
-        border: 2px solid #cbd5e1;
+        border: 2px solid var(--color-neutral-300);
         border-radius: 4px;
         cursor: pointer;
         transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -571,13 +571,13 @@
     }
 
     .filter-checkbox:hover {
-        border-color: #14b8a6;
-        background-color: rgba(20, 184, 166, 0.05);
+        border-color: var(--color-primary-600);
+        background-color: rgba(88, 39, 45, 0.05);
     }
 
     .filter-checkbox:checked {
-        background-color: #14b8a6;
-        border-color: #14b8a6;
+        background-color: var(--color-primary-600);
+        border-color: var(--color-primary-600);
         background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill="white" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L3.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"/></svg>');
         background-position: center;
         background-repeat: no-repeat;
@@ -586,7 +586,7 @@
 
     .filter-checkbox:focus {
         outline: none;
-        box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.1);
+        box-shadow: 0 0 0 3px rgba(88, 39, 45, 0.1);
     }
 
     .filter-checkbox:disabled {
@@ -598,8 +598,8 @@
     .filter-badge {
         margin-left: auto;
         padding: 2px 8px;
-        background-color: rgba(20, 184, 166, 0.1);
-        color: #14b8a6;
+        background-color: rgba(88, 39, 45, 0.1);
+        color: var(--color-primary-600);
         border-radius: 12px;
         font-size: 12px;
         font-weight: 500;
@@ -610,24 +610,24 @@
     .filter-input {
         width: 100%;
         padding: 10px 12px;
-        border: 2px solid #e2e8f0;
+        border: 2px solid var(--color-neutral-200);
         border-radius: 6px;
         font-size: 14px;
-        color: #1f2937;
+        color: var(--color-neutral-800);
         font-family: inherit;
         transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         background-color: #ffffff;
     }
 
     .filter-input::placeholder {
-        color: #9ca3af;
+        color: var(--color-neutral-400);
     }
 
     .filter-input:focus {
         outline: none;
-        border-color: #14b8a6;
-        box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.1);
-        background-color: rgba(20, 184, 166, 0.02);
+        border-color: var(--color-primary-600);
+        box-shadow: 0 0 0 3px rgba(88, 39, 45, 0.1);
+        background-color: rgba(88, 39, 45, 0.02);
     }
 
     /* Botão de busca dentro do input */
@@ -637,7 +637,7 @@
         top: 50%;
         transform: translateY(-50%);
         padding: 8px;
-        color: #9ca3af;
+        color: var(--color-neutral-400);
         background-color: transparent;
         border: none;
         border-radius: 6px;
@@ -651,23 +651,23 @@
     }
 
     .filter-search-button:hover {
-        color: #14b8a6;
-        background-color: rgba(20, 184, 166, 0.1);
+        color: var(--color-primary-600);
+        background-color: rgba(88, 39, 45, 0.1);
     }
 
     .filter-search-button:focus {
         outline: none;
-        box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.2);
+        box-shadow: 0 0 0 2px rgba(88, 39, 45, 0.2);
     }
 
     /* Select dropdown */
     .filter-select {
         width: 100%;
         padding: 10px 12px;
-        border: 2px solid #e2e8f0;
+        border: 2px solid var(--color-neutral-200);
         border-radius: 6px;
         font-size: 14px;
-        color: #1f2937;
+        color: var(--color-neutral-800);
         background-color: #ffffff;
         cursor: pointer;
         transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -676,13 +676,13 @@
     }
 
     .filter-select:hover {
-        border-color: #14b8a6;
+        border-color: var(--color-primary-600);
     }
 
     .filter-select:focus {
         outline: none;
-        border-color: #14b8a6;
-        box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.1);
+        border-color: var(--color-primary-600);
+        box-shadow: 0 0 0 3px rgba(88, 39, 45, 0.1);
     }
 
     /* Grupo de datas */
@@ -695,7 +695,7 @@
     .filter-date-label {
         display: block;
         font-size: 12px;
-        color: #6b7280;
+        color: var(--color-neutral-500);
         margin-bottom: 6px;
     }
 
@@ -715,15 +715,15 @@
         width: 4px;
     }
     .custom-scrollbar::-webkit-scrollbar-track {
-        background: #f1f5f9;
+        background: var(--color-neutral-100);
         border-radius: 2px;
     }
     .custom-scrollbar::-webkit-scrollbar-thumb {
-        background: #cbd5e1;
+        background: var(--color-neutral-300);
         border-radius: 2px;
     }
     .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8;
+        background: var(--color-neutral-400);
     }
 
     /* Grid view mode - garante que o grid funcione corretamente */
@@ -777,7 +777,7 @@
     }
 
     article[itemtype="https://schema.org/ScholarlyArticle"]:hover {
-        border-color: rgb(99 102 241);
+        border-color: var(--color-border-accent);
     }
 
     /* ============================================
@@ -787,7 +787,7 @@
     .results-toolbar {
         padding: 10px 12px;
         background-color: #ffffff;
-        border: 1px solid #e2e8f0;
+        border: 1px solid var(--color-neutral-200);
         border-radius: 8px;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
     }
@@ -815,36 +815,36 @@
 
     .quick-filter-btn:focus {
         outline: none;
-        box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.2);
+        box-shadow: 0 0 0 2px rgba(88, 39, 45, 0.2);
     }
 
     .quick-filter-active {
-        background-color: #f1f5f9;
-        border-color: #cbd5e1;
-        color: #475569;
+        background-color: var(--color-neutral-100);
+        border-color: var(--color-neutral-300);
+        color: var(--color-neutral-600);
     }
 
     .quick-filter-inactive {
         background-color: #ffffff;
-        border-color: #e2e8f0;
-        color: #64748b;
+        border-color: var(--color-neutral-200);
+        color: var(--color-neutral-500);
     }
 
     .quick-filter-inactive:hover {
-        background-color: #f8fafc;
-        border-color: #cbd5e1;
+        background-color: var(--color-neutral-50);
+        border-color: var(--color-neutral-300);
     }
 
     .quick-filter-journal.quick-filter-active {
-        background-color: #faf5ff;
-        border-color: #d8b4fe;
-        color: #7c3aed;
+        background-color: var(--color-primary-50);
+        border-color: var(--color-primary-200);
+        color: var(--color-primary-600);
     }
 
     .quick-filter-portal.quick-filter-active {
-        background-color: #fff7ed;
-        border-color: #fed7aa;
-        color: #ea580c;
+        background-color: var(--color-tan-100);
+        border-color: var(--color-tan-200);
+        color: var(--color-tan-600);
     }
 
     /* Container de resultados - wrapper neutro para HTMX */
