@@ -22,8 +22,8 @@ Backend da plataforma BHUB (Behavior Hub) para agregação e análise de artigos
 ### 1. Clonar repositório
 
 ```bash
-git clone https://github.com/seu-usuario/bhub-backend-python.git
-cd bhub-backend-python
+git clone https://github.com/elissoncardoso1/Bhub_python.git
+cd Bhub_python/bhub-backend-python   # a aplicação vive neste subdiretório
 ```
 
 ### 2. Criar ambiente virtual

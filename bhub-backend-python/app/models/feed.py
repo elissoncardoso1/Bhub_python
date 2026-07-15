@@ -16,6 +16,9 @@ from app.models.base import BaseModel
 if TYPE_CHECKING:
     from app.models.article import Article
 
+# Feeds desativados por erro voltam a ser sondados após este intervalo
+RECOVERY_PROBE_INTERVAL_DAYS = 7
+
 
 class FeedType(str, enum.Enum):
     """Tipo de feed."""
@@ -78,6 +81,10 @@ class Feed(BaseModel):
     last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
     max_errors: Mapped[int] = mapped_column(Integer, default=5, nullable=False)
 
+    # Cache HTTP (conditional GET)
+    http_etag: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    http_last_modified: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
     # Estatísticas
     total_articles: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     articles_last_sync: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
@@ -101,16 +108,21 @@ class Feed(BaseModel):
     @property
     def needs_sync(self) -> bool:
         """Verifica se o feed precisa ser sincronizado."""
+        from datetime import timedelta
+
         if not self.is_active or self.is_internal:
             return False
 
         if self.error_count >= self.max_errors:
-            return False
+            # Sonda de recuperação: em vez de morte permanente, tenta de novo
+            # após RECOVERY_PROBE_INTERVAL_DAYS (um sync OK zera error_count).
+            if self.last_sync_at is None:
+                return True
+            probe_interval = timedelta(days=RECOVERY_PROBE_INTERVAL_DAYS)
+            return datetime.utcnow() - self.last_sync_at.replace(tzinfo=None) > probe_interval
 
         if self.last_sync_at is None:
             return True
-
-        from datetime import timedelta
 
         now = datetime.utcnow()
         intervals = {
