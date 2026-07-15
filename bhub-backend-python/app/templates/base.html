@@ -28,6 +28,9 @@
     <!-- Additional Meta Tags -->
     {% block extra_meta %}{% endblock %}
 
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', path='images/logo_light.svg') }}">
+
     <!-- Self-hosted brand fonts (Reddit Sans · Chivo Mono · Elms Sans) -->
     <link rel="preload" href="{{ url_for('static', path='fonts/RedditSans-Variable.woff2') }}" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="{{ url_for('static', path='css/fonts.css') }}">
@@ -56,22 +59,22 @@
     <!-- Em desenvolvimento: usar CDN apenas se necessário para testes rápidos -->
     <!-- <script src="https://cdn.tailwindcss.com"></script> -->
 
-    <!-- HTMX -->
-    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-    <script src="https://unpkg.com/htmx.org@1.9.10/dist/ext/json-enc.js"></script>
+    <!-- HTMX — self-hosted (CSP script-src 'self'; sem CDN, como as fontes) -->
+    <script src="{{ url_for('static', path='js/vendor/htmx.min.js') }}"></script>
+    <script src="{{ url_for('static', path='js/vendor/htmx-ext-json-enc.js') }}"></script>
     <script>
       // Disable history cache to prevent localStorage quota errors
       htmx.config.historyCacheSize = 0;
     </script>
 
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Lucide Icons (v0.462.0) -->
+    <script src="{{ url_for('static', path='js/vendor/lucide.min.js') }}"></script>
 
-    <!-- Anime.js - Biblioteca de animações -->
-    <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.2/lib/anime.min.js"></script>
+    <!-- Anime.js - Biblioteca de animações (v3.2.2) -->
+    <script src="{{ url_for('static', path='js/vendor/anime.min.js') }}"></script>
 
-    <!-- Marked.js for Markdown rendering -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Marked.js for Markdown rendering (v12.0.2) -->
+    <script src="{{ url_for('static', path='js/vendor/marked.min.js') }}"></script>
 
     <!-- Brand fonts are self-hosted in css/fonts.css (no Google Fonts CDN) -->
 
