@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A aplicação vive em bhub-backend-python/; rodamos o CI a partir de lá.
+defaults:
+  run:
+    working-directory: bhub-backend-python
+
+jobs:
+  test:
+    name: Lint & Test (Python 3.12)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: bhub-backend-python/requirements-dev.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      # Ruff é informativo por ora: existe débito de lint pré-existente.
+      # Remova `continue-on-error` quando o débito for zerado.
+      - name: Lint (ruff)
+        run: ruff check app/
+        continue-on-error: true
+
+      - name: Run tests
+        run: pytest tests/ -v
