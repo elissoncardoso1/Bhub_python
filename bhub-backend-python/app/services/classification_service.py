@@ -30,7 +30,9 @@ class ClassificationService:
                 result = await self.ai_manager.classify(text)
                 category_slug = result[0]
                 confidence = result[1]
-                if category_slug:
+                # ("outros", 0.0) é o retorno do AIManager quando NENHUM provedor
+                # está disponível — não é uma classificação; cair no fallback ML.
+                if category_slug and not (category_slug == "outros" and confidence == 0.0):
                     return category_slug, confidence
             except Exception as e:
                 log.warning(f"Erro na classificação via AIManager: {e}")

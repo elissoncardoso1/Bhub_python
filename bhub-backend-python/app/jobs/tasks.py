@@ -61,6 +61,20 @@ async def startup(ctx: dict[str, Any]) -> None:
 
     ctx["session_factory"] = async_session_maker
 
+    # O fallback de classificação por embeddings precisa do modelo E dos
+    # embeddings das categorias carregados NESTE processo (o lifespan do
+    # app web não vale para o worker). Sem isso, task_classify_article
+    # degrada para heurística/"outros".
+    try:
+        from app.ml import EmbeddingClassifier
+        from app.models import DEFAULT_CATEGORIES
+
+        if EmbeddingClassifier is not None:
+            await EmbeddingClassifier.initialize()
+            await EmbeddingClassifier.load_category_embeddings(DEFAULT_CATEGORIES)
+    except Exception as e:
+        logger.warning("ML não inicializado no worker: %s", e)
+
 
 async def shutdown(ctx: dict[str, Any]) -> None:
     session: AsyncSession | None = ctx.pop("db", None)
