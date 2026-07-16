@@ -157,9 +157,13 @@ class Settings(BaseSettings):
     enable_telemetry: bool = False
     telemetry_service_name: str = "bhub-backend"
 
-    # Analytics
-    enable_analytics: bool = True
+    # Analytics (privacidade por design: desativado por padrão)
+    enable_analytics: bool = False
     analytics_respect_dnt: bool = True  # Respeitar Do Not Track header
+
+    # Consentimento de cookies (LGPD)
+    cookie_consent_enabled: bool = True
+    cookie_consent_version: str = "1.0"
 
     @property
     def pdf_upload_path(self) -> Path:
