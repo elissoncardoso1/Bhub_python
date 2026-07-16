@@ -47,6 +47,7 @@ class CSRFProtection:
         self,
         request: Request,
         require_token: bool = True,
+        fallback_token: str | None = None,
     ) -> bool:
         """
         Valida o token CSRF.
@@ -54,6 +55,9 @@ class CSRFProtection:
         Args:
             request: Requisição FastAPI
             require_token: Se True, exige token. Se False, apenas valida se presente.
+            fallback_token: Token vindo de um campo de formulário HTML
+                (double-submit), usado quando o header não está presente —
+                cobre forms HTML puros sem JS que não conseguem setar o header.
 
         Returns:
             True se válido ou se não requerido
@@ -65,8 +69,8 @@ class CSRFProtection:
         if request.method in ("GET", "HEAD", "OPTIONS"):
             return True
 
-        # Obter token do header
-        header_token = self.get_token_from_header(request)
+        # Obter token do header (ou fallback vindo de campo de formulário)
+        header_token = self.get_token_from_header(request) or fallback_token
 
         # Obter token do cookie
         cookie_token = self.get_token_from_cookie(request)
@@ -81,12 +85,15 @@ class CSRFProtection:
                 )
             return True  # Não requerido, permitir
 
-        # Se requer token mas não está no header
+        # Se requer token mas não está no header nem no campo de formulário
         if require_token and not header_token:
             log.warning(f"CSRF: Token ausente no header para {request.method} {request.url.path}")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Token CSRF requerido. Envie no header '{self.header_name}'.",
+                detail=(
+                    f"Token CSRF requerido. Envie no header '{self.header_name}' "
+                    "ou no campo 'csrf_token' do formulário."
+                ),
             )
 
         # Validar se tokens coincidem
@@ -125,6 +132,9 @@ async def validate_csrf_token(
     """
     Dependência para validar token CSRF em rotas mutáveis.
 
+    Valida via header X-CSRF-Token ou, em requisições de formulário HTML
+    (sem JS para setar o header), via campo `csrf_token` do próprio form.
+
     Usage:
         @router.post("/endpoint")
         async def my_endpoint(
@@ -133,7 +143,14 @@ async def validate_csrf_token(
         ):
             ...
     """
-    return csrf_protection.validate_csrf(request, require_token=require_token)
+    fallback: str | None = None
+    if request.method in ("POST", "PUT", "PATCH", "DELETE"):
+        content_type = request.headers.get("content-type", "")
+        if content_type.startswith(("application/x-www-form-urlencoded", "multipart/form-data")):
+            form = await request.form()  # Starlette cacheia; Form(...) das rotas segue funcionando
+            value = form.get("csrf_token")
+            fallback = value if isinstance(value, str) else None
+    return csrf_protection.validate_csrf(request, require_token=require_token, fallback_token=fallback)
 
 
 # Variante permissiva: valida apenas se houver cookie CSRF
