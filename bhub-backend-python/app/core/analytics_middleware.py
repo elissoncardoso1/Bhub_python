@@ -107,9 +107,7 @@ class AnalyticsMiddleware(BaseHTTPMiddleware):
             return session_id
 
         # Gerar novo session_id
-        ip = request.client.host if request.client else None
-        user_id = None  # Poderia extrair de token JWT se autenticado
-        return AnalyticsService.generate_session_id(user_id=user_id, ip=ip)
+        return AnalyticsService.generate_session_id()
 
     async def _track_request(
         self,

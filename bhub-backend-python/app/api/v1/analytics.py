@@ -25,9 +25,7 @@ async def track_event(
     Respeita privacidade e não coleta dados pessoais identificáveis.
     """
     # Gerar ou usar session_id fornecido
-    session_id = x_session_id or AnalyticsService.generate_session_id(
-        ip=request.client.host if request.client else None
-    )
+    session_id = x_session_id or AnalyticsService.generate_session_id()
 
     # Obter ou criar sessão
     await AnalyticsService.get_or_create_session(
@@ -69,9 +67,7 @@ async def track_pageview(
     """
     Endpoint simplificado para rastreamento de visualizações de página.
     """
-    session_id = x_session_id or AnalyticsService.generate_session_id(
-        ip=request.client.host if request.client else None
-    )
+    session_id = x_session_id or AnalyticsService.generate_session_id()
 
     # Obter ou criar sessão e incrementar page views
     session = await AnalyticsService.get_or_create_session(

@@ -8,6 +8,7 @@ from starlette.testclient import TestClient
 
 from app.config import Settings
 from app.core import cookie_consent as cc
+from app.services.analytics_service import AnalyticsService
 
 
 def test_analytics_desativado_por_padrao(monkeypatch):
@@ -169,3 +170,17 @@ class TestCookieRoundTripHttp:
         assert data["analytics"] is True
         assert data["external_media"] is False
         assert data["marketing"] is False
+
+
+class TestSessionIdMinimizado:
+    def test_nao_aceita_mais_ip_nem_user(self):
+        import inspect
+
+        params = inspect.signature(AnalyticsService.generate_session_id).parameters
+        assert "ip" not in params and "user_id" not in params
+
+    def test_e_aleatorio_e_nao_vazio(self):
+        a = AnalyticsService.generate_session_id()
+        b = AnalyticsService.generate_session_id()
+        assert a and b and a != b
+        assert len(a) >= 32
