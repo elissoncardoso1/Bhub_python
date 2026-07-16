@@ -3,14 +3,13 @@ Middleware para captura automática de eventos de analytics.
 Respeita privacidade e não coleta dados pessoais identificáveis.
 """
 
-from collections.abc import Callable
 from datetime import datetime
 
 from fastapi import Request, Response
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.types import ASGIApp
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
 from app.config import settings
+from app.core.cookie_consent import is_granted
 from app.database import get_session_context
 from app.models.analytics import EventType
 from app.services.analytics_service import AnalyticsService
@@ -19,38 +18,57 @@ from app.services.analytics_service import AnalyticsService
 # (que o apaga quando o visitante revoga/nega a categoria "analytics").
 ANALYTICS_SESSION_COOKIE = "analytics_session_id"
 
+# Prefixos de rota que NUNCA são rastreados (mesmo com consentimento)
+EXCLUDED_PREFIXES: tuple[str, ...] = (
+    "/admin",
+    "/login",
+    "/logout",
+    "/api/v1/auth",
+    "/api/v1/contact",
+    "/contact",
+    "/health",
+    "/docs",
+    "/redoc",
+    "/openapi.json",
+    "/static",
+    "/api/v1/analytics",
+    "/api/v1/cookie-consent",
+    "/cookie-consent",
+    "/privacy",
+    "/cookies",
+    "/terms",
+)
+
 
 class AnalyticsMiddleware(BaseHTTPMiddleware):
     """
     Middleware que captura automaticamente eventos de analytics.
     Registra page views e requisições da API de forma transparente.
+
+    Registrado incondicionalmente em app/main.py; o gate abaixo decide, por
+    requisição, se algo é de fato coletado: config habilitada (`enable_analytics`)
+    E consentimento concedido para a categoria "analytics" E DNT != 1 E rota
+    não excluída (`EXCLUDED_PREFIXES`).
     """
 
-    def __init__(self, app: ASGIApp, enabled: bool = True):
-        super().__init__(app)
-        self.enabled = enabled
-        # Rotas que não devem ser rastreadas
-        self.excluded_paths = {
-            "/health",
-            "/docs",
-            "/redoc",
-            "/openapi.json",
-            "/api/v1/analytics/track",
-            "/api/v1/analytics/pageview",
-        }
+    def _is_excluded(self, path: str) -> bool:
+        """Comparação segura de prefixo: /contact exclui /contact/x, não /contactos."""
+        return any(path == p or path.startswith(p + "/") for p in EXCLUDED_PREFIXES)
 
-    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         """Processa a requisição e registra eventos de analytics."""
-        if not self.enabled:
+        if not settings.enable_analytics:
             return await call_next(request)
 
         # Verificar Do Not Track header se configurado
         if settings.analytics_respect_dnt and request.headers.get("DNT") == "1":
             return await call_next(request)
 
+        if not is_granted(request, "analytics"):
+            return await call_next(request)
+
         # Verificar se a rota deve ser rastreada
-        path = request.url.path
-        if any(path.startswith(excluded) for excluded in self.excluded_paths):
+        if self._is_excluded(request.url.path):
             return await call_next(request)
 
         # Gerar ou obter session_id

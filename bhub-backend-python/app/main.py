@@ -138,11 +138,9 @@ app.add_middleware(AuthCookieMiddleware)
 app.add_middleware(AccessTokenCookieMiddleware)
 
 # Analytics Middleware (deve vir antes do CORS)
-if settings.enable_analytics:
-    app.add_middleware(
-        AnalyticsMiddleware,
-        enabled=settings.enable_analytics,
-    )
+# Registrado SEMPRE: o gate (config + consentimento + DNT) é avaliado por request,
+# permitindo ligar/desligar sem reiniciar e testar o comportamento.
+app.add_middleware(AnalyticsMiddleware)
 
 # CORS
 # Headers permitidos explicitamente (segurança)
