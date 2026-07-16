@@ -15,6 +15,10 @@ from app.database import get_session_context
 from app.models.analytics import EventType
 from app.services.analytics_service import AnalyticsService
 
+# Nome do cookie de sessão de analytics — compartilhado com app/web/consent.py
+# (que o apaga quando o visitante revoga/nega a categoria "analytics").
+ANALYTICS_SESSION_COOKIE = "analytics_session_id"
+
 
 class AnalyticsMiddleware(BaseHTTPMiddleware):
     """
@@ -51,7 +55,7 @@ class AnalyticsMiddleware(BaseHTTPMiddleware):
 
         # Gerar ou obter session_id
         had_session = bool(
-            request.headers.get("X-Session-ID") or request.cookies.get("analytics_session_id")
+            request.headers.get("X-Session-ID") or request.cookies.get(ANALYTICS_SESSION_COOKIE)
         )
         session_id = self._get_or_create_session_id(request)
 
@@ -79,7 +83,7 @@ class AnalyticsMiddleware(BaseHTTPMiddleware):
         # Persistir session_id em cookie para SSR/HTMX (não depende de header no client)
         if not had_session:
             response.set_cookie(
-                key="analytics_session_id",
+                key=ANALYTICS_SESSION_COOKIE,
                 value=session_id,
                 httponly=True,
                 secure=not settings.is_development,
@@ -98,7 +102,7 @@ class AnalyticsMiddleware(BaseHTTPMiddleware):
             return session_id
 
         # Tentar obter do cookie
-        session_id = request.cookies.get("analytics_session_id")
+        session_id = request.cookies.get(ANALYTICS_SESSION_COOKIE)
         if session_id:
             return session_id
 
