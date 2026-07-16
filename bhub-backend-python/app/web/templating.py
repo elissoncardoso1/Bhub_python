@@ -8,9 +8,11 @@ from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
 
+from fastapi import Request
 from fastapi.templating import Jinja2Templates
 
 from app.config import settings
+from app.core.cookie_consent import get_consent
 
 MONTHS_PT = {
     1: "Janeiro",
@@ -78,6 +80,15 @@ def _format_percent(value: float | None) -> str:
     return str(int(round(value * 100)))
 
 
+def _csrf_token_from_request(request: Request) -> str:
+    """Token CSRF disponível server-side: cookie (HttpOnly) ou state do middleware."""
+    return (
+        request.cookies.get("csrf_token")
+        or getattr(request.state, "csrf_token", None)
+        or ""
+    )
+
+
 @lru_cache
 def get_templates() -> Jinja2Templates:
     templates_dir = Path(settings.base_dir) / "app" / "templates"
@@ -89,6 +100,9 @@ def get_templates() -> Jinja2Templates:
     templates.env.filters["format_percent"] = _format_percent
     templates.env.globals["settings"] = settings
     templates.env.globals["now"] = datetime.utcnow
+    templates.env.globals["consent_state"] = get_consent
+    templates.env.globals["csrf_token_from_request"] = _csrf_token_from_request
+    templates.env.globals["cookie_consent_enabled"] = lambda: settings.cookie_consent_enabled
 
     from app.utils.icons import icons
     templates.env.globals["icon"] = icons.get

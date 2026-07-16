@@ -1,0 +1,104 @@
+{# Banner + central de preferências de cookies. SSR puro: forms funcionam sem JS. #}
+{% set consent = consent_state(request) %}
+{% set csrf = csrf_token_from_request(request) %}
+{% if cookie_consent_enabled() %}
+
+{% if not consent.decided %}
+<div id="cookie-banner" role="region" aria-label="Aviso de privacidade e cookies"
+     class="fixed inset-x-0 bottom-0 z-50 max-h-[60vh] overflow-y-auto border-t border-slate-200 bg-white p-4 shadow-lg sm:p-6">
+  <div class="mx-auto flex max-w-5xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <h2 class="text-base font-semibold text-slate-900">Sua privacidade no BHUB</h2>
+      <p class="mt-1 max-w-2xl text-sm text-slate-600">
+        Usamos cookies necessários para o funcionamento e a segurança do site. Com sua
+        autorização, também podemos usar dados de navegação para entender como o BHUB é
+        utilizado e melhorar a plataforma.
+        <a href="/cookies" class="underline text-primary-700 hover:text-primary-600">Política de Cookies</a>
+      </p>
+    </div>
+    <form method="post" action="/cookie-consent" class="flex flex-wrap items-center gap-2">
+      <input type="hidden" name="csrf_token" value="{{ csrf }}">
+      <input type="hidden" name="next" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}">
+      {# Recusar e Aceitar com o MESMO destaque visual (sem dark pattern) #}
+      <button type="submit" name="action" value="reject_all"
+              class="rounded-md border border-primary-600 px-4 py-2 text-sm font-medium text-primary-700 hover:bg-primary-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600">
+        Recusar opcionais
+      </button>
+      <button type="submit" name="action" value="accept_all"
+              class="rounded-md border border-primary-600 px-4 py-2 text-sm font-medium text-primary-700 hover:bg-primary-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600">
+        Aceitar opcionais
+      </button>
+      <button type="button" data-consent-open
+              class="rounded-md px-4 py-2 text-sm font-medium text-slate-600 underline hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600">
+        Configurar
+      </button>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+<dialog id="cookie-preferences" aria-labelledby="cookie-preferences-title"
+        class="w-full max-w-lg rounded-lg border border-slate-200 p-0 shadow-xl backdrop:bg-slate-900/40">
+  <form method="post" action="/cookie-consent" class="p-6">
+    <input type="hidden" name="csrf_token" value="{{ csrf }}">
+    <input type="hidden" name="next" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}">
+    <h2 id="cookie-preferences-title" class="text-lg font-semibold text-slate-900">Preferências de cookies</h2>
+
+    <fieldset class="mt-4 space-y-4">
+      <legend class="sr-only">Categorias de cookies</legend>
+
+      <div class="flex items-start gap-3">
+        <input type="checkbox" id="consent-necessary" checked disabled class="mt-1">
+        <label for="consent-necessary" class="text-sm">
+          <span class="font-medium text-slate-900">Necessários</span> — autenticação, segurança
+          (CSRF) e sua escolha de cookies. Sempre ativos; não podem ser desativados.
+        </label>
+      </div>
+
+      <div class="flex items-start gap-3">
+        <input type="checkbox" id="consent-analytics" name="analytics" class="mt-1"
+               {% if consent.analytics %}checked{% endif %}>
+        <label for="consent-analytics" class="text-sm">
+          <span class="font-medium text-slate-900">Analytics</span> — estatísticas internas de uso
+          (páginas visitadas, tipo de dispositivo) para melhorar a plataforma. Nenhum dado é
+          enviado a terceiros.
+        </label>
+      </div>
+
+      <div class="flex items-start gap-3">
+        <input type="checkbox" id="consent-external-media" name="external_media" class="mt-1"
+               {% if consent.external_media %}checked{% endif %}>
+        <label for="consent-external-media" class="text-sm">
+          <span class="font-medium text-slate-900">Conteúdo externo</span> — mídias incorporadas de
+          terceiros. Atualmente o BHUB não carrega conteúdo externo; a categoria existe para
+          transparência futura.
+        </label>
+      </div>
+
+      <div class="flex items-start gap-3">
+        <input type="checkbox" id="consent-marketing" name="marketing" class="mt-1"
+               {% if consent.marketing %}checked{% endif %}>
+        <label for="consent-marketing" class="text-sm">
+          <span class="font-medium text-slate-900">Marketing</span> — sem uso no momento; nenhuma
+          integração de marketing está ativa.
+        </label>
+      </div>
+    </fieldset>
+
+    <div class="mt-6 flex flex-wrap items-center gap-2">
+      <button type="submit" name="action" value="save"
+              class="rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600">
+        Salvar preferências
+      </button>
+      <button type="submit" name="action" value="reject_all"
+              class="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600">
+        Rejeitar opcionais
+      </button>
+      <button type="button" data-consent-close
+              class="ml-auto rounded-md px-3 py-2 text-sm text-slate-500 underline hover:text-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600">
+        Fechar
+      </button>
+    </div>
+  </form>
+</dialog>
+{% endif %}

@@ -116,6 +116,9 @@
     <!-- Footer -->
     {% include 'components/footer.html' %}
 
+    <!-- Cookie Consent Banner + Preferences -->
+    {% include 'components/cookie_consent.html' %}
+
     <!-- Modals Container -->
     <div
       id="modal-container"
@@ -136,6 +139,9 @@
 
     <!-- Keyboard Shortcuts -->
     <script src="{{ url_for('static', path='js/keyboard-shortcuts.js') }}"></script>
+
+    <!-- Cookie Consent (progressive enhancement for preferences dialog) -->
+    <script src="{{ url_for('static', path='js/cookie-consent.js') }}" defer></script>
 
     <script>
       // Initialize Lucide Icons

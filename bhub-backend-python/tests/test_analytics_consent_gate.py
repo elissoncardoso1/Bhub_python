@@ -57,7 +57,6 @@ class TestSemConsentimento:
         assert "X-Session-ID" not in resp.headers
         assert track_spy == []
 
-    @pytest.mark.xfail(reason="banner chega na Task 7", strict=True)
     async def test_banner_e_apresentado(self, client: AsyncClient):
         resp = await client.get("/")
         assert 'id="cookie-banner"' in resp.text
