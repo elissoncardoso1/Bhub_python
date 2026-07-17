@@ -105,6 +105,10 @@
       Pular para o conteúdo principal
     </a>
 
+    <!-- Cookie Consent Banner + Preferences (early in DOM: reachable via keyboard without
+         tabbing through the whole page first; position:fixed keeps it visually unchanged) -->
+    {% include 'components/cookie_consent.html' %}
+
     <!-- Navbar -->
     {% include 'components/navbar.html' %}
 
@@ -115,9 +119,6 @@
 
     <!-- Footer -->
     {% include 'components/footer.html' %}
-
-    <!-- Cookie Consent Banner + Preferences -->
-    {% include 'components/cookie_consent.html' %}
 
     <!-- Modals Container -->
     <div

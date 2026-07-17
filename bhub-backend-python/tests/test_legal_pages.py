@@ -54,6 +54,14 @@ class TestBannerConsentimento:
         assert resp.status_code == 303
         assert resp.headers["location"] == "/articles?category=aba&page=3"
 
+    async def test_banner_precede_navbar_no_dom(self, client: AsyncClient):
+        """Acessibilidade por teclado: o banner deve ser alcançável logo no início do
+        DOM, não depois de navbar/conteúdo/footer (senão exige dezenas de Tabs)."""
+        html = (await client.get("/")).text
+        assert 'id="cookie-banner"' in html
+        assert "<nav" in html
+        assert html.index('id="cookie-banner"') < html.index("<nav")
+
 
 @pytest.mark.asyncio
 class TestFooter:
