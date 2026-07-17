@@ -532,6 +532,57 @@ async def about_page(request: Request, current_user: CurrentUserOptional = None)
     )
 
 
+@router.get("/privacy")
+async def privacy_page(request: Request, current_user: CurrentUserOptional = None):
+    """Política de Privacidade (versão inicial de desenvolvimento, com placeholders)."""
+    templates = get_templates()
+    csrf_token = await get_csrf_token(request)
+    return templates.TemplateResponse(
+        "pages/privacy.html",
+        {
+            "request": request,
+            "title": "Política de Privacidade",
+            "csrf_token": csrf_token,
+            "static_version": f"{templates.env.globals['settings'].app_version}",
+            "current_user": current_user,
+        },
+    )
+
+
+@router.get("/cookies")
+async def cookies_page(request: Request, current_user: CurrentUserOptional = None):
+    """Política de Cookies — lista os cookies realmente usados pelo sistema."""
+    templates = get_templates()
+    csrf_token = await get_csrf_token(request)
+    return templates.TemplateResponse(
+        "pages/cookies.html",
+        {
+            "request": request,
+            "title": "Política de Cookies",
+            "csrf_token": csrf_token,
+            "static_version": f"{templates.env.globals['settings'].app_version}",
+            "current_user": current_user,
+        },
+    )
+
+
+@router.get("/terms")
+async def terms_page(request: Request, current_user: CurrentUserOptional = None):
+    """Termos de Uso (versão inicial de desenvolvimento, com placeholders)."""
+    templates = get_templates()
+    csrf_token = await get_csrf_token(request)
+    return templates.TemplateResponse(
+        "pages/terms.html",
+        {
+            "request": request,
+            "title": "Termos de Uso",
+            "csrf_token": csrf_token,
+            "static_version": f"{templates.env.globals['settings'].app_version}",
+            "current_user": current_user,
+        },
+    )
+
+
 @router.get("/contact")
 async def contact_page(request: Request, current_user: CurrentUserOptional = None):
     templates = get_templates()

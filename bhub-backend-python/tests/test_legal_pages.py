@@ -75,3 +75,36 @@ class TestFooter:
         assert 'id="cookie-banner"' not in html          # banner some
         assert 'id="cookie-preferences"' in html          # dialog presente
         assert "data-consent-open" in html                # gatilho persistente (footer)
+
+
+@pytest.mark.asyncio
+class TestPaginasLegais:
+    @pytest.mark.parametrize("path,titulo", [
+        ("/privacy", "Política de Privacidade"),
+        ("/cookies", "Política de Cookies"),
+        ("/terms", "Termos de Uso"),
+    ])
+    async def test_pagina_responde_200(self, client: AsyncClient, path, titulo):
+        resp = await client.get(path)
+        assert resp.status_code == 200
+        assert titulo in resp.text
+
+    async def test_privacy_tem_placeholders_e_secoes_lgpd(self, client: AsyncClient):
+        html = (await client.get("/privacy")).text
+        assert "A CONFIRMAR" in html          # placeholders explícitos, nada inventado
+        assert "ANPD" in html
+        assert "Direitos" in html
+
+    async def test_cookies_lista_cookies_reais(self, client: AsyncClient):
+        html = (await client.get("/cookies")).text
+        for nome in ("access_token", "csrf_token", "analytics_session_id", "bhub_consent"):
+            assert nome in html
+        # cookie de refresh — nome real confirmado em app/core/refresh_token.py:26
+        assert "refresh_token" in html
+
+    async def test_paginas_legais_acessiveis_com_opcionais_recusados(self, client: AsyncClient):
+        await client.get("/contact")
+        token = client.cookies.get("csrf_token")
+        await client.post("/cookie-consent", data={"action": "reject_all", "csrf_token": token}, follow_redirects=False)
+        for path in ("/privacy", "/cookies", "/terms", "/contact"):
+            assert (await client.get(path)).status_code == 200

@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}Política de Cookies - BHUB{% endblock %}
+
+{% block meta_description %}Política de Cookies do BHUB - Behavior Hub: quais cookies usamos, para quê e por quanto tempo.{% endblock %}
+
+{% block og_title %}Política de Cookies - BHUB{% endblock %}
+{% block og_description %}Quais cookies o BHUB usa, para quê e por quanto tempo.{% endblock %}
+{% block twitter_title %}Política de Cookies - BHUB{% endblock %}
+{% block twitter_description %}Quais cookies o BHUB usa, para quê e por quanto tempo.{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-3xl px-4 py-10 sm:px-6">
+    <h1 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight mb-2">Política de Cookies</h1>
+    <p class="text-sm text-slate-500 mb-6">Versão 1.0 — julho/2026 (rascunho de desenvolvimento)</p>
+
+    <div class="mb-10 rounded-xl border border-warning-500 bg-warning-50 text-warning-700 px-4 py-3 text-sm leading-relaxed" role="note">
+        <strong>Documento em elaboração</strong> — versão inicial para ambiente de desenvolvimento; não constitui aconselhamento jurídico.
+    </div>
+
+    <div class="prose prose-slate max-w-none space-y-6 text-slate-700 leading-relaxed">
+        <p>
+            Cookies são pequenos arquivos que o BHUB armazena no seu navegador para manter sua sessão, proteger o
+            site contra fraudes e, quando autorizado, entender como a plataforma é usada. Abaixo listamos apenas os
+            cookies efetivamente utilizados pelo sistema hoje — nenhum cookie de terceiros é definido pela
+            plataforma.
+        </p>
+
+        <div class="overflow-x-auto rounded-xl border border-slate-200">
+            <table class="min-w-full divide-y divide-slate-200 text-sm">
+                <thead class="bg-slate-50">
+                    <tr>
+                        <th scope="col" class="px-4 py-3 text-left font-semibold text-slate-900">Nome</th>
+                        <th scope="col" class="px-4 py-3 text-left font-semibold text-slate-900">Responsável</th>
+                        <th scope="col" class="px-4 py-3 text-left font-semibold text-slate-900">Categoria</th>
+                        <th scope="col" class="px-4 py-3 text-left font-semibold text-slate-900">Finalidade</th>
+                        <th scope="col" class="px-4 py-3 text-left font-semibold text-slate-900">Duração</th>
+                        <th scope="col" class="px-4 py-3 text-left font-semibold text-slate-900">Desativável</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 bg-white">
+                    <tr>
+                        <td class="px-4 py-3 font-mono text-xs text-slate-900">access_token</td>
+                        <td class="px-4 py-3 text-slate-600">BHUB (primeira parte)</td>
+                        <td class="px-4 py-3 text-slate-600">Necessário</td>
+                        <td class="px-4 py-3 text-slate-600">Mantém a sessão autenticada (JWT) de usuários administrativos.</td>
+                        <td class="px-4 py-3 text-slate-600">15 minutos</td>
+                        <td class="px-4 py-3 text-slate-600">Não</td>
+                    </tr>
+                    <tr>
+                        <td class="px-4 py-3 font-mono text-xs text-slate-900">refresh_token</td>
+                        <td class="px-4 py-3 text-slate-600">BHUB (primeira parte)</td>
+                        <td class="px-4 py-3 text-slate-600">Necessário</td>
+                        <td class="px-4 py-3 text-slate-600">Permite renovar a sessão autenticada sem exigir novo login.</td>
+                        <td class="px-4 py-3 text-slate-600">7 dias</td>
+                        <td class="px-4 py-3 text-slate-600">Não</td>
+                    </tr>
+                    <tr>
+                        <td class="px-4 py-3 font-mono text-xs text-slate-900">csrf_token</td>
+                        <td class="px-4 py-3 text-slate-600">BHUB (primeira parte)</td>
+                        <td class="px-4 py-3 text-slate-600">Necessário</td>
+                        <td class="px-4 py-3 text-slate-600">Protege formulários e requisições contra ataques CSRF.</td>
+                        <td class="px-4 py-3 text-slate-600">24 horas</td>
+                        <td class="px-4 py-3 text-slate-600">Não</td>
+                    </tr>
+                    <tr>
+                        <td class="px-4 py-3 font-mono text-xs text-slate-900">bhub_consent</td>
+                        <td class="px-4 py-3 text-slate-600">BHUB (primeira parte)</td>
+                        <td class="px-4 py-3 text-slate-600">Necessário</td>
+                        <td class="px-4 py-3 text-slate-600">Guarda sua escolha de preferências de cookies para não repetir o banner a cada visita.</td>
+                        <td class="px-4 py-3 text-slate-600">180 dias</td>
+                        <td class="px-4 py-3 text-slate-600">Não (é o próprio registro do consentimento)</td>
+                    </tr>
+                    <tr>
+                        <td class="px-4 py-3 font-mono text-xs text-slate-900">analytics_session_id</td>
+                        <td class="px-4 py-3 text-slate-600">BHUB (primeira parte)</td>
+                        <td class="px-4 py-3 text-slate-600">Analytics</td>
+                        <td class="px-4 py-3 text-slate-600">Identificador de sessão aleatório para métricas de uso agregadas, sem ligação com sua identidade.</td>
+                        <td class="px-4 py-3 text-slate-600">30 dias</td>
+                        <td class="px-4 py-3 text-slate-600">Sim</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <p>
+            O cookie <code>analytics_session_id</code> somente é criado depois que você autoriza a categoria
+            Analytics na central de preferências. Se essa categoria não for autorizada, ou se o navegador enviar o
+            sinal "Do Not Track", nenhum evento de analytics é registrado e o cookie não é definido.
+        </p>
+
+        <p>
+            Você pode revisar ou alterar suas escolhas a qualquer momento:
+        </p>
+
+        <button type="button" data-consent-open class="inline-flex items-center justify-center px-6 py-3 text-sm font-semibold text-white bg-primary-600 rounded-xl hover:bg-primary-700 active:bg-primary-800 transition-all shadow-sm hover:shadow">
+            Preferências de cookies
+        </button>
+
+        <p class="pt-4">
+            Para mais detalhes sobre como tratamos dados pessoais, consulte a nossa
+            <a href="/privacy" class="text-primary-600 underline hover:text-primary-700">Política de Privacidade</a>.
+        </p>
+    </div>
+</div>
+{% endblock %}
