@@ -48,9 +48,8 @@ async def submit_cookie_consent(
 
     if action == "revoke":
         clear_consent_cookie(response)
-        # Apaga o cookie de sessão já existente; isso é só metade da garantia de
-        # "parar coleta" — o gate que impede o AnalyticsMiddleware de emitir um
-        # cookie *novo* sem consentimento é implementado em task seguinte.
+        # Apaga o cookie de sessão existente; o AnalyticsMiddleware não emite um
+        # novo sem consentimento (gate próprio, coberto por teste de regressão).
         response.delete_cookie(ANALYTICS_SESSION_COOKIE, path="/")
         return response
 
@@ -64,10 +63,8 @@ async def submit_cookie_consent(
 
     set_consent_cookie(response, preferences)
 
-    # Sem autorização de analytics, apagamos o cookie de sessão existente — mas
-    # isso é só metade da garantia de "parar coleta". A outra metade (impedir o
-    # AnalyticsMiddleware de recriar o cookie na próxima requisição sem
-    # consentimento) depende do gate de consentimento nele, feito em task seguinte.
+    # Sem autorização de analytics, apagamos o cookie de sessão existente; o
+    # gate do AnalyticsMiddleware impede que ele seja recriado sem consentimento.
     if not preferences["analytics"]:
         response.delete_cookie(ANALYTICS_SESSION_COOKIE, path="/")
 
