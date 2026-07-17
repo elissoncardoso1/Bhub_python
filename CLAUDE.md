@@ -95,6 +95,7 @@ SQLite (dev) / PostgreSQL (prod) + Redis (ARQ job queue)
 | `app/core/security.py` | JWT + fastapi-users integration |
 | `app/core/csrf.py` + `csrf_middleware.py` | Double-submit cookie CSRF |
 | `app/core/ip_anonymization.py` | LGPD-compliant IP hashing |
+| `app/core/cookie_consent.py` | Cookie consent (LGPD) — single source of truth for the `bhub_consent` cookie; gates analytics via `is_granted()` |
 | `app/services/feed_aggregator.py` | RSS ingestion + deduplication |
 | `app/services/classification_service.py` | sentence-transformers classifier |
 | `app/services/search_service.py` | FTS5 + LIKE fallback |
