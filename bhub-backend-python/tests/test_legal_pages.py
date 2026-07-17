@@ -2,6 +2,9 @@
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import select
+
+from app.models import ContactMessage
 
 
 @pytest.mark.asyncio
@@ -108,3 +111,55 @@ class TestPaginasLegais:
         await client.post("/cookie-consent", data={"action": "reject_all", "csrf_token": token}, follow_redirects=False)
         for path in ("/privacy", "/cookies", "/terms", "/contact"):
             assert (await client.get(path)).status_code == 200
+
+
+@pytest.mark.asyncio
+class TestContatoPrivacidade:
+    async def test_aviso_de_privacidade_presente(self, client: AsyncClient):
+        html = (await client.get("/contact")).text
+        assert "Utilizaremos seus dados para responder à sua solicitação" in html
+        assert 'href="/privacy"' in html
+        # sem checkbox genérico obrigatório de consentimento
+        assert "autorizo o tratamento" not in html.lower()
+
+    async def test_envio_nao_grava_ip_nem_user_agent(self, client: AsyncClient, db_session):
+        await client.get("/contact")
+        token = client.cookies.get("csrf_token")
+        resp = await client.post(
+            "/contact",
+            data={
+                "csrf_token": token,
+                "name": "Fulano Teste",
+                "email": "fulano@example.com",
+                "subject": "Assunto de teste",
+                "message": "Mensagem com mais de dez caracteres.",
+            },
+        )
+        assert resp.status_code == 200
+        msg = await db_session.scalar(select(ContactMessage).order_by(ContactMessage.id.desc()))
+        assert msg is not None
+        assert msg.ip_address is None
+        assert msg.user_agent is None
+
+    async def test_api_contato_nao_grava_ip_nem_user_agent(self, client: AsyncClient, db_session):
+        await client.get("/contact")
+        token = client.cookies.get("csrf_token")
+        resp = await client.post(
+            "/api/v1/contact",
+            json={
+                "name": "Fulana API",
+                "email": "fulana@example.com",
+                "subject": "Assunto de teste",
+                "message": "Mensagem com mais de dez caracteres.",
+            },
+            headers={"X-CSRF-Token": token},
+        )
+        assert resp.status_code == 200
+        msg = await db_session.scalar(select(ContactMessage).order_by(ContactMessage.id.desc()))
+        assert msg is not None and msg.email == "fulana@example.com"
+        assert msg.ip_address is None
+        assert msg.user_agent is None
+
+    async def test_privacy_nao_afirma_anonimizacao_universal(self, client: AsyncClient):
+        html = (await client.get("/privacy")).text
+        assert "anonimizado antes de qualquer armazenamento" not in html

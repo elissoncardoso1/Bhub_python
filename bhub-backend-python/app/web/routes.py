@@ -627,9 +627,8 @@ async def contact_submit(
         details = "; ".join(err.get("msg", "invalid") for err in e.errors())
         contact_result = ContactResult(success=False, message=f"Dados inválidos: {details}")
     else:
-        ip_address = request.client.host if request.client else None
-        user_agent = request.headers.get("user-agent")
-
+        # Não coletamos IP/user-agent (princípio da necessidade, art. 6º III LGPD):
+        # nenhum mecanismo antiabuso consome esses campos; o form já tem CSRF + rate limiting.
         db.add(
             ContactMessage(
                 name=validated.name,
@@ -637,8 +636,6 @@ async def contact_submit(
                 phone=validated.phone,
                 subject=validated.subject,
                 message=validated.message,
-                ip_address=ip_address,
-                user_agent=user_agent[:500] if user_agent else None,
             )
         )
         await db.commit()

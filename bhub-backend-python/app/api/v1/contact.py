@@ -2,7 +2,7 @@
 Rotas de contato.
 """
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter
 from pydantic import BaseModel, EmailStr, Field
 
 from app.api.deps import DBSession
@@ -26,25 +26,19 @@ class ContactRequest(BaseModel):
 @router.post("", response_model=MessageResponse)
 async def send_contact_message(
     db: DBSession,
-    request: Request,
     data: ContactRequest,
     csrf_valid: CSRFValid = True,  # Validação CSRF
 ):
     """Envia mensagem de contato."""
 
-    # Capturar metadata
-    ip_address = request.client.host if request.client else None
-    user_agent = request.headers.get("user-agent")
-
-    # Criar mensagem
+    # Não coletamos IP/user-agent (princípio da necessidade, art. 6º III LGPD):
+    # nenhum mecanismo antiabuso consome esses campos; o form já tem CSRF + rate limiting.
     message = ContactMessage(
         name=data.name,
         email=data.email,
         phone=data.phone,
         subject=data.subject,
         message=data.message,
-        ip_address=ip_address,
-        user_agent=user_agent[:500] if user_agent else None,
     )
 
     db.add(message)
