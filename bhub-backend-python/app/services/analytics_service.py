@@ -2,7 +2,7 @@
 Serviço de analytics para coleta e análise de dados.
 """
 
-import hashlib
+import secrets
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -21,11 +21,12 @@ class AnalyticsService:
     """Serviço para gerenciar analytics."""
 
     @staticmethod
-    def generate_session_id(user_id: int | None = None, ip: str | None = None) -> str:
-        """Gera um ID único de sessão."""
-        timestamp = datetime.utcnow().isoformat()
-        data = f"{timestamp}-{user_id or 'anonymous'}-{ip or 'unknown'}"
-        return hashlib.sha256(data.encode()).hexdigest()[:32]
+    def generate_session_id() -> str:
+        """
+        Gera identificador de sessão aleatório (CSPRNG).
+        Não deriva de IP, usuário, timestamp ou qualquer dado do visitante.
+        """
+        return secrets.token_urlsafe(24)  # 32 chars URL-safe
 
     @staticmethod
     async def track_event(

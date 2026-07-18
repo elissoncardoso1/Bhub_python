@@ -105,6 +105,10 @@
       Pular para o conteúdo principal
     </a>
 
+    <!-- Cookie Consent Banner + Preferences (early in DOM: reachable via keyboard without
+         tabbing through the whole page first; position:fixed keeps it visually unchanged) -->
+    {% include 'components/cookie_consent.html' %}
+
     <!-- Navbar -->
     {% include 'components/navbar.html' %}
 
@@ -136,6 +140,9 @@
 
     <!-- Keyboard Shortcuts -->
     <script src="{{ url_for('static', path='js/keyboard-shortcuts.js') }}"></script>
+
+    <!-- Cookie Consent (progressive enhancement for preferences dialog) -->
+    <script src="{{ url_for('static', path='js/cookie-consent.js') }}" defer></script>
 
     <script>
       // Initialize Lucide Icons

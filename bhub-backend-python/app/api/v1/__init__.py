@@ -12,6 +12,7 @@ from app.api.v1.authors import router as authors_router
 from app.api.v1.banners import router as banners_router
 from app.api.v1.categories import router as categories_router
 from app.api.v1.contact import router as contact_router
+from app.api.v1.cookie_consent import router as cookie_consent_router
 from app.api.v1.csrf import router as csrf_router
 from app.api.v1.feeds import router as feeds_router
 from app.api.v1.opengraph import router as opengraph_router
@@ -31,6 +32,7 @@ router.include_router(feeds_router)
 router.include_router(search_router)
 router.include_router(banners_router)
 router.include_router(contact_router)
+router.include_router(cookie_consent_router)
 router.include_router(ai_router)
 router.include_router(analytics_router)
 router.include_router(opengraph_router)

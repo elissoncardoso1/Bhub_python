@@ -6,12 +6,14 @@ from fastapi import APIRouter
 
 from app.web.admin import router as admin_router
 from app.web.auth import router as auth_router
+from app.web.consent import router as consent_router
 from app.web.routes import router as public_router
 
 router = APIRouter()
 router.include_router(auth_router)
 router.include_router(admin_router)
 router.include_router(public_router)
+router.include_router(consent_router)
 
 from app.web.translation import router as translation_router
 

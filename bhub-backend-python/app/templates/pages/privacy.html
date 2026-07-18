@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}Política de Privacidade - BHUB{% endblock %}
+
+{% block meta_description %}Política de Privacidade do BHUB - Behavior Hub: como tratamos dados de navegação, conta e contato conforme a LGPD.{% endblock %}
+
+{% block og_title %}Política de Privacidade - BHUB{% endblock %}
+{% block og_description %}Como o BHUB trata dados pessoais: navegação, analytics opcional, conta e contato.{% endblock %}
+{% block twitter_title %}Política de Privacidade - BHUB{% endblock %}
+{% block twitter_description %}Como o BHUB trata dados pessoais: navegação, analytics opcional, conta e contato.{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-3xl px-4 py-10 sm:px-6">
+    <h1 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight mb-2">Política de Privacidade</h1>
+    <p class="text-sm text-slate-500 mb-6">Versão 1.0 — julho/2026 (rascunho de desenvolvimento)</p>
+
+    <div class="mb-10 rounded-xl border border-warning-500 bg-warning-50 text-warning-700 px-4 py-3 text-sm leading-relaxed" role="note">
+        <strong>Documento em elaboração</strong> — versão inicial para ambiente de desenvolvimento; não constitui aconselhamento jurídico.
+    </div>
+
+    <div class="prose prose-slate max-w-none space-y-10 text-slate-700 leading-relaxed">
+        <section>
+            <h2 class="text-xl sm:text-2xl font-bold text-slate-900 mb-3">1. Quem somos</h2>
+            <p>
+                O BHUB (Behavior Hub) é uma plataforma agregadora de artigos científicos especializada em Análise do
+                Comportamento (ABA/RFT). Coletamos feeds de periódicos e portais científicos, classificamos o
+                conteúdo com modelos de aprendizado de máquina e oferecemos busca textual sobre esse acervo.
+            </p>
+            <p>
+                Responsável pelo tratamento de dados: <strong>[RESPONSÁVEL A CONFIRMAR]</strong>.
+                Endereço: <strong>[ENDEREÇO A CONFIRMAR]</strong>.
+            </p>
+        </section>
+
+        <section>
+            <h2 class="text-xl sm:text-2xl font-bold text-slate-900 mb-3">2. Dados que tratamos</h2>
+            <p>
+                <strong>Navegação:</strong> páginas visitadas, referrer e user agent (usado apenas para inferir tipo
+                de dispositivo, navegador e sistema operacional, de forma agregada).
+            </p>
+            <p>
+                <strong>Analytics interno (opcional):</strong> só coletamos eventos de navegação detalhados se você
+                autorizar explicitamente a categoria "Analytics" na central de cookies.
+            </p>
+            <p>
+                <strong>Conta e autenticação:</strong> e-mail e senha (armazenada apenas como hash, nunca em texto
+                puro), para usuários com acesso administrativo.
+            </p>
+            <p>
+                <strong>Formulário de contato:</strong> nome, e-mail, telefone (opcional), assunto e mensagem,
+                enviados voluntariamente por você. Não registramos endereço IP nem identificadores do navegador
+                (user agent) associados ao formulário de contato.
+            </p>
+            <p>
+                <strong>Logs técnicos do servidor:</strong> registros operacionais padrão (erros, requisições),
+                mantidos para segurança e depuração.
+            </p>
+            <p>
+                <strong>Conteúdos agregados:</strong> artigos científicos públicos coletados de fontes RSS de
+                periódicos e portais. Esse conteúdo pode ser processado por inteligência artificial
+                (modelo DeepSeek v4-pro — ver seção 6) para gerar resumos, classificações e traduções.
+                Conteúdos agregados não contêm dados pessoais de visitantes da plataforma.
+            </p>
+        </section>
+
+        <section>
+            <h2 class="text-xl sm:text-2xl font-bold text-slate-900 mb-3">3. Analytics interno</h2>
+            <p>
+                O rastreamento de analytics é <strong>desativado por padrão</strong> e só passa a coletar dados após
+                consentimento explícito na categoria "Analytics" da central de cookies. Quando ativo, usamos um
+                identificador de sessão gerado aleatoriamente — ele não deriva do seu IP, e-mail ou identidade.
+            </p>
+            <p>
+                No analytics interno, o endereço IP é anonimizado antes do armazenamento; o formulário de contato
+                não registra endereço IP nem identificadores do navegador. Se o seu navegador enviar o cabeçalho
+                "Do Not Track" (DNT), respeitamos essa preferência e não coletamos analytics, independentemente do
+                consentimento. Nenhum dado de analytics é enviado a serviços de terceiros.
+            </p>
+            <p>
+                Rotas sensíveis — login, contato, área administrativa — nunca são rastreadas, mesmo com
+                consentimento concedido.
+            </p>
+        </section>
+
+        <section>
+            <h2 class="text-xl sm:text-2xl font-bold text-slate-900 mb-3">4. Finalidades e bases legais</h2>
+            <p>
+                Tratamos dados para: (i) funcionamento e segurança da plataforma, com base no legítimo interesse
+                (art. 7º, IX, LGPD); (ii) analytics interno, com base no consentimento (art. 7º, I, LGPD); (iii)
+                gestão de contas administrativas, com base na execução de contrato; (iv) atendimento a mensagens de
+                contato, com base no procedimento preliminar relacionado a contrato ou em atendimento a solicitações.
+            </p>
+        </section>
+
+        <section>
+            <h2 class="text-xl sm:text-2xl font-bold text-slate-900 mb-3">5. Retenção</h2>
+            <p>
+                A sessão de analytics é mantida por até 30 dias no cookie correspondente. A escolha registrada na
+                central de cookies é mantida por até 180 dias. Mensagens de contato são retidas pelo tempo necessário
+                ao atendimento da solicitação. Logs técnicos do servidor seguem rotação padrão de operação.
+            </p>
+        </section>
+
+        <section>
+            <h2 class="text-xl sm:text-2xl font-bold text-slate-900 mb-3">6. Compartilhamento</h2>
+            <p>
+                Não vendemos dados pessoais. Utilizamos os seguintes fornecedores, sempre limitados ao
+                necessário para o funcionamento da plataforma:
+            </p>
+            <ul class="list-disc pl-6 space-y-2">
+                <li>
+                    <strong>Hostinger</strong> — hospedagem da infraestrutura (servidor VPS) onde a aplicação,
+                    o banco de dados (PostgreSQL) e o cache (Redis) são executados de forma auto-hospedada.
+                    Como operadora da infraestrutura, a Hostinger pode ter acesso técnico incidental aos dados
+                    armazenados no servidor.
+                </li>
+                <li>
+                    <strong>DeepSeek</strong> — provedor de inteligência artificial (modelo DeepSeek v4-pro),
+                    utilizado para gerar resumos, traduções e análises de conteúdo. Enviamos ao DeepSeek apenas
+                    trechos de artigos científicos públicos (títulos, resumos e textos agregados) —
+                    <strong>nunca</strong> dados pessoais de visitantes, dados de conta, mensagens de contato ou
+                    identificadores de navegação.
+                </li>
+            </ul>
+            <p>
+                O banco de dados, a fila de tarefas e o índice de busca são auto-hospedados na própria VPS —
+                não há fornecedores externos de analytics, publicidade ou rastreamento.
+            </p>
+        </section>
+
+        <section>
+            <h2 class="text-xl sm:text-2xl font-bold text-slate-900 mb-3">7. Transferência internacional</h2>
+            <p>
+                A infraestrutura de hospedagem (VPS Hostinger) e o provedor de IA (DeepSeek) podem manter
+                servidores fora do Brasil, o que caracteriza transferência internacional de dados nos termos
+                dos arts. 33 a 36 da LGPD. Os dados enviados ao provedor de IA limitam-se a conteúdo de
+                artigos científicos públicos (sem dados pessoais de visitantes). A localidade exata do
+                servidor e as salvaguardas contratuais aplicáveis estão
+                <strong>[LOCALIDADE E SALVAGUARDAS A CONFIRMAR]</strong>.
+            </p>
+        </section>
+
+        <section>
+            <h2 class="text-xl sm:text-2xl font-bold text-slate-900 mb-3">8. Segurança</h2>
+            <p>
+                Adotamos HTTPS, cookies HttpOnly, proteção CSRF, hashing de senhas, cabeçalhos de segurança HTTP e
+                anonimização de endereço IP como medidas técnicas de proteção dos dados tratados.
+            </p>
+        </section>
+
+        <section>
+            <h2 class="text-xl sm:text-2xl font-bold text-slate-900 mb-3">9. Seus Direitos</h2>
+            <p>
+                Nos termos do art. 18 da LGPD, você tem direito à confirmação de tratamento, acesso, correção,
+                anonimização, eliminação, portabilidade e revogação do consentimento.
+            </p>
+            <p>
+                Para revogar o consentimento de analytics a qualquer momento, use o link
+                "<a href="#" data-consent-open class="text-primary-600 underline hover:text-primary-700">Preferências de cookies</a>"
+                no rodapé do site. Para solicitar a eliminação de registros históricos de analytics, entre em
+                contato pelo e-mail <strong>[E-MAIL DE PRIVACIDADE A CONFIRMAR]</strong>.
+            </p>
+        </section>
+
+        <section>
+            <h2 class="text-xl sm:text-2xl font-bold text-slate-900 mb-3">10. Contato e ANPD</h2>
+            <p>
+                Dúvidas sobre esta política podem ser enviadas para
+                <strong>[E-MAIL DE PRIVACIDADE A CONFIRMAR]</strong>. Você também tem o direito de apresentar
+                reclamação à Autoridade Nacional de Proteção de Dados (ANPD).
+            </p>
+        </section>
+    </div>
+</div>
+{% endblock %}

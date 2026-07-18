@@ -46,6 +46,7 @@ arquitetura resumida, convenções de código), veja também o
 - **[SECURITY_FIXES_CRITICAL.md](./seguranca/SECURITY_FIXES_CRITICAL.md)** · **[SECURITY_FIXES_HIGH.md](./seguranca/SECURITY_FIXES_HIGH.md)** — correções por severidade
 - **[CVE-2025-55182_FIX.md](./seguranca/CVE-2025-55182_FIX.md)** — correção de CVE específica
 - **[CORS_FIX.md](./seguranca/CORS_FIX.md)** — correções de CORS
+- **[PRIVACIDADE_COOKIES.md](./seguranca/PRIVACIDADE_COOKIES.md)** — camada de consentimento de cookies (LGPD): cookie `bhub_consent`, gate do analytics, cookies em uso, como testar/estender
 
 ### 🎨 UI/UX — [`ui-ux/`](./ui-ux/)
 
