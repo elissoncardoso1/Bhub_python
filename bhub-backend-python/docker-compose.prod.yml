@@ -41,6 +41,12 @@ services:
       - HUGGINGFACE_API_KEY=${HUGGINGFACE_API_KEY:-}
       - CRON_SECRET=${CRON_SECRET:-}
       - ENABLE_SCHEDULER=${ENABLE_SCHEDULER:-true}
+      # Analytics interno (LGPD): coleta só com ENABLE_ANALYTICS=true E consentimento
+      # do visitante na categoria "analytics" (app/core/cookie_consent.py)
+      - ENABLE_ANALYTICS=${ENABLE_ANALYTICS:-false}
+      - ANALYTICS_RESPECT_DNT=${ANALYTICS_RESPECT_DNT:-true}
+      - COOKIE_CONSENT_ENABLED=${COOKIE_CONSENT_ENABLED:-true}
+      - COOKIE_CONSENT_VERSION=${COOKIE_CONSENT_VERSION:-1.0}
     depends_on:
       db:
         condition: service_healthy
