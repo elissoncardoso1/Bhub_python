@@ -55,6 +55,12 @@
                 <strong>Logs técnicos do servidor:</strong> registros operacionais padrão (erros, requisições),
                 mantidos para segurança e depuração.
             </p>
+            <p>
+                <strong>Conteúdos agregados:</strong> artigos científicos públicos coletados de fontes RSS de
+                periódicos e portais. Esse conteúdo pode ser processado por inteligência artificial
+                (modelo DeepSeek v4-pro — ver seção 6) para gerar resumos, classificações e traduções.
+                Conteúdos agregados não contêm dados pessoais de visitantes da plataforma.
+            </p>
         </section>
 
         <section>
@@ -98,18 +104,39 @@
         <section>
             <h2 class="text-xl sm:text-2xl font-bold text-slate-900 mb-3">6. Compartilhamento</h2>
             <p>
-                Não vendemos dados pessoais. Podemos utilizar <strong>[FORNECEDORES A CONFIRMAR]</strong> para
-                infraestrutura de hospedagem e operação do serviço, quando aplicável, sempre limitados ao necessário
-                para o funcionamento da plataforma.
+                Não vendemos dados pessoais. Utilizamos os seguintes fornecedores, sempre limitados ao
+                necessário para o funcionamento da plataforma:
+            </p>
+            <ul class="list-disc pl-6 space-y-2">
+                <li>
+                    <strong>Hostinger</strong> — hospedagem da infraestrutura (servidor VPS) onde a aplicação,
+                    o banco de dados (PostgreSQL) e o cache (Redis) são executados de forma auto-hospedada.
+                    Como operadora da infraestrutura, a Hostinger pode ter acesso técnico incidental aos dados
+                    armazenados no servidor.
+                </li>
+                <li>
+                    <strong>DeepSeek</strong> — provedor de inteligência artificial (modelo DeepSeek v4-pro),
+                    utilizado para gerar resumos, traduções e análises de conteúdo. Enviamos ao DeepSeek apenas
+                    trechos de artigos científicos públicos (títulos, resumos e textos agregados) —
+                    <strong>nunca</strong> dados pessoais de visitantes, dados de conta, mensagens de contato ou
+                    identificadores de navegação.
+                </li>
+            </ul>
+            <p>
+                O banco de dados, a fila de tarefas e o índice de busca são auto-hospedados na própria VPS —
+                não há fornecedores externos de analytics, publicidade ou rastreamento.
             </p>
         </section>
 
         <section>
             <h2 class="text-xl sm:text-2xl font-bold text-slate-900 mb-3">7. Transferência internacional</h2>
             <p>
-                Caso a infraestrutura de hospedagem esteja localizada fora do Brasil, os mecanismos de proteção
-                aplicáveis à transferência internacional de dados estão <strong>[A CONFIRMAR conforme
-                infraestrutura]</strong>.
+                A infraestrutura de hospedagem (VPS Hostinger) e o provedor de IA (DeepSeek) podem manter
+                servidores fora do Brasil, o que caracteriza transferência internacional de dados nos termos
+                dos arts. 33 a 36 da LGPD. Os dados enviados ao provedor de IA limitam-se a conteúdo de
+                artigos científicos públicos (sem dados pessoais de visitantes). A localidade exata do
+                servidor e as salvaguardas contratuais aplicáveis estão
+                <strong>[LOCALIDADE E SALVAGUARDAS A CONFIRMAR]</strong>.
             </p>
         </section>
 
