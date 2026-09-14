@@ -36,9 +36,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 # Install only runtime dependencies
+# libffi8: python:3.12-slim (bookworm) não tem libffi7 (bullseye) no repo
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
-    libffi7 \
+    libffi8 \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
