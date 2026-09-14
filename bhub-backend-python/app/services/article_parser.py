@@ -179,7 +179,41 @@ class ArticleParserService:
         if "authors" in entry and isinstance(entry["authors"], list):
             for author in entry["authors"]:
                 if isinstance(author, dict) and "name" in author:
-                    authors_list.append({'name': author["name"], 'role': role})
+                    name = str(author["name"]).strip()
+                    # feedparser junta múltiplos <dc:creator> repetidos em UMA
+                    # string única ("A, B, C") — comum em feeds OJS (journals
+                    # via Open Journal Systems). Desmembrar só quando o padrão
+                    # é claramente uma lista: 2+ segmentos, primeiro segmento
+                    # com 3+ palavras (formato "Nome Sobrenome") e todos os
+                    # segmentos com 2+ palavras. Evita quebrar autores legítimos
+                    # em "Sobrenome, Nome" ("de Rose, Júlio C." tem 1º segmento
+                    # com 2 palavras) ou credenciais ("Angela West, MS, BCBA").
+                    parts = [p.strip() for p in name.split(',') if p.strip()]
+                    words = [len(p.split()) for p in parts]
+                    # Lista: 3+ segmentos todos 2+ palavras, ou 2 segmentos
+                    # ambos 2+ palavras com algum 3+ ("Nome Meio Sobrenome").
+                    # Exclui "Sobrenote, Nome" legítimo ("de Rose, Júlio C.",
+                    # "de Carvalho, Lucas Couto" — nenhum segmento 3+ palavras)
+                    # e credenciais ("Angela West, MS, BCBA" — segmento de 1 palavra).
+                    looks_like_list = (
+                        (len(parts) >= 3 and all(w >= 2 for w in words))
+                        or (len(parts) == 2
+                            and all(w >= 2 for w in words)
+                            and (words[0] >= 3 or words[1] >= 3))
+                    )
+                    if looks_like_list:
+                        # Dividir SÓ por vírgula (partes já validadas acima).
+                        # Não usar _split_authors aqui: ele também quebra em
+                        # " e "/" and ", o que mutilaria sobrenomes portugueses
+                        # como "Helena de Freitas Rocha e Silva".
+                        for part in parts:
+                            clean = self._clean_author_name(part)
+                            if clean:
+                                authors_list.append(
+                                    {'name': re.sub(r'\s+', ' ', clean), 'role': role}
+                                )
+                    else:
+                        authors_list.append({'name': name, 'role': role})
             if authors_list:
                 return authors_list
 
