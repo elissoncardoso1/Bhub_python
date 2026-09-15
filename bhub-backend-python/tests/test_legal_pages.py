@@ -100,9 +100,15 @@ class TestPaginasLegais:
         assert resp.status_code == 200
         assert titulo in resp.text
 
-    async def test_privacy_tem_placeholders_e_secoes_lgpd(self, client: AsyncClient):
+    async def test_privacy_tem_dados_reais_do_controlador_e_secoes_lgpd(self, client: AsyncClient):
+        """Commits 7df6aeb/816c7fb preencheram dados reais no lugar dos placeholders antigos."""
         html = (await client.get("/privacy")).text
-        assert "A CONFIRMAR" in html          # placeholders explícitos, nada inventado
+        # dados reais do controlador e fornecedores (templates/pages/privacy.html)
+        assert "Elisson Coimbra, Psicólogo (CRP 22/01992)" in html
+        assert "pontobhv@proton.me" in html          # e-mail de contato/privacidade
+        assert "Hostinger" in html                    # infraestrutura VPS
+        assert "DeepSeek v4-pro" in html              # provedor de IA
+        assert "A CONFIRMAR" not in html             # nenhum placeholder pendente
         assert "ANPD" in html
         assert "Direitos" in html
 
