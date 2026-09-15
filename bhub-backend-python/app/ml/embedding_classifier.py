@@ -292,12 +292,3 @@ class HeuristicClassifier:
         confidence = min(scores[best_category] / 5.0, 1.0)
 
         return (best_category, confidence)
-
-
-# Função helper para obter classificador
-async def get_classifier() -> EmbeddingClassifier:
-    """Retorna instância do classificador inicializado."""
-    classifier = EmbeddingClassifier()
-    if not classifier.is_initialized():
-        await classifier.initialize()
-    return classifier

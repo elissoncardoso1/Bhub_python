@@ -90,7 +90,7 @@ aqui é apenas consistência (web vs API usam caminhos diferentes).
 
 | Onde | Classificação | I/O real verificado | Recomendação |
 |---|---|---|---|
-| `app/core/refresh_token.py:285` (`refresh_token_service = RefreshTokenService()` — singleton global do módulo) | **LEGACY** | Banco indireto: todos os métodos que tocam persistência recebem `db` como argumento (`refresh_access_token(db, ...)`, `revoke_refresh_token(db, ...)`) — o objeto em si **não** guarda estado de I/O; `__init__` (l.25-27) só define `cookie_name`/`token_length` | **LEGACY a decidir (task 8):** é singleton module-level importado por `app/web/auth.py`, `app/api/auth/__init__.py` e `app/core/refresh_token.py` (helpers `get_refresh_token_from_request`/`validate_and_refresh_token`). Por ser **stateless** (toda I/O vem por argumento), o risco de estado global mutável é baixo; a opção de virar `Depends()` é válida mas de baixo ganho. Recomendação preliminar: **manter**, documentando que não há estado mutável |
+| `app/core/refresh_token.py:285` (`refresh_token_service = RefreshTokenService()` — singleton global do módulo) | **LEGACY** | Banco indireto: todos os métodos que tocam persistência recebem `db` como argumento (`refresh_access_token(db, ...)`, `revoke_refresh_token(db, ...)`) — o objeto em si **não** guarda estado de I/O; `__init__` (l.25-27) só define `cookie_name`/`token_length` | **Decidido na task 8:** MANTER — stateless com configuração imutável; decisão documentada em [GLOBAL_SINGLETONS.md](GLOBAL_SINGLETONS.md) §1 |
 
 ### 1.10 AIManager / provedores de IA — singletons globais
 
@@ -116,7 +116,7 @@ aqui é apenas consistência (web vs API usam caminhos diferentes).
 | `app/ml/embedding_classifier.py:19` — `EmbeddingClassifier` com `__new__` **singleton** (`_instance`) e estado de classe (`_model`, `_initialized`) | **I/O** | Disco/rede: `initialize()` carrega `SentenceTransformer(settings.embedding_model)` (l.39) — download do modelo no primeiro uso; `_model.encode` é CPU/memory | **Manter** — singleton de modelo caro é legítimo; já é substituível em teste via `EmbeddingClassifier.classify` (classmethods). Não acoplar ao FastAPI |
 | `app/api/v1/ai.py:83` (`classifier = EmbeddingClassifier()`) | **I/O** (via singleton) | Idem — rota `/classify` faz fallback local | Aceitável: singleton devolve sempre a mesma instância; para teste de rota, `dependency_overrides` não se aplica (não é Depends). Se task 6/7 exigir fake aqui, extrair provider |
 | `app/api/v1/ai.py:199` (`/status`) | Idem | Idem | Manter (endpoint de diagnóstico) |
-| `app/ml/embedding_classifier.py:298` (`get_classifier()` helper) | **I/O** | Idem — **sem call sites em `app/`** (grep não encontrou uso) | **LEGACY a decidir:** helper sem uso — remover ou usar como ponto único de inicialização |
+| `app/ml/embedding_classifier.py:298` (`get_classifier()` helper) | **I/O** | Idem — **sem call sites em `app/`** (grep não encontrou uso) | **Decidido na task 8:** REMOVIDO (helper sem uso — ver GLOBAL_SINGLETONS.md §5). `initialize()` é o único caminho de inicialização |
 | `HeuristicClassifier` (`embedding_classifier.py:207`) — usado via classmethod estático (`classification_service.py:48`, `api/v1/ai.py:90`) | **PURE** | Regex/keywords em memória, sem banco/rede/fs | **Manter direto** |
 
 ### 1.13 TranslationCacheService
