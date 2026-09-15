@@ -151,20 +151,20 @@ async def test_inline_queue_executa_pdf_inline(monkeypatch):
 
     executed: list[tuple[int, str | None]] = []
 
-    async def fake_pdf(article_id: int, pdf_url: str | None = None) -> None:
+    async def fake_process(self, article_id, pdf_url=None, db=None):
         executed.append((article_id, pdf_url))
 
-    import app.services.background_tasks as bt
-
-    monkeypatch.setattr(bt, "download_pdf_task", fake_pdf)
+    monkeypatch.setattr(
+        "app.services.pdf_service.PDFService.process_article_pdf", fake_process
+    )
 
     queue = InlineTaskQueue()
     job_id = await queue.dispatch_pdf(article_id=5, pdf_url="https://x/y.pdf")
     await queue.wait_pending()
 
-    # download_pdf_task resolve a URL internamente (pdf_url do artigo ou
-    # URLs derivadas); o pdf_url do contrato é honrado pela ArqTaskQueue.
-    assert (5, None) in executed
+    # T1.3: o executor inline honra o pdf_url do contrato, usando a mesma
+    # operação transacional do job ARQ.
+    assert executed == [(5, "https://x/y.pdf")]
     assert job_id == "inline-pdf-5"
 
 
@@ -297,17 +297,17 @@ async def test_dispatch_sem_arq_usa_inline(arq_disabled, monkeypatch):
 async def test_dispatch_pdf_sem_arq_usa_inline(arq_disabled, monkeypatch):
     executed: list[tuple[int, str | None]] = []
 
-    async def fake_pdf(article_id: int, pdf_url: str | None = None) -> None:
+    async def fake_process(self, article_id, pdf_url=None, db=None):
         executed.append((article_id, pdf_url))
 
-    import app.services.background_tasks as bt
-
-    monkeypatch.setattr(bt, "download_pdf_task", fake_pdf)
+    monkeypatch.setattr(
+        "app.services.pdf_service.PDFService.process_article_pdf", fake_process
+    )
 
     job_id = await dispatch_download_pdf(3, "https://x/z.pdf")
     await dispatcher.close_task_queue()
 
-    assert (3, None) in executed  # download_pdf_task resolve a URL internamente
+    assert executed == [(3, "https://x/z.pdf")]  # T1.3: pdf_url honrado no inline
     assert job_id == "inline-pdf-3"
 
 

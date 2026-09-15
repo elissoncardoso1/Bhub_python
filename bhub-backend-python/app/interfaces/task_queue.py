@@ -99,21 +99,29 @@ class InlineTaskQueue:
         await self._run_inline(lambda: classify_article_task(article_id), job_id)
         return job_id
 
-    async def dispatch_pdf(self, article_id: int, pdf_url: str | None) -> str:  # noqa: ARG002
+    async def dispatch_pdf(self, article_id: int, pdf_url: str | None) -> str:
         """Enfileira download de PDF e retorna o job_id.
 
-        No executor inline o ``pdf_url`` não é repassado porque
-        ``download_pdf_task`` resolve a URL internamente (campo do artigo ou
-        URLs derivadas); o argumento é preservado pelo contrato ITaskQueue e
-        honrado pela ArqTaskQueue, que o repassa ao job no worker.
+        T1.3: roda a mesma operação transacional do job ARQ —
+        ``PDFService.process_article_pdf`` — honrando o ``pdf_url`` do
+        contrato ITaskQueue (antes o executor inline descartava o
+        argumento). Erros são registrados, não propagados: no executor
+        local não há retry do worker para acionar.
         """
-        from app.services.background_tasks import download_pdf_task
+        from app.services.pdf_service import PDFService
 
         job_id = f"inline-pdf-{article_id}"
-        # download_pdf_task resolve a URL internamente (pdf_url do artigo ou
-        # URLs derivadas); o argumento pdf_url do contrato é preservado pela
-        # ArqTaskQueue, que o repassa ao job task_download_pdf no worker.
-        await self._run_inline(
-            lambda: download_pdf_task(article_id), job_id
-        )
+
+        async def run_inline_pdf() -> None:
+            try:
+                service = PDFService()
+                result = await service.process_article_pdf(article_id, pdf_url)
+                if result is None:
+                    log.debug(f"job inline de PDF sem trabalho (artigo {article_id})")
+            except Exception as e:
+                log.error(
+                    f"job inline de PDF falhou (artigo {article_id}): {e}"
+                )
+
+        await self._run_inline(run_inline_pdf, job_id)
         return job_id
