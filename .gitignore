@@ -121,3 +121,6 @@ bhub-backend-python/app/static/fonts/*.otf
 
 # Raw font source material (TTFs + zip) — not for the repo; woff2 are derived from these
 /assets/
+
+# Worktrees
+.worktrees/
