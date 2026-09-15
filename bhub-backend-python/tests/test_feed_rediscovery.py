@@ -73,9 +73,11 @@ def make_feed() -> Feed:
 @pytest.mark.asyncio
 async def test_rediscover_valida_candidato_e_retorna_url(monkeypatch):
     feed = make_feed()
-    service = FeedAggregatorService(db=FakeDB(feed))
-    service.fetcher = MappingFetcher(
-        {"https://example.com/feed-novo": FetchResult(status=FetchStatus.OK, text=VALID_RSS)}
+    service = FeedAggregatorService(
+        db=FakeDB(feed),
+        fetcher=MappingFetcher(
+            {"https://example.com/feed-novo": FetchResult(status=FetchStatus.OK, text=VALID_RSS)}
+        ),
     )
     monkeypatch.setattr(
         "trafilatura.feeds.find_feed_urls",
@@ -88,13 +90,15 @@ async def test_rediscover_valida_candidato_e_retorna_url(monkeypatch):
 @pytest.mark.asyncio
 async def test_rediscover_ignora_candidato_igual_ou_invalido(monkeypatch):
     feed = make_feed()
-    service = FeedAggregatorService(db=FakeDB(feed))
-    service.fetcher = MappingFetcher(
-        {
-            "https://example.com/feed-quebrado": FetchResult(
-                status=FetchStatus.GONE, error="HTTP 404"
-            )
-        }
+    service = FeedAggregatorService(
+        db=FakeDB(feed),
+        fetcher=MappingFetcher(
+            {
+                "https://example.com/feed-quebrado": FetchResult(
+                    status=FetchStatus.GONE, error="HTTP 404"
+                )
+            }
+        ),
     )
     monkeypatch.setattr(
         "trafilatura.feeds.find_feed_urls",

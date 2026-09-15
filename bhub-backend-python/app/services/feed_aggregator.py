@@ -35,11 +35,21 @@ def _truncate(value: str | None, max_length: int) -> str | None:
 class FeedAggregatorService:
     """Serviço para agregação de feeds RSS/Atom."""
 
-    def __init__(self, db: AsyncSession, ai_manager=None):
+    def __init__(
+        self,
+        db: AsyncSession,
+        ai_manager=None,
+        parser: ArticleParserService | None = None,
+        fetcher: FeedFetcher | None = None,
+        http_client: httpx.AsyncClient | None = None,
+    ):
         self.db = db
         self.ai_manager = ai_manager
-        self.parser = ArticleParserService()
-        self.http_client = httpx.AsyncClient(
+        self.parser = parser or ArticleParserService()
+        # Client HTTP próprio (dono) quando não injetado; injetado pertence
+        # ao chamador — ``close`` só fecha o que criou (paridade com FeedFetcher).
+        self._owns_http_client = http_client is None
+        self.http_client = http_client or httpx.AsyncClient(
             timeout=30.0,
             follow_redirects=True,
             headers={
@@ -47,11 +57,12 @@ class FeedAggregatorService:
                 "Accept": "application/rss+xml, application/xml, text/xml, */*",
             },
         )
-        self.fetcher = FeedFetcher()
+        self.fetcher = fetcher or FeedFetcher()
 
     async def close(self):
-        """Fecha o cliente HTTP."""
-        await self.http_client.aclose()
+        """Fecha o cliente HTTP (apenas se de propriedade do serviço)."""
+        if self._owns_http_client:
+            await self.http_client.aclose()
         await self.fetcher.close()
 
     async def sync_all_active_feeds(self) -> FeedSyncAllResult:

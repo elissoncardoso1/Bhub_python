@@ -58,9 +58,7 @@ class StubFetcher:
 
 
 def make_service(feed: Feed, fetch_result: FetchResult) -> FeedAggregatorService:
-    service = FeedAggregatorService(db=FakeDB(feed))
-    service.fetcher = StubFetcher(fetch_result)
-    return service
+    return FeedAggregatorService(db=FakeDB(feed), fetcher=StubFetcher(fetch_result))
 
 
 @pytest.mark.asyncio
