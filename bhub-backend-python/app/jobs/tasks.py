@@ -47,13 +47,32 @@ async def task_download_pdf(
     article_id: int,
     pdf_url: str | None = None,
 ) -> dict[str, Any]:
-    """Baixa PDF de artigo open access em job persistente."""
-    from app.services.background_tasks import download_pdf_task
+    """Baixa PDF de artigo open access em job persistente.
 
-    # Mantém a lógica atual centralizada enquanto o PDFService não expõe uma
-    # operação transacional única para article_id.
-    await download_pdf_task(article_id)
-    return {"article_id": article_id, "pdf_url": pdf_url, "status": "processed"}
+    T1.3: opera via ``PDFService.process_article_pdf`` — operação
+    transacional explícita em pdf_service, sem acoplamento ao módulo
+    legado de tarefas em segundo plano.
+    """
+    from app.services.pdf_service import PDFService
+
+    db: AsyncSession | None = ctx.get("db")
+
+    pdf_service = PDFService()
+    if db is not None:
+        result = await pdf_service.process_article_pdf(article_id, pdf_url, db=db)
+    else:
+        result = await pdf_service.process_article_pdf(article_id, pdf_url)
+
+    if result is None:
+        return {"article_id": article_id, "pdf_url": pdf_url, "status": "skipped"}
+
+    return {
+        "article_id": article_id,
+        "pdf_url": pdf_url,
+        "status": "processed",
+        "file_path": result.get("file_path"),
+        "file_hash": result.get("file_hash"),
+    }
 
 
 async def startup(ctx: dict[str, Any]) -> None:

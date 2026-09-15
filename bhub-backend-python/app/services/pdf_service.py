@@ -7,14 +7,16 @@ import re
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import BinaryIO
+from typing import Any, BinaryIO
 
 import fitz  # PyMuPDF
 import pdfplumber
+from sqlalchemy import select
 
 from app.config import settings
 from app.core.exceptions import PDFProcessingError
 from app.core.logging import log
+from app.models import Article, PDFMetadata, ProcessingStatus
 
 
 class PDFService:
@@ -358,6 +360,154 @@ class PDFService:
         except Exception as e:
             log.error(f"Erro ao obter info do PDF: {e}")
             return None
+
+    async def process_article_pdf(
+        self,
+        article_id: int,
+        pdf_url: str | None = None,
+        db: Any | None = None,
+    ) -> dict[str, Any] | None:
+        """Operação transacional explícita: baixa e persiste o PDF de um artigo.
+
+        Concentra obtenção do artigo, resolução da URL, download, validação,
+        extração de metadados, persistência e commit/rollback controlado
+        (T1.3 do plano BHub v1.1 — desacopla jobs de background_tasks).
+
+        Args:
+            article_id: ID do artigo alvo.
+            pdf_url: URL explícita do PDF. Quando ausente, usa ``article.pdf_url``
+                ou URLs derivadas de ``article.original_url``.
+            db: Sessão existente (ex.: job ARQ). Quando ausente, cria a própria
+                sessão via ``get_session_context``.
+
+        Returns:
+            dict com ``article_id``/``file_path``/``file_hash`` em caso de
+            sucesso; ``None`` quando não há trabalho a fazer (artigo ausente,
+            já possui PDF, não é open access, sem URL, download falhou ou
+            duplicata).
+
+        Raises:
+            Exception: erros inesperados propagam após rollback — jobs ARQ
+            usam o retry do worker.
+        """
+        if db is not None:
+            return await self._process_article_pdf(article_id, pdf_url, db)
+
+        from app.database import get_session_context
+
+        async with get_session_context() as session:
+            return await self._process_article_pdf(article_id, pdf_url, session)
+
+    async def _process_article_pdf(
+        self,
+        article_id: int,
+        pdf_url: str | None,
+        db: Any,
+    ) -> dict[str, Any] | None:
+        try:
+            result = await db.execute(
+                select(Article).where(Article.id == article_id)
+            )
+            article = result.scalar_one_or_none()
+
+            if not article:
+                log.warning(f"Artigo {article_id} não encontrado para download de PDF")
+                return None
+
+            if article.pdf_file_path:
+                log.info(f"Artigo {article_id} já possui PDF: {article.pdf_file_path}")
+                return None
+
+            if not article.is_open_access:
+                log.debug(f"Artigo {article_id} não é open access, pulando download")
+                return None
+
+            pdf_data = await self._download_article_pdf(article, pdf_url, db)
+            if not pdf_data:
+                log.warning(f"Não foi possível baixar PDF para artigo {article_id}")
+                return None
+
+            # Verificar duplicata novamente (pode ter sido adicionada por outra task)
+            if await self.check_duplicate(pdf_data["file_hash"], db):
+                log.info(
+                    f"PDF duplicado detectado para artigo {article_id}, removendo arquivo"
+                )
+                Path(pdf_data["file_path"]).unlink(missing_ok=True)
+                return None
+
+            article.pdf_file_path = pdf_data["file_path"]
+            article.pdf_file_size = pdf_data["file_size"]
+
+            pdf_meta_result = await db.execute(
+                select(PDFMetadata).where(PDFMetadata.article_id == article_id)
+            )
+            pdf_metadata = pdf_meta_result.scalar_one_or_none()
+
+            if pdf_metadata:
+                pdf_metadata.file_hash = pdf_data["file_hash"]
+                pdf_metadata.original_filename = pdf_data["original_filename"]
+                pdf_metadata.page_count = pdf_data.get("page_count")
+                pdf_metadata.word_count = pdf_data.get("word_count")
+                pdf_metadata.extracted_text = pdf_data.get("extracted_text")
+                pdf_metadata.pdf_info = str(pdf_data.get("pdf_info", {}))
+                pdf_metadata.processing_status = ProcessingStatus.COMPLETED
+                pdf_metadata.processing_error = None
+            else:
+                pdf_metadata = PDFMetadata(
+                    article_id=article_id,
+                    file_hash=pdf_data["file_hash"],
+                    original_filename=pdf_data["original_filename"],
+                    page_count=pdf_data.get("page_count"),
+                    word_count=pdf_data.get("word_count"),
+                    extracted_text=pdf_data.get("extracted_text"),
+                    pdf_info=str(pdf_data.get("pdf_info", {})),
+                    processing_status=ProcessingStatus.COMPLETED,
+                )
+                db.add(pdf_metadata)
+
+            await db.commit()
+            log.info(
+                f"PDF baixado e associado ao artigo {article_id}: {pdf_data['file_path']}"
+            )
+            return {
+                "article_id": article_id,
+                "file_path": pdf_data["file_path"],
+                "file_hash": pdf_data["file_hash"],
+            }
+        except Exception:
+            await db.rollback()
+            raise
+
+    async def _download_article_pdf(
+        self,
+        article: Any,
+        pdf_url: str | None,
+        db: Any,
+    ) -> dict | None:
+        """Resolve a URL (explícita, campo do artigo ou derivadas) e baixa o PDF."""
+        if pdf_url:
+            return await self.download_pdf_from_url(pdf_url, article.title, db)
+
+        article_pdf_url = article.pdf_url
+        if article_pdf_url:
+            return await self.download_pdf_from_url(article_pdf_url, article.title, db)
+
+        if article.original_url:
+            potential_urls = [
+                article.original_url.replace("/article/", "/pdf/"),
+                article.original_url.replace("/article/", "/download/"),
+                article.original_url + ".pdf",
+                article.original_url + "/pdf",
+            ]
+            for url in potential_urls:
+                log.info(f"Tentando baixar PDF de: {url}")
+                pdf_data = await self.download_pdf_from_url(url, article.title, db)
+                if pdf_data:
+                    return pdf_data
+            return None
+
+        log.warning(f"Artigo {article.id} não tem URL do artigo nem PDF URL")
+        return None
 
     async def download_pdf_from_url(
         self,
