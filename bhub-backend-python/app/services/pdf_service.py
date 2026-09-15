@@ -232,11 +232,14 @@ class PDFService:
         title_lines = []
         for line in lines[:10]:
             line = line.strip()
-            if line and len(line) > 10 and len(line) < 200:
-                if not any(x in line.lower() for x in ["abstract", "resumo", "doi:", "http"]):
-                    title_lines.append(line)
-                    if len(" ".join(title_lines)) > 50:
-                        break
+            if (
+                line
+                and 10 < len(line) < 200
+                and not any(x in line.lower() for x in ["abstract", "resumo", "doi:", "http"])
+            ):
+                title_lines.append(line)
+                if len(" ".join(title_lines)) > 50:
+                    break
 
         if title_lines:
             info["title"] = " ".join(title_lines)
@@ -404,6 +407,7 @@ class PDFService:
         pdf_url: str | None,
         db: Any,
     ) -> dict[str, Any] | None:
+        downloaded_file_path: str | None = None
         try:
             result = await db.execute(
                 select(Article).where(Article.id == article_id)
@@ -426,6 +430,11 @@ class PDFService:
             if not pdf_data:
                 log.warning(f"Não foi possível baixar PDF para artigo {article_id}")
                 return None
+
+            # T1.4 (idempotência): caminho do arquivo baixado — se a
+            # persistência falhar ou for duplicata, o arquivo é removido
+            # para não deixar órfãos (a reexecução baixaria de novo).
+            downloaded_file_path = pdf_data["file_path"]
 
             # Verificar duplicata novamente (pode ter sido adicionada por outra task)
             if await self.check_duplicate(pdf_data["file_hash"], db):
@@ -476,6 +485,14 @@ class PDFService:
             }
         except Exception:
             await db.rollback()
+            # T1.4 (idempotência): rollback sem arquivo órfão — senão a
+            # reexecução do job baixaria um segundo arquivo e duplicaria
+            # em disco o que não foi persistido.
+            if downloaded_file_path:
+                Path(downloaded_file_path).unlink(missing_ok=True)
+                log.warning(
+                    f"Arquivo não persistido removido após rollback: {downloaded_file_path}"
+                )
             raise
 
     async def _download_article_pdf(
@@ -587,7 +604,10 @@ class PDFService:
                 # Verificar duplicata
                 if await self.check_duplicate(pdf_data["file_hash"], db):
                     log.info(f"PDF já existe no sistema (hash: {pdf_data['file_hash'][:8]}...)")
-                    # Retornar None para indicar que não precisa processar
+                    # T1.4 (idempotência): hash já persistido em outro artigo —
+                    # o arquivo recém-salvo é órfão e deve ser removido para
+                    # que a reexecução do job não acumule duplicatas em disco.
+                    Path(pdf_data["file_path"]).unlink(missing_ok=True)
                     return None
 
                 log.info(f"PDF baixado e processado com sucesso: {pdf_data['file_path']}")
