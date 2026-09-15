@@ -7,6 +7,8 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.jobs.observe import observed_job
+
 logger = logging.getLogger(__name__)
 
 try:
@@ -19,6 +21,7 @@ except ImportError:
     _redis_settings = None
 
 
+@observed_job("task_classify_article")
 async def task_classify_article(ctx: dict[str, Any], article_id: int) -> dict[str, Any]:
     """Classifica artigo em job persistente."""
     db: AsyncSession = ctx["db"]
@@ -42,6 +45,7 @@ async def task_classify_article(ctx: dict[str, Any], article_id: int) -> dict[st
     }
 
 
+@observed_job("task_download_pdf")
 async def task_download_pdf(
     ctx: dict[str, Any],
     article_id: int,
@@ -80,6 +84,19 @@ async def startup(ctx: dict[str, Any]) -> None:
 
     ctx["session_factory"] = async_session_maker
 
+    # T1.5: telemetria do worker — mesmo provider do app web quando ativo.
+    try:
+        from app.config import settings
+
+        if settings.enable_telemetry:
+            from app.core.telemetry import setup_telemetry
+            from app.jobs.observe import init_job_telemetry
+
+            setup_telemetry(settings.telemetry_service_name)
+            init_job_telemetry()
+    except ImportError:
+        logger.debug("config indisponível — telemetria do worker desativada")
+
     # O fallback de classificação por embeddings precisa do modelo E dos
     # embeddings das categorias carregados NESTE processo (o lifespan do
     # app web não vale para o worker). Sem isso, task_classify_article
@@ -104,12 +121,31 @@ async def shutdown(ctx: dict[str, Any]) -> None:
 async def on_job_start(ctx: dict[str, Any]) -> None:
     session_factory = ctx["session_factory"]
     ctx["db"] = session_factory()
+    # T1.5: contexto de observabilidade do job (job_id/attempt/start),
+    # usado pelo decorator @observed_job das tasks.
+    from app.jobs.observe import init_job_obs
+
+    init_job_obs(ctx)
 
 
 async def on_job_end(ctx: dict[str, Any]) -> None:
     session: AsyncSession | None = ctx.pop("db", None)
     if session:
         await session.close()
+
+    # T1.5: registra sucesso/falha para jobs ainda não instrumentados —
+    # o decorator @observed_job já registrou os demais (sem duplicar).
+    from app.jobs.observe import init_job_obs, record_job_failure, record_job_success
+
+    obs = ctx.get("_job_obs")
+    if obs is None or obs.get("recorded"):
+        return
+    init_job_obs(ctx)
+    error = obs.get("error")
+    if error is not None:
+        record_job_failure(ctx, error)
+    else:
+        record_job_success(ctx)
 
 
 class WorkerSettings:
