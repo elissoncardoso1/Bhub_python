@@ -28,7 +28,7 @@ class PDFService:
     def __init__(
         self,
         upload_path: Path | None = None,
-        http_client: Any | None = None,
+        http_client: Any = None,
     ):
         """Inicializa o serviço com dependências explícitas (T2.2 do plano v1.1).
 
@@ -36,9 +36,11 @@ class PDFService:
             upload_path: Storage onde os PDFs são gravados. Padrão:
                 ``settings.pdf_upload_path``. Injável para storage fake
                 em testes.
-            http_client: Client HTTP para downloads. Quando fornecido,
-                ``download_pdf_from_url`` o utiliza em vez de criar um
-                ``httpx.AsyncClient`` por chamada.
+            http_client: Objeto client HTTP assíncrono usado por
+                ``download_pdf_from_url`` — deve expor um ``await
+                get(url)`` (contrato estrutural de ``httpx.AsyncClient``).
+                Quando None, um ``httpx.AsyncClient`` efêmero é criado
+                por download.
         """
         self.upload_path = upload_path if upload_path is not None else settings.pdf_upload_path
         self.http_client = http_client

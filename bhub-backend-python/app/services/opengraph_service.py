@@ -374,13 +374,4 @@ class OpenGraphService:
         img.save(cache_path, "PNG", optimize=True)
         return cache_path
 
-def get_opengraph_service() -> OpenGraphService:
-    """Dependency injection provider for OpenGraphService.
 
-    Legacy: mantido para compatibilidade de imports — delega ao provider
-    canônico ``app.api.deps.get_opengraph_service`` (T2.3), que injeta a
-    sessão do banco explicitamente via ``Depends``.
-    """
-    from app.api.deps import get_opengraph_service as deps_provider
-
-    return deps_provider()  # type: ignore[call-arg]  # sessão resolvida via Depends
