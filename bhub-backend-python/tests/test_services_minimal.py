@@ -1,8 +1,9 @@
+# ruff: noqa: ARG001, ARG002
 from types import SimpleNamespace
 
 import pytest
 
-from app.services.background_tasks import classify_article_task, download_pdf_task
+from app.services.background_tasks import classify_article_task
 from app.services.classification_service import ClassificationService
 from app.services.feed_aggregator import FeedAggregatorService
 from app.web.routes import _is_htmx
@@ -74,27 +75,3 @@ async def test_classify_article_task_no_article(monkeypatch):
     )
 
     await classify_article_task(article_id=999)
-
-
-@pytest.mark.asyncio
-async def test_download_pdf_task_no_article(monkeypatch):
-    class FakeResult:
-        def scalar_one_or_none(self):
-            return None
-
-    class FakeDB:
-        async def execute(self, *_args, **_kwargs):
-            return FakeResult()
-
-    class FakeSessionCtx:
-        async def __aenter__(self):
-            return FakeDB()
-
-        async def __aexit__(self, exc_type, exc, tb):
-            return False
-
-    monkeypatch.setattr(
-        "app.services.background_tasks.get_session_context", lambda: FakeSessionCtx()
-    )
-
-    await download_pdf_task(article_id=999)

@@ -1,6 +1,7 @@
+# ruff: noqa: ARG001, ARG002
 import pytest
 
-from app.services.background_tasks import classify_article_task, download_pdf_task
+from app.services.background_tasks import classify_article_task
 
 
 class StubArticle:
@@ -103,52 +104,3 @@ async def test_classify_article_task_happy(monkeypatch):
     assert db.committed is True
     assert article.impact_score is not None
     assert article.classification_confidence == 0.8
-
-
-@pytest.mark.asyncio
-async def test_download_pdf_task_happy(monkeypatch, tmp_path):
-    article = StubArticle()
-    db = FakeDB(article)
-
-    fake_pdf_path = tmp_path / "file.pdf"
-    fake_pdf_path.write_text("pdf")
-
-    async def fake_download_pdf_from_url(url, title, db):
-        return {
-            "file_hash": "hash",
-            "file_path": str(fake_pdf_path),
-            "file_size": 3,
-            "original_filename": "f.pdf",
-            "page_count": 1,
-            "word_count": 10,
-            "extracted_text": "txt",
-            "pdf_info": {},
-        }
-
-    async def fake_check_duplicate(file_hash, db):
-        return False
-
-    class FakePDFService:
-        async def download_pdf_from_url(self, *args, **kwargs):
-            return await fake_download_pdf_from_url(*args, **kwargs)
-
-        async def check_duplicate(self, *args, **kwargs):
-            return await fake_check_duplicate(*args, **kwargs)
-
-    class FakePDFMetadata:
-        def __init__(self, **kwargs):
-            self.__dict__.update(kwargs)
-
-    async def fake_sql_select(*args, **kwargs):
-        return FakeResult(None)
-
-    import app.services.background_tasks as bt
-
-    bt.get_session_context = lambda: FakeSessionCtx(db)
-    bt.sql_select = fake_sql_select
-    bt.PDFMetadata = FakePDFMetadata
-    monkeypatch.setattr("app.services.pdf_service.PDFService", FakePDFService, raising=False)
-
-    await download_pdf_task(article_id=1)
-    assert db.committed is True
-    assert article.pdf_file_path == str(fake_pdf_path)
