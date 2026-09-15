@@ -25,8 +25,23 @@ class PDFService:
     MAX_FILE_SIZE = settings.max_pdf_size_mb * 1024 * 1024  # MB para bytes
     ALLOWED_MIME_TYPES = ["application/pdf"]
 
-    def __init__(self):
-        self.upload_path = settings.pdf_upload_path
+    def __init__(
+        self,
+        upload_path: Path | None = None,
+        http_client: Any | None = None,
+    ):
+        """Inicializa o serviço com dependências explícitas (T2.2 do plano v1.1).
+
+        Args:
+            upload_path: Storage onde os PDFs são gravados. Padrão:
+                ``settings.pdf_upload_path``. Injável para storage fake
+                em testes.
+            http_client: Client HTTP para downloads. Quando fornecido,
+                ``download_pdf_from_url`` o utiliza em vez de criar um
+                ``httpx.AsyncClient`` por chamada.
+        """
+        self.upload_path = upload_path if upload_path is not None else settings.pdf_upload_path
+        self.http_client = http_client
 
     async def process_pdf(
         self,
@@ -561,57 +576,62 @@ class PDFService:
             # Mas vamos tentar mesmo assim, pode ser um redirect
 
         try:
-            # Fazer download com timeout
-            async with httpx.AsyncClient(
-                timeout=60.0,  # Timeout maior para PDFs
-                follow_redirects=True,
-                headers={
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-                    "Accept": "application/pdf, */*",
-                },
-            ) as client:
-                response = await client.get(pdf_url)
-                response.raise_for_status()
+            # T2.2: client HTTP injetado tem precedência; sem injeção, um
+            # client efêmero é criado apenas para este download.
+            if self.http_client is not None:
+                response = await self.http_client.get(pdf_url)
+            else:
+                async with httpx.AsyncClient(
+                    timeout=60.0,  # Timeout maior para PDFs
+                    follow_redirects=True,
+                    headers={
+                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                        "Accept": "application/pdf, */*",
+                    },
+                ) as client:
+                    response = await client.get(pdf_url)
 
-                # Verificar content-type
-                content_type = response.headers.get("content-type", "").lower()
-                if "pdf" not in content_type and not pdf_url.lower().endswith('.pdf'):
-                    log.warning(f"Content-Type não é PDF: {content_type}")
-                    # Mas vamos processar mesmo assim
+            response.raise_for_status()
 
-                # Ler conteúdo
-                content = response.content
+            # Verificar content-type
+            content_type = response.headers.get("content-type", "").lower()
+            if "pdf" not in content_type and not pdf_url.lower().endswith('.pdf'):
+                log.warning(f"Content-Type não é PDF: {content_type}")
+                # Mas vamos processar mesmo assim
 
-                # Validar tamanho
-                if len(content) > self.MAX_FILE_SIZE:
-                    log.error(f"PDF muito grande: {len(content)} bytes (máximo: {self.MAX_FILE_SIZE})")
-                    return None
+            # Ler conteúdo
+            content = response.content
 
-                # Validar que é um PDF válido
-                if not content.startswith(b"%PDF"):
-                    log.error("Arquivo baixado não é um PDF válido")
-                    return None
+            # Validar tamanho
+            if len(content) > self.MAX_FILE_SIZE:
+                log.error(f"PDF muito grande: {len(content)} bytes (máximo: {self.MAX_FILE_SIZE})")
+                return None
 
-                # Gerar nome de arquivo seguro
-                safe_title = re.sub(r"[^\w\-.]", "_", article_title[:100])
-                filename = f"{safe_title}.pdf"
+            # Validar que é um PDF válido
+            if not content.startswith(b"%PDF"):
+                log.error("Arquivo baixado não é um PDF válido")
+                return None
 
-                # Processar PDF usando o método existente
-                import io
-                file_obj = io.BytesIO(content)
-                pdf_data = await self.process_pdf(file_obj, filename)
+            # Gerar nome de arquivo seguro
+            safe_title = re.sub(r"[^\w\-.]", "_", article_title[:100])
+            filename = f"{safe_title}.pdf"
 
-                # Verificar duplicata
-                if await self.check_duplicate(pdf_data["file_hash"], db):
-                    log.info(f"PDF já existe no sistema (hash: {pdf_data['file_hash'][:8]}...)")
-                    # T1.4 (idempotência): hash já persistido em outro artigo —
-                    # o arquivo recém-salvo é órfão e deve ser removido para
-                    # que a reexecução do job não acumule duplicatas em disco.
-                    Path(pdf_data["file_path"]).unlink(missing_ok=True)
-                    return None
+            # Processar PDF usando o método existente
+            import io
+            file_obj = io.BytesIO(content)
+            pdf_data = await self.process_pdf(file_obj, filename)
 
-                log.info(f"PDF baixado e processado com sucesso: {pdf_data['file_path']}")
-                return pdf_data
+            # Verificar duplicata
+            if await self.check_duplicate(pdf_data["file_hash"], db):
+                log.info(f"PDF já existe no sistema (hash: {pdf_data['file_hash'][:8]}...)")
+                # T1.4 (idempotência): hash já persistido em outro artigo —
+                # o arquivo recém-salvo é órfão e deve ser removido para
+                # que a reexecução do job não acumule duplicatas em disco.
+                Path(pdf_data["file_path"]).unlink(missing_ok=True)
+                return None
+
+            log.info(f"PDF baixado e processado com sucesso: {pdf_data['file_path']}")
+            return pdf_data
 
         except httpx.TimeoutException:
             log.error(f"Timeout ao baixar PDF: {pdf_url}")

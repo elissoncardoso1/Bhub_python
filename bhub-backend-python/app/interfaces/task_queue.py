@@ -79,8 +79,13 @@ class InlineTaskQueue:
     ``ArqTaskQueue``, que nunca degrada para execução local.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, pdf_service_factory: Callable[[], Any] | None = None) -> None:
+        """``pdf_service_factory`` (T2.2) permite injetar o serviço de PDF —
+        construtores e factories bastam fora do FastAPI (worker inline não
+        tem ``Depends``). Sem factory, usa o construtor padrão de PDFService.
+        """
         self._pending: set[asyncio.Task[None]] = set()
+        self._pdf_service_factory = pdf_service_factory
 
     async def _run_inline(self, coro_factory: Callable[[], Any], job_id: str) -> None:
         task = asyncio.create_task(coro_factory(), name=job_id)
@@ -107,14 +112,21 @@ class InlineTaskQueue:
         contrato ITaskQueue (antes o executor inline descartava o
         argumento). Erros são registrados, não propagados: no executor
         local não há retry do worker para acionar.
-        """
-        from app.services.pdf_service import PDFService
 
+        T2.2: o serviço de PDF vem da factory injetada (quando presente),
+        permitindo fake em testes sem monkey-patching da implementação.
+        """
         job_id = f"inline-pdf-{article_id}"
 
         async def run_inline_pdf() -> None:
             try:
-                service = PDFService()
+                if self._pdf_service_factory is not None:
+                    service = self._pdf_service_factory()
+                else:
+                    from app.services.pdf_service import PDFService
+
+                    service = PDFService()
+
                 result = await service.process_article_pdf(article_id, pdf_url)
                 if result is None:
                     log.debug(f"job inline de PDF sem trabalho (artigo {article_id})")

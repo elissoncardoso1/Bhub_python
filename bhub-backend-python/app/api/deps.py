@@ -2,6 +2,8 @@
 Dependências comuns para as rotas da API.
 """
 
+from __future__ import annotations
+
 from collections.abc import AsyncGenerator
 from typing import Annotated
 
@@ -17,6 +19,7 @@ from app.interfaces.services import (
     ISearchService,
 )
 from app.schemas import PaginationParams
+from app.services.pdf_service import PDFService
 
 # Alias para injeção de sessão do banco
 DBSession = Annotated[AsyncSession, Depends(get_async_session)]
@@ -80,6 +83,18 @@ def get_search_service(db: DBSession) -> ISearchService:
     return SearchService(db=db)
 
 
+def get_pdf_service() -> PDFService:
+    """Cria o serviço de PDF com as dependências de I/O explícitas (T2.2).
+
+    Storage e client HTTP saem das configurações da aplicação; rotas que
+    precisam do serviço recebem-no por ``Depends`` e testes substituem via
+    ``app.dependency_overrides``.
+    """
+    from app.services.pdf_service import PDFService
+
+    return PDFService()
+
+
 async def get_feed_aggregator_service(
     db: DBSession,
     ai: Annotated[IAIManager, Depends(get_ai_manager)],
@@ -98,3 +113,4 @@ ClassifierDep = Annotated[IClassificationService, Depends(get_classification_ser
 SearchDep = Annotated[ISearchService, Depends(get_search_service)]
 AIDep = Annotated[IAIManager, Depends(get_ai_manager)]
 FeedAggDep = Annotated[IFeedAggregator, Depends(get_feed_aggregator_service)]
+PDFDep = Annotated[PDFService, Depends(get_pdf_service)]

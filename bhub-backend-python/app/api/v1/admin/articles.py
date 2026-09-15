@@ -6,7 +6,7 @@ from fastapi import APIRouter, File, HTTPException, UploadFile, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
-from app.api.deps import DBSession, Pagination
+from app.api.deps import DBSession, Pagination, PDFDep
 from app.core import CurrentAdmin
 from app.models import (
     Article,
@@ -27,7 +27,7 @@ from app.schemas import (
     ScrapeRequest,
     ScrapeResponse,
 )
-from app.services import PDFService, WebScrapingService
+from app.services import WebScrapingService
 
 router = APIRouter(prefix="/articles", tags=["Admin - Articles"])
 
@@ -167,6 +167,7 @@ async def admin_update_article(
 @router.delete("/{article_id}", response_model=MessageResponse)
 async def admin_delete_article(
     db: DBSession,
+    pdf_service: PDFDep,
     admin: CurrentAdmin,
     article_id: int,
 ):
@@ -182,9 +183,8 @@ async def admin_delete_article(
             detail="Artigo não encontrado",
         )
 
-    # Remover PDF se existir
+    # Remover PDF se existir (serviço injetado — T2.2)
     if article.pdf_file_path:
-        pdf_service = PDFService()
         pdf_service.delete_pdf(article.pdf_file_path)
 
     await db.delete(article)
@@ -224,6 +224,7 @@ async def admin_toggle_highlight(
 @router.post("/upload-pdf", response_model=PDFUploadResponse)
 async def admin_upload_pdf(
     db: DBSession,
+    pdf_service: PDFDep,
     admin: CurrentAdmin,
     file: UploadFile = File(...),
     category_id: int | None = None,
@@ -236,8 +237,6 @@ async def admin_upload_pdf(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Arquivo deve ser um PDF",
         )
-
-    pdf_service = PDFService()
 
     try:
         # Processar PDF

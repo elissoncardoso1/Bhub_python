@@ -56,12 +56,19 @@ async def task_download_pdf(
     T1.3: opera via ``PDFService.process_article_pdf`` — operação
     transacional explícita em pdf_service, sem acoplamento ao módulo
     legado de tarefas em segundo plano.
+
+    T2.2: o serviço de PDF pode vir do contexto do job
+    (``ctx["pdf_service"]``) para injeção em testes/workers; sem injeção,
+    usa o construtor padrão com as configurações da aplicação.
     """
-    from app.services.pdf_service import PDFService
-
     db: AsyncSession | None = ctx.get("db")
+    pdf_service = ctx.get("pdf_service")
 
-    pdf_service = PDFService()
+    if pdf_service is None:
+        from app.services.pdf_service import PDFService
+
+        pdf_service = PDFService()
+
     if db is not None:
         result = await pdf_service.process_article_pdf(article_id, pdf_url, db=db)
     else:
