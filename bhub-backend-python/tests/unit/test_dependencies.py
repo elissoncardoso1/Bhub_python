@@ -247,3 +247,97 @@ async def test_inline_queue_aceita_factory_de_pdf_service():
     assert job_id == "inline-pdf-5"
     assert executados == [5]
 
+
+# ---------------------------------------------------------------------------
+# T2.3 — OpenGraphService: db explícito e substituível
+# ---------------------------------------------------------------------------
+
+
+async def test_opengraph_service_usa_db_explicito(tmp_path, db_session):  # noqa: ARG001
+    """``get_article_metadata`` com db explícito NÃO abre sessão própria."""
+    from app.services.opengraph_service import OpenGraphService
+
+    service = OpenGraphService(cache_dir=tmp_path)
+
+    consultas: list[str] = []
+
+    class SpyDB:
+        async def execute(self, *_args, **_kwargs):
+            consultas.append("execute")
+            return FakeResult(None)
+
+    metadata = await service.get_article_metadata(1, "https://bhub.ex", db=SpyDB())
+
+    assert consultas == ["execute"]  # usou o db injetado, não get_session_context
+    assert metadata["og:site_name"] == "BHub"
+
+
+def test_opengraph_service_sem_import_de_sessao_no_modulo():
+    """T2.3: nenhuma dependência de sessão no escopo de módulo do serviço —
+    o banco trafega por construtor/argumento. (O fallback lazy dentro de
+    ``get_article_metadata`` cobre call sites fora de rotas e é o único
+    ponto em que ``get_session_context`` aparece.)"""
+    import inspect
+
+    import app.services.opengraph_service as og_module
+
+    source = inspect.getsource(og_module)
+    assert "from app.database import get_session_context" not in source.split("async def get_article_metadata")[0]
+
+
+async def test_opengraph_service_substituivel_na_api(client, db_session):
+    from app.api.deps import get_opengraph_service
+    from app.models import Article
+
+    article = Article(title="Artigo OG", is_published=True)
+    db_session.add(article)
+    await db_session.commit()
+
+    class FakeOpenGraphService:
+        async def get_article_metadata(self, article_id: int, base_url: str) -> dict:
+            return {"og:title": "FAKE-OG", "og:site_name": "BHub"}
+
+    app.dependency_overrides[get_opengraph_service] = lambda: FakeOpenGraphService()
+
+    response = await client.get(f"/api/v1/og/articles/{article.id}/json")
+
+    assert response.status_code == 200
+    assert response.json()["og:title"] == "FAKE-OG"
+
+
+async def test_opengraph_service_substituivel_na_rota_web(client, db_session):
+    """Rota web article_detail usa o provider — sem instanciar OpenGraphService."""
+    from app.api.deps import get_opengraph_service
+    from app.models import Article
+
+    article = Article(title="Artigo Web OG", is_published=True)
+    db_session.add(article)
+    await db_session.commit()
+
+    class FakeOpenGraphService:
+        async def get_article_metadata(
+            self, article_id: int, base_url: str, db=None
+        ) -> dict:
+            return {
+                "og:title": "FAKE-WEB",
+                "og:description": "desc",
+                "og:image": f"{base_url}/fake.png",
+                "description": "DESCRICAO-DO-FAKE-OG",
+            }
+
+    app.dependency_overrides[get_opengraph_service] = lambda: FakeOpenGraphService()
+
+    response = await client.get(f"/articles/{article.id}")
+
+    assert response.status_code == 200
+    # a meta description vem dos metadados do serviço injetado — se o
+    # override não funcionasse, viria o abstract do artigo (aqui ausente).
+    assert "DESCRICAO-DO-FAKE-OG" in response.text
+
+
+def test_rota_web_nao_instancia_opengraph_service():
+    from app.web import routes as web_routes
+
+    source = inspect.getsource(web_routes)
+    assert "OpenGraphService()" not in source
+    assert "from app.services.opengraph_service import OpenGraphService" not in source

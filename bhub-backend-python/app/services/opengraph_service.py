@@ -9,7 +9,6 @@ from PIL import Image, ImageDraw, ImageFont
 from sqlalchemy import select
 
 from app.config import settings
-from app.database import get_session_context
 from app.models import Article
 
 
@@ -30,10 +29,19 @@ class OpenGraphService:
         "accent": "#F59E0B",  # Yellow
     }
 
-    def __init__(self):
-        """Inicializa o serviço."""
-        self.cache_dir = settings.upload_dir / "og_images"
+    def __init__(self, cache_dir: Path | None = None, db: Any | None = None):
+        """Inicializa o serviço com dependências explícitas (T2.3 do plano v1.1).
+
+        Args:
+            cache_dir: Diretório de cache das imagens OG. Padrão:
+                ``settings.upload_dir / "og_images"``. Injável para testes.
+            db: Sessão do banco opcional. Quando fornecida,
+                ``get_article_metadata`` usa essa sessão em vez de abrir uma
+                própria — o I/O de banco fica explícito.
+        """
+        self.cache_dir = cache_dir if cache_dir is not None else settings.upload_dir / "og_images"
         self.cache_dir.mkdir(parents=True, exist_ok=True)
+        self.db = db
 
     def _get_font_path(self, font_name: str = "arial.ttf") -> str | None:
         """Retorna caminho da fonte ou None para usar padrão."""
@@ -215,70 +223,93 @@ class OpenGraphService:
         """Gera chave de cache para artigo."""
         return f"article_{article_id}"
 
-    async def get_article_metadata(self, article_id: int, base_url: str) -> dict[str, Any]:
+    async def get_article_metadata(
+        self,
+        article_id: int,
+        base_url: str,
+        db: Any | None = None,
+    ) -> dict[str, Any]:
         """
         Retorna metadados Open Graph para um artigo.
 
         Args:
             article_id: ID do artigo
             base_url: URL base da aplicação (ex: https://bhub.com.br)
+            db: Sessão do banco (T2.3). Quando ausente, usa a sessão do
+                construtor; se nenhuma foi injetada, abre uma própria via
+                ``get_session_context`` (call sites fora de rotas FastAPI).
 
         Returns:
             Dicionário com metadados Open Graph
         """
-        async with get_session_context() as db:
-            from sqlalchemy.orm import selectinload
+        session = db if db is not None else self.db
 
-            result = await db.execute(
-                select(Article)
-                .where(Article.id == article_id, Article.is_published == True)
-                .options(
-                    selectinload(Article.category),
-                    selectinload(Article.authors),
-                )
+        if session is not None:
+            return await self._get_article_metadata(article_id, base_url, session)
+
+        from app.database import get_session_context
+
+        async with get_session_context() as ctx_session:
+            return await self._get_article_metadata(article_id, base_url, ctx_session)
+
+    async def _get_article_metadata(
+        self,
+        article_id: int,
+        base_url: str,
+        db: Any,
+    ) -> dict[str, Any]:
+        from sqlalchemy.orm import selectinload
+
+        result = await db.execute(
+            select(Article)
+            .where(Article.id == article_id, Article.is_published == True)
+            .options(
+                selectinload(Article.category),
+                selectinload(Article.authors),
             )
-            article = result.scalar_one_or_none()
+        )
+        article = result.scalar_one_or_none()
 
-            if not article:
-                return self._get_default_metadata(base_url)
+        if not article:
+            return self._get_default_metadata(base_url)
 
-            # Gerar imagem se necessário
-            image_path = await self.generate_article_image(article)
-            image_url = f"{base_url}/api/v1/og/articles/{article_id}/image"
+        # Gerar imagem se necessário
+        image_path = await self.generate_article_image(article)
+        image_url = f"{base_url}/api/v1/og/articles/{article_id}/image"
 
-            # Título e descrição
-            title = article.title_translated or article.title
-            description = (article.abstract_translated or article.abstract or "")[:200]
+        # Título e descrição
+        title = article.title_translated or article.title
+        description = (article.abstract_translated or article.abstract or "")[:200]
 
-            # URL do artigo
-            article_url = f"{base_url}/articles/{article_id}"
+        # URL do artigo
+        article_url = f"{base_url}/articles/{article_id}"
 
-            # Metadados
-            metadata = {
-                "og:title": title,
-                "og:description": description,
-                "og:type": "article",
-                "og:url": article_url,
-                "og:image": image_url,
-                "og:image:width": str(self.OG_IMAGE_WIDTH),
-                "og:image:height": str(self.OG_IMAGE_HEIGHT),
-                "og:image:type": "image/png",
-                "og:site_name": "BHub",
-                "article:published_time": article.publication_date.isoformat() if article.publication_date else None,
-                "article:author": article.authors_str if article.authors else None,
-                "article:section": article.category.name if article.category else None,
-                # Twitter Card
-                "twitter:card": "summary_large_image",
-                "twitter:title": title,
-                "twitter:description": description,
-                "twitter:image": image_url,
-                # Meta tags padrão
-                "title": title,
-                "description": description,
-            }
+        # Metadados
+        metadata = {
+            "og:title": title,
+            "og:description": description,
+            "og:type": "article",
+            "og:url": article_url,
+            "og:image": image_url,
+            "og:image:width": str(self.OG_IMAGE_WIDTH),
+            "og:image:height": str(self.OG_IMAGE_HEIGHT),
+            "og:image:type": "image/png",
+            "og:site_name": "BHub",
+            "article:published_time": article.publication_date.isoformat() if article.publication_date else None,
+            "article:author": article.authors_str if article.authors else None,
+            "article:section": article.category.name if article.category else None,
+            # Twitter Card
+            "twitter:card": "summary_large_image",
+            "twitter:title": title,
+            "twitter:description": description,
+            "twitter:image": image_url,
+            # Meta tags padrão
+            "title": title,
+            "description": description,
+        }
 
-            # Remover valores None
-            return {k: v for k, v in metadata.items() if v is not None}
+        # Remover valores None
+        return {k: v for k, v in metadata.items() if v is not None}
 
     def _get_default_metadata(self, base_url: str) -> dict[str, Any]:
         """Retorna metadados padrão quando artigo não encontrado."""
@@ -344,5 +375,12 @@ class OpenGraphService:
         return cache_path
 
 def get_opengraph_service() -> OpenGraphService:
-    """Dependency injection provider for OpenGraphService."""
-    return OpenGraphService()
+    """Dependency injection provider for OpenGraphService.
+
+    Legacy: mantido para compatibilidade de imports — delega ao provider
+    canônico ``app.api.deps.get_opengraph_service`` (T2.3), que injeta a
+    sessão do banco explicitamente via ``Depends``.
+    """
+    from app.api.deps import get_opengraph_service as deps_provider
+
+    return deps_provider()  # type: ignore[call-arg]  # sessão resolvida via Depends

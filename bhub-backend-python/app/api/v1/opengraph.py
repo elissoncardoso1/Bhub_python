@@ -3,13 +3,12 @@ Rotas de Open Graph para geração dinâmica de meta tags e imagens.
 """
 
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import FileResponse, HTMLResponse
 from sqlalchemy import select
 
-from app.api.deps import DBSession
+from app.api.deps import DBSession, OpenGraphDep
 from app.models import Article
-from app.services.opengraph_service import OpenGraphService, get_opengraph_service
 
 router = APIRouter(prefix="/og", tags=["Open Graph"])
 
@@ -19,7 +18,7 @@ async def get_article_og_meta(
     request: Request,
     db: DBSession,
     article_id: int,
-    og_service: OpenGraphService = Depends(get_opengraph_service),
+    og_service: OpenGraphDep,
 ):
     """
     Retorna metadados Open Graph para um artigo em formato HTML.
@@ -62,7 +61,7 @@ async def get_article_og_meta(
 async def get_article_og_image(
     db: DBSession,
     article_id: int,
-    og_service: OpenGraphService = Depends(get_opengraph_service),
+    og_service: OpenGraphDep,
 ):
     """
     Retorna imagem Open Graph para um artigo.
@@ -99,7 +98,7 @@ async def get_article_og_image(
 
 @router.get("/default/image")
 async def get_default_og_image(
-    og_service: OpenGraphService = Depends(get_opengraph_service),
+    og_service: OpenGraphDep,
 ):
     """Retorna imagem padrão Open Graph."""
     image_path = await og_service.generate_default_image()
@@ -124,7 +123,7 @@ async def get_article_og_json(
     request: Request,
     db: DBSession,
     article_id: int,
-    og_service: OpenGraphService = Depends(get_opengraph_service),
+    og_service: OpenGraphDep,
 ):
     """
     Retorna metadados Open Graph em formato JSON.
@@ -141,7 +140,7 @@ async def get_article_og_json(
 async def regenerate_article_og_image(
     db: DBSession,
     article_id: int,
-    og_service: OpenGraphService = Depends(get_opengraph_service),
+    og_service: OpenGraphDep,
 ):
     """
     Força regeneração da imagem Open Graph de um artigo.

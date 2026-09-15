@@ -19,6 +19,7 @@ from app.interfaces.services import (
     ISearchService,
 )
 from app.schemas import PaginationParams
+from app.services.opengraph_service import OpenGraphService
 from app.services.pdf_service import PDFService
 
 # Alias para injeção de sessão do banco
@@ -95,6 +96,18 @@ def get_pdf_service() -> PDFService:
     return PDFService()
 
 
+def get_opengraph_service(db: DBSession) -> OpenGraphService:
+    """Cria o serviço de Open Graph com sessão de banco explícita (T2.3).
+
+    A dependência de banco antes ficava oculta dentro do serviço (sessão
+    própria via ``get_session_context``); agora trafega como qualquer outra
+    dependência FastAPI, permitindo ``dependency_overrides`` nos testes.
+    """
+    from app.services.opengraph_service import OpenGraphService
+
+    return OpenGraphService(db=db)
+
+
 async def get_feed_aggregator_service(
     db: DBSession,
     ai: Annotated[IAIManager, Depends(get_ai_manager)],
@@ -114,3 +127,4 @@ SearchDep = Annotated[ISearchService, Depends(get_search_service)]
 AIDep = Annotated[IAIManager, Depends(get_ai_manager)]
 FeedAggDep = Annotated[IFeedAggregator, Depends(get_feed_aggregator_service)]
 PDFDep = Annotated[PDFService, Depends(get_pdf_service)]
+OpenGraphDep = Annotated[OpenGraphService, Depends(get_opengraph_service)]

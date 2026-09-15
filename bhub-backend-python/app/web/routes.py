@@ -12,7 +12,7 @@ from pydantic import BaseModel, EmailStr, Field, ValidationError
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import selectinload
 
-from app.api.deps import DBSession
+from app.api.deps import DBSession, OpenGraphDep
 from app.core.csrf import CSRFValid, get_csrf_token
 from app.core.logging import log
 from app.core.security import CurrentUserOptional
@@ -668,6 +668,7 @@ async def contact_submit(
 async def article_detail(
     request: Request,
     db: DBSession,
+    og_service: OpenGraphDep,
     article_id: int,
     current_user: CurrentUserOptional = None,
 ):
@@ -723,10 +724,9 @@ async def article_detail(
 
     base_url = str(request.base_url).rstrip("/")
 
-    # Obter metadados Open Graph
-    from app.services.opengraph_service import OpenGraphService
-    og_service = OpenGraphService()
-    og_metadata = await og_service.get_article_metadata(article_id, base_url)
+    # T2.3: metadados Open Graph vêm do serviço injetado (Depends),
+    # com a mesma sessão da rota — substituível via dependency_overrides.
+    og_metadata = await og_service.get_article_metadata(article_id, base_url, db=db)
 
     # Preparar metadados para o template
     article_url = f"{base_url}/articles/{article_id}"
