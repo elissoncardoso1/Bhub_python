@@ -50,8 +50,9 @@ async def lifespan(app: FastAPI):
     setup_scheduler()
     start_scheduler()
 
-    # Pré-aquecer ARQ quando habilitado. Em desenvolvimento/teste o dispatcher
-    # usa fallback local se Redis/ARQ não estiverem disponíveis.
+    # Pré-aquecer ARQ quando habilitado. Em produção a falha de conexão é
+    # fatal (o dispatcher recusa enfileirar sem pool — sem fallback local);
+    # em desenvolvimento/teste apenas registra warning.
     if settings.enable_arq:
         try:
             from app.services.task_dispatcher import get_arq_pool
@@ -59,6 +60,13 @@ async def lifespan(app: FastAPI):
             await get_arq_pool()
             log.info("ARQ pool conectado")
         except Exception as e:
+            if settings.is_production:
+                log.error(
+                    "arq_pool_init_failed | "
+                    f"event=arq_pool_startup_failed environment={settings.environment} "
+                    f"error_type={type(e).__name__} error={e}"
+                )
+                raise
             log.warning(f"ARQ não inicializado: {e}")
 
     # Inicializar ML (em background)
@@ -80,11 +88,11 @@ async def lifespan(app: FastAPI):
     log.info("Encerrando aplicação...")
     stop_scheduler()
     try:
-        from app.services.task_dispatcher import close_arq_pool
+        from app.services.task_dispatcher import close_task_queue
 
-        await close_arq_pool()
+        await close_task_queue()
     except Exception as e:
-        log.warning(f"Erro ao fechar ARQ pool: {e}")
+        log.warning(f"Erro ao fechar fila de tarefas: {e}")
     await close_db()
     log.info("Aplicação encerrada")
 
