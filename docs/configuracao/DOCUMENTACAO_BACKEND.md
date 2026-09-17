@@ -187,7 +187,7 @@ bhub-backend-python/
 ├── docker-compose.yml          # Desenvolvimento
 ├── docker-compose.prod.yml     # Produção
 ├── Dockerfile                  # Desenvolvimento
-├── Dockerfile.prod             # Produção
+├── Dockerfile.prod             # ⚠️ LEGADO (stack da raiz, ./Frontend inexistente): a imagem do deploy usa Dockerfile — ver docs/quality/BASELINE.md §5
 ├── pyproject.toml              # Config do projeto
 ├── requirements.txt            # Dependências
 └── README.md

@@ -10,7 +10,7 @@ Bhub_py/
 ├── deploy-docker.sh            # Script de deploy automatizado
 ├── .env.example               # Template de variáveis de ambiente
 ├── bhub-backend-python/
-│   ├── Dockerfile.prod        # Dockerfile do backend
+│   ├── Dockerfile.prod        # ⚠️ LEGADO — NÃO é a imagem do deploy; o deploy usa Dockerfile (docs/quality/BASELINE.md §5)
 │   └── docker-compose.prod.yml # Docker Compose do backend (standalone)
 └── Frontend/
     ├── Dockerfile              # Dockerfile do frontend
