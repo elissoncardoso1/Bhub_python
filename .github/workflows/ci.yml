@@ -253,3 +253,24 @@ jobs:
             --cov-report=xml \
             --cov-precision=2 \
             --cov-fail-under=59.19
+
+      # Build da imagem Docker BLOQUEANTE (Épico 3 / T3.5). Existe para pegar cedo
+      # dependência ausente, pacote de sistema incompatível, erro de build e arquivo não
+      # copiado — as quatro classes que os `RUN`/`COPY` do Dockerfile cobrem e que nenhum
+      # dos gates acima toca. Constrói o `Dockerfile`, e não o `Dockerfile.prod`, porque é
+      # ELE o do caminho real de deploy: o `docker-compose.prod.yml` de
+      # `bhub-backend-python/` — o stack de produção com Postgres/Redis/`arq-worker` que
+      # `scripts/vps/deploy.sh` e `scripts/vps/update.sh` sobem com `up -d --build` —
+      # aponta para `dockerfile: Dockerfile`; o `Dockerfile.prod` só é referenciado pelo
+      # `docker-compose.prod.yml` da RAIZ, que monta um stack com um `./Frontend` que não
+      # existe neste repositório. O contexto `.` é a raiz de `bhub-backend-python/` (o
+      # working-directory do job), exatamente o contexto que aquele compose usa.
+      # Custo: minutos, e ele consome rede (apt Debian, PyPI, índice CPU do PyTorch e o
+      # modelo do `sentence-transformers` no HuggingFace) — nenhum segredo, nenhum
+      # `--build-arg`. Por isso roda por ÚLTIMO: a ordem do job é barato→caro.
+      # Não há `.dockerignore` neste diretório, então o `COPY . .` leva o que estiver na
+      # árvore de trabalho (no CI, os caches de ruff/mypy/pytest e o `coverage.xml`;
+      # numa máquina de dev, o `.venv`): follow-up nomeado, não feito aqui.
+      # Não use `continue-on-error` aqui: build quebrado tem de deixar o PR VERMELHO.
+      - name: Build da imagem Docker (Dockerfile do deploy)
+        run: docker build -f Dockerfile .

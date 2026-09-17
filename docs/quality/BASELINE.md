@@ -189,8 +189,9 @@ espalhado.
 ## 5. CI
 
 `.github/workflows/ci.yml` deixou de ter lint informativo: o `continue-on-error: true` foi
-removido na Task 9 e, na Task 10, entraram os dois gates do Épico 3 que faltavam. Hoje são
-**seis steps bloqueantes** em `bhub-backend-python` (`defaults.run.working-directory`),
+removido na Task 9; na Task 10 entraram os dois gates do Épico 3 que faltavam e na Task 11 o
+build da imagem. Hoje são
+**sete steps bloqueantes** em `bhub-backend-python` (`defaults.run.working-directory`),
 mais o de testes — **nenhum** deles usa `continue-on-error`:
 
 ```yaml
@@ -235,7 +236,30 @@ mais o de testes — **nenhum** deles usa `continue-on-error`:
       --cov-report=xml \
       --cov-precision=2 \
       --cov-fail-under=59.19
+
+- name: Build da imagem Docker (Dockerfile do deploy)   # Task 11 / T3.5
+  run: docker build -f Dockerfile .
 ```
+
+**O step de build da imagem (Task 11 / T3.5).** Bloqueante, sem `continue-on-error`, rodando
+no fim — a ordem do job é barato→caro, e é ele o passo caro. O que ele constrói não é
+escolha livre: o **caminho real de deploy** é `docker-compose.prod.yml` do próprio
+`bhub-backend-python/` (o único com Traefik + Postgres + Redis + `arq-worker`, mantido em
+`chore(deploy)`), e ele aponta para `Dockerfile` (não `Dockerfile.prod`). A cadeia:
+`upload-to-vps.sh` sobe `bhub-backend-python/` para `/var/www/bhub/backend/`;
+`docs/deploy/VPS_DEPLOY.md` manda rodar `bash scripts/vps/deploy.sh` **de dentro** desse
+diretório; e `bhub-backend-python/scripts/vps/deploy.sh` executa
+`docker-compose -f docker-compose.prod.yml up -d --build` ali. O `Dockerfile.prod` só é
+referenciado pelo `docker-compose.prod.yml` da RAIZ, que monta o stack com um `./Frontend`
+que não existe neste repositório — não é caminho de deploy desta app e por isso **não** é
+construído no CI. O contexto é a raiz de `bhub-backend-python/` (o working-directory do job),
+que é exatamente o contexto que aquele compose usa. Consumo do build: rede (apt Debian,
+PyPI, índice CPU do PyTorch e download do modelo do `sentence-transformers` no
+HuggingFace) — **nenhum segredo**, nenhum `--build-arg`; por isso ele é reproduzível no
+runner, ao custo de minutos. Não há `.dockerignore` em `bhub-backend-python/`, então o
+`COPY . .` do `Dockerfile` carrega o que estiver na árvore de trabalho (no CI, os caches de
+ruff/mypy/pytest e o `coverage.xml`; numa máquina de dev, o `.venv`) — follow-up nomeado,
+não feito aqui.
 
 **Rótulo dos critérios de aceite do CI** (aplicado nesta rodada de correção 2 no ledger do
 plano e no brief da task, porque a redação antiga prometia mais do que o gate entrega):
@@ -258,9 +282,11 @@ Na rodada de correção 1, o extra `dev` de `pyproject.toml` foi **alinhado ao m
 `pip install -e ".[dev]"` podia instalar uma versão diferente da validada. Na Task 10 o
 mesmo tratamento foi dado ao `mypy` (§6.7).
 
-### Ainda fora do escopo (tasks seguintes do Épico 3)
+### Entrou no escopo nesta rodada
 
-- Build da imagem Docker no CI → Task 11 (T3.5).
+- Build da imagem Docker no CI → **Task 11 (T3.5)**: step
+  `Build da imagem Docker (Dockerfile do deploy)`, bloqueante, com o `Dockerfile` do caminho
+  real de deploy (não o `Dockerfile.prod`) — evidência no parágrafo acima.
 
 > `mypy` bloqueante (T3.3) e piso de cobertura (T3.4) **entraram** no CI na Task 10 — ver §6.
 
