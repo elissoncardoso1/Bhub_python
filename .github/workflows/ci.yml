@@ -108,8 +108,8 @@ jobs:
             echo "::error::config do ratchet não encontrada em '$RATCHET_CONFIG' — sem config não há verificação (e o guard de ignore_errors não teria o que inspecionar): o gate falha fechado."
             exit 1
           fi
-          if sed 's/#.*//' "$RATCHET_CONFIG" | grep -qE '(^|[[:space:],{])ignore_errors[[:space:]]*='; then
-            echo "::error::$RATCHET_CONFIG tem a chave ATIVA 'ignore_errors': isso ANULA o ratchet. O mypy continua checando os 105 arquivos (o gate de escopo passa), mas para de reportar os 127 erros do legado — o total vira 0 e o step sai verde sem medir nada. Remova a chave da config do ratchet (mencioná-la em comentário é permitido)."
+          if sed 's/#.*//' "$RATCHET_CONFIG" | grep -qE "(^|[[:space:],{])(\"|')?ignore_errors(\"|')?[[:space:]]*=[[:space:]]*true"; then
+            echo "::error::$RATCHET_CONFIG tem a chave ATIVA 'ignore_errors' (valor 'true'): isso ANULA o ratchet. O mypy continua checando os 105 arquivos (o gate de escopo passa), mas para de reportar os erros do legado — o total medido cai (medido com o mypy real: 127 → 60 com a chave em 5 módulos, → 0 com os 28) e o step sai verde sem medir a dívida. Remova a chave da config do ratchet (mencioná-la em comentário é permitido; 'ignore_errors = false' é o default do mypy, é inerte e é aceito)."
             exit 1
           fi
           # FAIL CLOSED #1 — validar os OPERANDOS antes de qualquer comparação
