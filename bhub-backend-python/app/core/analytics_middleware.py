@@ -3,6 +3,7 @@ Middleware para captura automática de eventos de analytics.
 Respeita privacidade e não coleta dados pessoais identificáveis.
 """
 
+import contextlib
 from datetime import datetime
 
 from fastapi import Request, Response
@@ -84,16 +85,14 @@ class AnalyticsMiddleware(BaseHTTPMiddleware):
 
         # Registrar evento em background (não bloquear resposta)
         if response.status_code < 400:  # Apenas sucessos
-            try:
+            # Não falhar a requisição se analytics falhar
+            with contextlib.suppress(Exception):
                 await self._track_request(
                     request=request,
                     response=response,
                     session_id=session_id,
                     duration=duration,
                 )
-            except Exception:
-                # Não falhar a requisição se analytics falhar
-                pass
 
         # Adicionar session_id no header da resposta
         response.headers["X-Session-ID"] = session_id
