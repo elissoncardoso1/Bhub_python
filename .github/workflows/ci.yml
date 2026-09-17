@@ -37,27 +37,80 @@ jobs:
       - name: Format check (ruff format --check)
         run: ruff format --check .
 
-      # Type check BLOQUEANTE (Épico 3 / T3.3). `strict = true` é o default
-      # global em pyproject.toml; os módulos legados que ainda falham estão
-      # enumerados em [[tool.mypy.overrides]] (strict relaxado em 56, e
-      # ignore_errors em 28 arquivos, nomeados um a um com sua contagem).
-      # O gate é PARCIAL de propósito: ver docs/quality/BASELINE.md §6.
+      # Type check BLOQUEANTE (Épico 3 / T3.3) — mas PARCIAL. Este é o rótulo
+      # correto do critério "Mypy bloqueia PR" / "mypy app passa" (Task 19):
+      # vale SOB o gate parcial de docs/quality/BASELINE.md §6.6.
+      # `strict = true` é o default global em pyproject.toml; os módulos legados
+      # estão enumerados em [[tool.mypy.overrides]]: strict relaxado em 56 e
+      # `ignore_errors = true` em 28 arquivos (26,7% de `app/`, incluindo
+      # app/web/routes.py, app/main.py e app/config.py), que ficam FORA de
+      # qualquer verificação — erro NOVO neles NÃO falha este step.
+      # Quem cobre essa lacuna é o step "Type check ratchet" logo abaixo.
       # Não use `continue-on-error` aqui.
       - name: Type check (mypy app)
         run: mypy app
+
+      # SHADOW RATCHET (rodada de correção 2): roda a MESMA config sem o bloco
+      # de `ignore_errors` (pyproject.ratchet.toml) e devolve os 105 arquivos à
+      # verificação — erro novo em QUALQUER arquivo, inclusive nos 28 fora do
+      # gate principal, passa a falhar. Não corrige nenhum erro legado: o
+      # legado medido É o orçamento abaixo.
+      # O mypy SAI COM rc=1 nesta config (é o esperado: há 127 erros), então o
+      # rc não decide nada por si: o step falha apenas se o total MEDIDO
+      # ultrapassar o orçamento, e falha alto se não conseguir extrair o total.
+      - name: Type check ratchet (mypy shadow, budget 127)
+        run: |
+          # Orçamento do legado (BASELINE.md §6.8). Medido com mypy==2.3.1:
+          # 127 erros em 28 arquivos. BAIXE este número ao corrigir erros
+          # legados — nunca suba sem justificar no mesmo PR o aumento da dívida.
+          RATCHET_BUDGET=127
+          rc=0
+          mypy app --config-file pyproject.ratchet.toml > /tmp/mypy-ratchet.txt 2>&1 || rc=$?
+          cat /tmp/mypy-ratchet.txt
+          if [ "$rc" -gt 1 ]; then
+            echo "::error::mypy ratchet saiu com rc=$rc (esperado 0 ou 1) — falha de execução, não divergência de contagem."
+            exit 1
+          fi
+          total=$(sed -nE 's/^Found ([0-9]+) errors? in .*/\1/p' /tmp/mypy-ratchet.txt | head -n 1 || true)
+          if [ -z "$total" ]; then
+            if grep -q '^Success: no issues found' /tmp/mypy-ratchet.txt; then
+              total=0
+            else
+              echo "::error::não foi possível extrair o total de erros do ratchet — falha de parsing NÃO pode passar como aprovação."
+              exit 1
+            fi
+          fi
+          echo "Shadow ratchet: $total erro(s) medido(s); orçamento: $RATCHET_BUDGET."
+          if [ "$total" -gt "$RATCHET_BUDGET" ]; then
+            echo "::error::regressão de tipos: $total > $RATCHET_BUDGET — corrija o erro novo (qualquer arquivo, inclusive os fora do gate principal) ou suba o orçamento no mesmo PR, com a dívida nova registrada em docs/quality/BASELINE.md §6.3."
+            exit 1
+          fi
+          echo "OK: linha do legado intacta ($total <= $RATCHET_BUDGET)."
 
       - name: Run tests
         run: pytest tests/ -v
 
       # Piso de cobertura BLOQUEANTE (Épico 3 / T3.4). Baseline medido:
-      # 3752/6338 statements = 59,2%, logo o piso é 59%. Suba o número
-      # conforme o ratchet avançar — nunca desça.
+      # 3752/6338 statements = 59,2%. O piso é 59,2 COM `--cov-precision=1`: o
+      # coverage compara `round(total, 1) < fail_under` (coverage/results.py:503),
+      # então um total que arredonda para 59,2 passa e um que arredonda para
+      # 59,1 falha. Piso efetivo: >= 59,15% (3749 statements cobertos) — contra
+      # os 58,50% (3708) que o antigo `--cov-fail-under=59` com a precisão
+      # default 0 permitia. Suba o número conforme o ratchet avançar — nunca
+      # desça.
+      # Nota: o resumo final do pytest-cov 7.1.0 compara o total CRU
+      # (~59,198%) com o fail_under SEM aplicar a precisão
+      # (pytest_cov/plugin.py:413) e por isso imprime "FAIL Required test
+      # coverage of 59.2% not reached" mesmo com o step VERDE. A checagem que
+      # decide o rc é a do coverage (arredondada) e ela passa. Não "conserte"
+      # isso baixando o piso: o rc é a fonte da verdade.
       # A suíte roda de novo aqui (~10 s) para que a regressão de cobertura
       # apareça como step próprio no log do CI, e não escondida no step de testes.
-      - name: Coverage floor (fail under 59%)
+      - name: Coverage floor (fail under 59.2%, precision 1)
         run: |
           pytest tests/ \
             --cov=app \
             --cov-report=term-missing \
             --cov-report=xml \
-            --cov-fail-under=59
+            --cov-precision=1 \
+            --cov-fail-under=59.2

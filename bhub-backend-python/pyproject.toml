@@ -162,6 +162,17 @@ ignore_missing_imports = true
 # Remova um módulo desta lista quando ele for anotado — ela só deve ENCOLHER.
 # Os outros 49 arquivos de `app/` não estão aqui: 44 continuam em strict
 # pleno e 5 aparecem só no bloco de `ignore_errors` logo abaixo.
+#
+# LEITURA DAS CONTAGENS (`# N`) DESTE BLOCO — é OUTRA medição, não a mesma do
+# bloco 2: aqui, N = erros medidos sob `strict = true` (config de BASE, ANTES do
+# relaxamento acima) — o tamanho do problema a anotar neste módulo. Somam 354;
+# com os 15 dos 5 módulos que só aparecem no bloco 2, fecham os 369 erros da
+# config de BASE (`Found 369 errors in 61 files`, medido com mypy==2.3.1). As
+# contagens do bloco 2 (`ignore_errors`) medem outra coisa: os erros REAIS
+# remanescentes DEPOIS do relaxamento, que somam 127. Por isso
+# `app.services.web_scraper` aparece com 43 aqui e 36 lá (43 inclui o ruído de
+# anotação que o relaxamento elimina; 36 é o erro de tipo que sobra) — duas
+# medidas diferentes do mesmo módulo, não uma inconsistência.
 [[tool.mypy.overrides]]
 module = [
     "app.services.web_scraper",  # 43
@@ -245,6 +256,12 @@ extra_checks = false
 # codebase. Estão ignorados ARQUIVO A ARQUIVO, com a contagem ao lado, para o
 # ratchet pós-release encolher a lista um a um. Nada de glob largo aqui:
 # qualquer módulo fora desta lista é verificado de verdade.
+# Este total (127) não é decorativo: o shadow ratchet do CI
+# (`pyproject.ratchet.toml` + step "Type check ratchet") roda esta MESMA config
+# SEM este bloco e falha se o total crescer — é ele que garante que um erro
+# novo em qualquer dos 28 arquivos acima seja visto. Ele NÃO valida comentário
+# por comentário: o número dele é a referência. Ao corrigir erros legados,
+# baixe o orçamento `RATCHET_BUDGET` em `.github/workflows/ci.yml`.
 [[tool.mypy.overrides]]
 module = [
     "app.services.web_scraper",  # 36

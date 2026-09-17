@@ -1,0 +1,114 @@
+# --- SHADOW RATCHET de mypy (Task 10 / T3.3, rodada de correção 2) ----------
+# Config do mypy usada APENAS pelo step "Type check ratchet" do CI. É a config
+# do pyproject.toml SEM o bloco `[[tool.mypy.overrides]]` que aplica
+# `ignore_errors = true` aos 28 arquivos do gate PARCIAL
+# (docs/quality/BASELINE.md §6.6) — todo o resto é idêntico.
+#
+# Por que existe: manter os 28 arquivos fora de `ignore_errors` devolve os 105
+# arquivos de `app/` à verificação de tipo, sem corrigir um único erro legado
+# (os legados seguem medidos, não escondidos). O CI só falha se o TOTAL de erros
+# CRESCER além do orçamento declarado no step (`RATCHET_BUDGET`, em
+# .github/workflows/ci.yml); o rc=1 do mypy, por si só, não falha o step.
+#
+# Leitura: `mypy app --config-file pyproject.ratchet.toml`
+#   → `Found 127 errors in 28 files (checked 105 source files)`, rc=1.
+# Esse 127 é o orçamento inicial medido sobre esta config, com o pin
+# mypy==2.3.1. Ao corrigir erros legados, BAIXE o orçamento no ci.yml — nunca
+# suba. Se o número medido aqui mudar sem que o orçamento mude, o step falha:
+# é exatamente para isso que ele existe.
+#
+# NÃO adicione `ignore_errors` a este arquivo — isso anularia o ratchet e o
+# step voltaria a medir 0 erros.
+#
+# (Lido com `--config-file`, que IGNORA o pyproject.toml: por isso esta config é
+# autossuficiente — repete `strict = true`, `ignore_missing_imports` e o bloco
+# de relaxamento dos 56 módulos legados.)
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+ignore_missing_imports = true
+
+# --- Ratchet de strict por módulo (Task 10 / T3.3, Épico 3) -----------------
+# `strict = true` acima continua sendo o default GLOBAL do projeto. Os 56
+# módulos abaixo são o legado ainda não anotado (de 105 arquivos em `app/`):
+# neles, os checks que `strict = true` liga e que NÃO são default do mypy são
+# desligados explicitamente. É isso que elimina o ruído de anotação (241
+# erros de no-untyped-def / type-arg / no-any-return / no-untyped-call) e
+# deixa à vista só a dívida de tipo real. `no_implicit_optional` NÃO é
+# desligado aqui: é default do mypy desde 0.990 e pega bug de verdade
+# (Optional implícito em parâmetro), não ruído de anotação.
+# Remova um módulo desta lista quando ele for anotado — ela só deve ENCOLHER.
+# Os outros 49 arquivos de `app/` não estão aqui: 44 continuam em strict
+# pleno e 5 aparecem só no bloco de `ignore_errors` logo abaixo.
+[[tool.mypy.overrides]]
+module = [
+    "app.services.web_scraper",  # 43
+    "app.web.routes",  # 30
+    "app.services.article_parser",  # 27
+    "app.ai.model_manager",  # 16
+    "app.api.v1.admin.articles",  # 16
+    "app.ai.manager",  # 15
+    "app.main",  # 14
+    "app.services.pdf_service",  # 14
+    "app.core.security",  # 12
+    "app.ml.embedding_classifier",  # 12
+    "app.api.v1.admin.feeds",  # 10
+    "app.ai.local_llm_service",  # 8
+    "app.core.refresh_token",  # 8
+    "app.api.v1.ai",  # 7
+    "app.jobs.scheduler",  # 7
+    "app.web.admin",  # 7
+    "app.api.v1.admin.analytics",  # 6
+    "app.api.v1.articles",  # 6
+    "app.core.rate_limiting",  # 6
+    "app.services.feed_aggregator",  # 6
+    "app.api.v1.opengraph",  # 5
+    "app.api.v1.search",  # 5
+    "app.core.cookie_transport",  # 5
+    "app.core.csrf_middleware",  # 4
+    "app.interfaces.services",  # 4
+    "app.services.classification_service",  # 4
+    "app.api.auth",  # 3
+    "app.api.v1.categories",  # 3
+    "app.config",  # 3
+    "app.core.logging",  # 3
+    "app.core.scheduler_lock",  # 3
+    "app.services.translation_cache_service",  # 3
+    "app.web.auth",  # 3
+    "app.api.v1.admin.stats",  # 2
+    "app.api.v1.analytics",  # 2
+    "app.api.v1.banners",  # 2
+    "app.api.v1.feeds",  # 2
+    "app.core.access_token_cookie_middleware",  # 2
+    "app.core.alerting",  # 2
+    "app.core.auth_cookie_middleware",  # 2
+    "app.core.csrf",  # 2
+    "app.core.log_sanitizer",  # 2
+    "app.core.security_headers",  # 2
+    "app.database",  # 2
+    "app.jobs.observe",  # 2
+    "app.services.search_service",  # 2
+    "app.api.deps",  # 1
+    "app.api.v1.authors",  # 1
+    "app.api.v1.contact",  # 1
+    "app.api.v1.csrf",  # 1
+    "app.interfaces.task_queue",  # 1
+    "app.ml.impact_rating",  # 1
+    "app.models.analytics",  # 1
+    "app.schemas.feed",  # 1
+    "app.services.background_tasks",  # 1
+    "app.web.translation",  # 1
+]
+disallow_any_generics = false
+disallow_subclassing_any = false
+disallow_untyped_calls = false
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = false
+disallow_untyped_decorators = false
+warn_unused_ignores = false
+warn_return_any = false
+no_implicit_reexport = false
+strict_equality = false
+extra_checks = false
