@@ -160,6 +160,10 @@ ignore_missing_imports = true
 # desligado aqui: é default do mypy desde 0.990 e pega bug de verdade
 # (Optional implícito em parâmetro), não ruído de anotação.
 # Remova um módulo desta lista quando ele for anotado — ela só deve ENCOLHER.
+# ATENÇÃO: esta lista é DUPLICADA À MÃO em `pyproject.ratchet.toml` (o bloco de
+# relaxamento do shadow ratchet, que roda esta MESMA config sem `ignore_errors`).
+# Todo patch aqui precisa do MESMO patch lá: se a cópia do ratchet relaxar mais
+# do que este arquivo, ela esconde erro do contador em vez de contá-lo.
 # Os outros 49 arquivos de `app/` não estão aqui: 44 continuam em strict
 # pleno e 5 aparecem só no bloco de `ignore_errors` logo abaixo.
 #

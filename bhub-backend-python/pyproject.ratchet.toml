@@ -39,6 +39,8 @@ ignore_missing_imports = true
 # desligado aqui: é default do mypy desde 0.990 e pega bug de verdade
 # (Optional implícito em parâmetro), não ruído de anotação.
 # Remova um módulo desta lista quando ele for anotado — ela só deve ENCOLHER.
+# ATENÇÃO: esta lista é uma CÓPIA À MÃO da de `pyproject.toml`; todo patch lá
+# (remoção de módulo, mudança de flags) precisa do MESMO patch aqui — e vice-versa.
 # Os outros 49 arquivos de `app/` não estão aqui: 44 continuam em strict
 # pleno e 5 aparecem só no bloco de `ignore_errors` logo abaixo.
 [[tool.mypy.overrides]]
