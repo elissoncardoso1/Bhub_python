@@ -15,4 +15,6 @@ black>=24.0.0
 # Fixado de propósito: o `ruff format --check` é BLOQUEANTE no CI (Task 9 / T3.2),
 # então a versão do formatter precisa ser determinística. Validado com 0.16.7.
 ruff==0.16.7
-mypy>=1.8.0
+# Fixado de propósito, pelo mesmo motivo: `mypy app` é BLOQUEANTE no CI
+# (Task 10 / T3.3). Validado com 2.3.1.
+mypy==2.3.1

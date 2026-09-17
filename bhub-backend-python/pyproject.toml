@@ -99,7 +99,10 @@ dev = [
     "pytest-cov>=6.0.0",
     "httpx>=0.28.0",
     "ruff==0.16.7",
-    "mypy>=1.13.0",
+    # Fixado de propósito: `mypy app` é BLOQUEANTE no CI (Task 10 / T3.3),
+    # então a versão do type checker precisa ser determinística.
+    # Validado com 2.3.1 (mesma versão do requirements-dev.txt).
+    "mypy==2.3.1",
     "pre-commit>=4.0.0",
 ]
 
@@ -146,6 +149,134 @@ known-first-party = ["app"]
 python_version = "3.12"
 strict = true
 ignore_missing_imports = true
+
+# --- Ratchet de strict por módulo (Task 10 / T3.3, Épico 3) -----------------
+# `strict = true` acima continua sendo o default GLOBAL do projeto. Os 56
+# módulos abaixo são o legado ainda não anotado (de 105 arquivos em `app/`):
+# neles, os checks que `strict = true` liga e que NÃO são default do mypy são
+# desligados explicitamente. É isso que elimina o ruído de anotação (241
+# erros de no-untyped-def / type-arg / no-any-return / no-untyped-call) e
+# deixa à vista só a dívida de tipo real. `no_implicit_optional` NÃO é
+# desligado aqui: é default do mypy desde 0.990 e pega bug de verdade
+# (Optional implícito em parâmetro), não ruído de anotação.
+# Remova um módulo desta lista quando ele for anotado — ela só deve ENCOLHER.
+# Os outros 49 arquivos de `app/` não estão aqui: 44 continuam em strict
+# pleno e 5 aparecem só no bloco de `ignore_errors` logo abaixo.
+[[tool.mypy.overrides]]
+module = [
+    "app.services.web_scraper",  # 43
+    "app.web.routes",  # 30
+    "app.services.article_parser",  # 27
+    "app.ai.model_manager",  # 16
+    "app.api.v1.admin.articles",  # 16
+    "app.ai.manager",  # 15
+    "app.main",  # 14
+    "app.services.pdf_service",  # 14
+    "app.core.security",  # 12
+    "app.ml.embedding_classifier",  # 12
+    "app.api.v1.admin.feeds",  # 10
+    "app.ai.local_llm_service",  # 8
+    "app.core.refresh_token",  # 8
+    "app.api.v1.ai",  # 7
+    "app.jobs.scheduler",  # 7
+    "app.web.admin",  # 7
+    "app.api.v1.admin.analytics",  # 6
+    "app.api.v1.articles",  # 6
+    "app.core.rate_limiting",  # 6
+    "app.services.feed_aggregator",  # 6
+    "app.api.v1.opengraph",  # 5
+    "app.api.v1.search",  # 5
+    "app.core.cookie_transport",  # 5
+    "app.core.csrf_middleware",  # 4
+    "app.interfaces.services",  # 4
+    "app.services.classification_service",  # 4
+    "app.api.auth",  # 3
+    "app.api.v1.categories",  # 3
+    "app.config",  # 3
+    "app.core.logging",  # 3
+    "app.core.scheduler_lock",  # 3
+    "app.services.translation_cache_service",  # 3
+    "app.web.auth",  # 3
+    "app.api.v1.admin.stats",  # 2
+    "app.api.v1.analytics",  # 2
+    "app.api.v1.banners",  # 2
+    "app.api.v1.feeds",  # 2
+    "app.core.access_token_cookie_middleware",  # 2
+    "app.core.alerting",  # 2
+    "app.core.auth_cookie_middleware",  # 2
+    "app.core.csrf",  # 2
+    "app.core.log_sanitizer",  # 2
+    "app.core.security_headers",  # 2
+    "app.database",  # 2
+    "app.jobs.observe",  # 2
+    "app.services.search_service",  # 2
+    "app.api.deps",  # 1
+    "app.api.v1.authors",  # 1
+    "app.api.v1.contact",  # 1
+    "app.api.v1.csrf",  # 1
+    "app.interfaces.task_queue",  # 1
+    "app.ml.impact_rating",  # 1
+    "app.models.analytics",  # 1
+    "app.schemas.feed",  # 1
+    "app.services.background_tasks",  # 1
+    "app.web.translation",  # 1
+]
+disallow_any_generics = false
+disallow_subclassing_any = false
+disallow_untyped_calls = false
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = false
+disallow_untyped_decorators = false
+warn_unused_ignores = false
+warn_return_any = false
+no_implicit_reexport = false
+strict_equality = false
+extra_checks = false
+
+# --- Gate PARCIAL: 28 de 105 arquivos ficam FORA da verificação --------------
+# Com o relaxamento acima ativo e SEM este bloco, o mypy ainda acusa 127 erros
+# REAIS (union-attr, assignment, attr-defined, arg-type, ...) em 28 módulos.
+# Medição a strictness default pura (sem nenhum override): 126 erros nos MESMOS
+# 28 arquivos — a diferença de 1 é um diagnóstico de reexport implícito vindo
+# de dependência de terceiro (app/ai/model_manager.py:9), porque o `strict`
+# global também vale para os módulos de terceiros que o mypy analisa.
+# Estes erros NÃO foram corrigidos: T3.3 é task de CI, não de tipagem do
+# codebase. Estão ignorados ARQUIVO A ARQUIVO, com a contagem ao lado, para o
+# ratchet pós-release encolher a lista um a um. Nada de glob largo aqui:
+# qualquer módulo fora desta lista é verificado de verdade.
+[[tool.mypy.overrides]]
+module = [
+    "app.services.web_scraper",  # 36
+    "app.web.routes",  # 18
+    "app.ai.model_manager",  # 11
+    "app.ml.embedding_classifier",  # 8
+    "app.services.opengraph_service",  # 7
+    "app.api.v1.admin.articles",  # 6
+    "app.services.pdf_service",  # 5
+    "app.ai.local_llm_service",  # 4
+    "app.ml",  # 4
+    "app.services.article_parser",  # 4
+    "app.web.admin",  # 3
+    "app.api.v1.ai",  # 2
+    "app.api.v1.search",  # 2
+    "app.core.cookie_transport",  # 2
+    "app.services.analytics_service",  # 2
+    "app.api.v1.admin.feeds",  # 1
+    "app.api.v1.articles",  # 1
+    "app.config",  # 1
+    "app.core.ip_anonymization",  # 1
+    "app.core.log_sanitizer",  # 1
+    "app.core.rate_limiting",  # 1
+    "app.core.refresh_token",  # 1
+    "app.core.scheduler_lock",  # 1
+    "app.jobs.observe",  # 1
+    "app.jobs.tasks",  # 1
+    "app.main",  # 1
+    "app.services.feed_aggregator",  # 1
+    "app.services.translation_cache_service",  # 1
+]
+ignore_errors = true
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

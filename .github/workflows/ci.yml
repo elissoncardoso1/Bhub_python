@@ -37,5 +37,14 @@ jobs:
       - name: Format check (ruff format --check)
         run: ruff format --check .
 
+      # Type check BLOQUEANTE (Épico 3 / T3.3). `strict = true` é o default
+      # global em pyproject.toml; os módulos legados que ainda falham estão
+      # enumerados em [[tool.mypy.overrides]] (strict relaxado em 56, e
+      # ignore_errors em 28 arquivos, nomeados um a um com sua contagem).
+      # O gate é PARCIAL de propósito: ver docs/quality/BASELINE.md §6.
+      # Não use `continue-on-error` aqui.
+      - name: Type check (mypy app)
+        run: mypy app
+
       - name: Run tests
         run: pytest tests/ -v
