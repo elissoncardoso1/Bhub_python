@@ -50,14 +50,15 @@ jobs:
       - name: Type check (mypy app)
         run: mypy app
 
-      # SHADOW RATCHET (rodada de correção 2; endurecido na rodada de correção 3):
+      # SHADOW RATCHET (rodada de correção 2; endurecido nas rodadas 3 e 4):
       # roda a MESMA config sem o bloco de `ignore_errors` (pyproject.ratchet.toml)
       # e devolve os 105 arquivos à verificação — erro novo em QUALQUER arquivo,
       # inclusive nos 28 fora do gate principal, passa a falhar. Não corrige nenhum
       # erro legado: o legado medido É o orçamento abaixo.
       # O mypy SAI COM rc=1 nesta config (é o esperado: há 127 erros), então o rc
       # não decide nada por si: o que decide é o resumo extraído. Por isso o step é
-      # FAIL CLOSED — falha (exit 1) em entrada inválida, resumo inesperado ou
+      # FAIL CLOSED — falha (exit 1) em entrada inválida (forma OU magnitude),
+      # resumo inesperado, `ignore_errors` reativado na config do ratchet ou
       # redução silenciosa de escopo, em vez de tratar erro de shell como aprovação.
       # A lógica é coberta por bhub-backend-python/tests/ci/ratchet_step_harness.sh
       # (executa ESTE bloco verbatim, com stub de mypy).
@@ -76,26 +77,61 @@ jobs:
           # step); nunca suba sem justificar no mesmo PR o aumento da dívida.
           RATCHET_BUDGET=127
           EXPECTED_SOURCE_FILES=105
+          # Caminho da config do ratchet numa variável (fonte única: é ELA que o mypy
+          # lê e é ELA que o guard de `ignore_errors` abaixo inspeciona). O harness
+          # (tests/ci/ratchet_step_harness.sh) substitui esta linha para apontar para
+          # uma cópia degradada em /tmp, sem tocar a árvore.
+          RATCHET_CONFIG=pyproject.ratchet.toml
           rc=0
-          mypy app --config-file pyproject.ratchet.toml > /tmp/mypy-ratchet.txt 2>&1 || rc=$?
+          mypy app --config-file "$RATCHET_CONFIG" > /tmp/mypy-ratchet.txt 2>&1 || rc=$?
           cat /tmp/mypy-ratchet.txt
           if [ "$rc" -gt 1 ]; then
             echo "::error::mypy ratchet saiu com rc=$rc (esperado 0 ou 1) — falha de execução, não divergência de contagem."
             exit 1
           fi
-          # FAIL CLOSED #1 — validar os OPERANDOS antes de qualquer comparação
-          # (rodada de correção 3 / C1). `[ "$total" -gt "127," ]` falha com
-          # "integer expression expected"; dentro de `if` sob `bash -e` isso é
-          # simplesmente condição falsa, o step imprime OK e sai 0 — isto é, 999
-          # erros passariam por causa de uma vírgula digitada na linha que este
-          # step manda humanos editarem. Mesma classe de bug para orçamento
-          # vazio/não numérico e para o próprio EXPECTED_SOURCE_FILES.
-          if ! [[ "$RATCHET_BUDGET" =~ ^[0-9]+$ ]]; then
-            echo "::error::RATCHET_BUDGET inválido: '$RATCHET_BUDGET' — esperado inteiro não negativo (typo clássico: '127,'). O gate falha fechado: entrada inválida não aprova nada."
+          # FAIL CLOSED #0 — a config do ratchet não pode reativar `ignore_errors`
+          # (rodada de correção 4 / Important #2). `ignore_errors = true` NÃO reduz
+          # `(checked N source files)` — o mypy segue lendo os 105 arquivos —, então o
+          # gate de ESCOPO abaixo PASSA e o total cai para 0: o step sairia 0 com o
+          # shadow ratchet anulado (medido: `Success: no issues found in 105 source
+          # files`, rc=0, com o bloco aplicado aos 28 módulos). Quem protege contra
+          # isso é ESTA checagem, e não a asserção de escopo.
+          # A busca ignora COMENTÁRIOS (o `sed` corta do `#` até o fim da linha) e
+          # reconhece a chave em qualquer forma de TOML — `ignore_errors = true` em
+          # linha própria, indentado, ou dentro de tabela inline
+          # (`{ module = [...], ignore_errors = true }`): o que vale é a CHAVE ativa,
+          # não a menção em comentário. O prefixo `(^|[[:space:],{])` exige que o
+          # token comece ali, para não casar nome de módulo/valor que contenha o
+          # texto (`"app.x.ignore_errors"`).
+          if [ ! -f "$RATCHET_CONFIG" ]; then
+            echo "::error::config do ratchet não encontrada em '$RATCHET_CONFIG' — sem config não há verificação (e o guard de ignore_errors não teria o que inspecionar): o gate falha fechado."
             exit 1
           fi
-          if ! [[ "$EXPECTED_SOURCE_FILES" =~ ^[0-9]+$ ]]; then
-            echo "::error::EXPECTED_SOURCE_FILES inválido: '$EXPECTED_SOURCE_FILES' — esperado inteiro não negativo. O gate falha fechado."
+          if sed 's/#.*//' "$RATCHET_CONFIG" | grep -qE '(^|[[:space:],{])ignore_errors[[:space:]]*='; then
+            echo "::error::$RATCHET_CONFIG tem a chave ATIVA 'ignore_errors': isso ANULA o ratchet. O mypy continua checando os 105 arquivos (o gate de escopo passa), mas para de reportar os 127 erros do legado — o total vira 0 e o step sai verde sem medir nada. Remova a chave da config do ratchet (mencioná-la em comentário é permitido)."
+            exit 1
+          fi
+          # FAIL CLOSED #1 — validar os OPERANDOS antes de qualquer comparação
+          # (rodada de correção 3 / C1, endurecida na rodada de correção 4 /
+          # Important #1). Duas classes de entrada inválida, com o MESMO efeito:
+          # `[ "$total" -gt "$RATCHET_BUDGET" ]` sai com erro e, dentro de `if` sob
+          # `bash -e`, isso é simplesmente condição falsa — o step imprime OK e sai 0.
+          #   (a) FORMA: `127,`, vazio, `abc` → "integer expression expected";
+          #   (b) MAGNITUDE: `^[0-9]+$` aceitava inteiro de tamanho arbitrário e o
+          #       `test` estoura o int64 (limite 2^63). Medido: budget
+          #       99999999999999999999 (ou 9223372036854775808) + `Found 999 errors
+          #       in 28 files (checked 105 source files)` → rc=0 imprimindo
+          #       `OK: linha do legado intacta (999 <= 99999…)`. Por isso o teto de 9
+          #       dígitos (`{1,9}`, até 999.999.999): folgado para orçamento e escopo,
+          #       imune ao overflow. Vale para os dois operandos do step E para
+          #       `total`/`checked` extraídos do mypy, que passam pelas MESMAS
+          #       comparações.
+          if ! [[ "$RATCHET_BUDGET" =~ ^[0-9]{1,9}$ ]]; then
+            echo "::error::RATCHET_BUDGET inválido: '$RATCHET_BUDGET' — esperado inteiro não negativo de até 9 dígitos (typo clássico: '127,'; inteiro acima de int64 estouraria a comparação e viraria condição falsa). O gate falha fechado: entrada inválida não aprova nada."
+            exit 1
+          fi
+          if ! [[ "$EXPECTED_SOURCE_FILES" =~ ^[0-9]{1,9}$ ]]; then
+            echo "::error::EXPECTED_SOURCE_FILES inválido: '$EXPECTED_SOURCE_FILES' — esperado inteiro não negativo de até 9 dígitos (a comparação de escopo estouraria o int64). O gate falha fechado."
             exit 1
           fi
           # FAIL CLOSED #2 — parsing do resumo (rodada de correção 3 / C3). O resumo
@@ -120,23 +156,28 @@ jobs:
               ;;
           esac
           # Sem resumo reconhecido, ou com número não numérico, o step FALHA: parsing
-          # duvidoso não pode passar como aprovação.
-          if [ -z "$summary" ] || [ -z "$total" ] || ! [[ "$total" =~ ^[0-9]+$ ]]; then
+          # duvidoso não pode passar como aprovação. O teto de dígitos é o mesmo dos
+          # operandos declarados (ver FAIL CLOSED #1): um número de 20 dígitos vindo do
+          # mypy estouraria a comparação lá adiante.
+          if [ -z "$summary" ] || [ -z "$total" ] || ! [[ "$total" =~ ^[0-9]{1,9}$ ]]; then
             echo "::error::não foi possível extrair de forma confiável o total de erros do resumo do ratchet (última linha de resultado: '$summary') — falha de parsing NÃO pode passar como aprovação."
             exit 1
           fi
-          if [ -z "$checked" ] || ! [[ "$checked" =~ ^[0-9]+$ ]]; then
+          if [ -z "$checked" ] || ! [[ "$checked" =~ ^[0-9]{1,9}$ ]]; then
             echo "::error::não foi possível extrair de forma confiável a contagem de source files checados ('(checked N source files)') do resumo do ratchet (última linha de resultado: '$summary') — falha de parsing NÃO pode passar como aprovação."
             exit 1
           fi
           echo "Shadow ratchet: $total erro(s) medido(s); orçamento: $RATCHET_BUDGET; escopo checado: $checked source file(s); escopo esperado: $EXPECTED_SOURCE_FILES."
           # FAIL CLOSED #3 — o escopo tem de continuar sendo a árvore inteira
-          # (rodada de correção 3 / C2). Uma config degradada por acidente
-          # (`exclude`/`files` mais estreitos, ou alguém reintroduzindo
-          # `ignore_errors`) reduz o escopo e passaria verde num gate que só olhasse
-          # a contagem de erros — ex.: "Found 0 errors in 3 source files".
+          # (rodada de correção 3 / C2, escopo do claim corrigido na rodada 4).
+          # Uma config degradada por acidente (`exclude`/`files` mais estreitos, ou
+          # arquivo novo/removido em app/) reduz o escopo e passaria verde num gate
+          # que só olhasse a contagem de erros — ex.: "Found 0 errors in 3 source
+          # files". ATENÇÃO ao limite desta asserção: `ignore_errors` NÃO muda
+          # `checked` (segue 105) e por isso NÃO é pego aqui — quem o pega é o
+          # FAIL CLOSED #0 (checagem dedicada da config), não esta comparação.
           if [ "$checked" -ne "$EXPECTED_SOURCE_FILES" ]; then
-            echo "::error::escopo do ratchet divergente: mypy checou $checked source file(s), esperado $EXPECTED_SOURCE_FILES. Config de mypy alterada (exclude/files/ignore_errors) ou arquivo novo/removido em app/ — corrija a config e atualize EXPECTED_SOURCE_FILES no mesmo PR, com o motivo."
+            echo "::error::escopo do ratchet divergente: mypy checou $checked source file(s), esperado $EXPECTED_SOURCE_FILES. Config de mypy alterada (exclude/files, arquivo novo/removido em app/) — corrija a config e atualize EXPECTED_SOURCE_FILES no mesmo PR, com o motivo. (Esta asserção NÃO detecta ignore_errors: para esse caso o erro vem do FAIL CLOSED #0.)"
             exit 1
           fi
           if [ "$total" -gt "$RATCHET_BUDGET" ]; then
@@ -153,7 +194,8 @@ jobs:
       # `--cov-precision=2`: o coverage decide por
       # `round(total, precision) < fail_under` (coverage/results.py:503), então
       # 3752 cobertos (59,1985% → 59,20) passa e 3751 (59,1827% → 59,18) falha.
-      # Piso efetivo: >= 3752 statements cobertos (= 59,19%), isto é,
+      # Piso efetivo: >= 3752 statements cobertos (≈ 59,19%; o valor cru é
+      # 59,1985% — por isso "≈" e não "="), isto é,
       # "nenhum statement coberto no baseline pode ser perdido" — contra os
       # 58,50% (3708 statements) que o antigo `--cov-fail-under=59` com a
       # precisão default 0 permitia: 44 statements de folga.
