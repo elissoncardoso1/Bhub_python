@@ -12,5 +12,7 @@ pytest-mock>=3.12.0
 
 # Development Tools
 black>=24.0.0
-ruff>=0.1.0
+# Fixado de propósito: o `ruff format --check` é BLOQUEANTE no CI (Task 9 / T3.2),
+# então a versão do formatter precisa ser determinística. Validado com 0.16.7.
+ruff==0.16.7
 mypy>=1.8.0

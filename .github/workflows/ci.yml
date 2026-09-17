@@ -29,11 +29,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
 
-      # Ruff é informativo por ora: existe débito de lint pré-existente.
-      # Remova `continue-on-error` quando o débito for zerado.
-      - name: Lint (ruff)
-        run: ruff check app/
-        continue-on-error: true
+      # Lint e formatter são BLOQUEANTES: a dívida de Ruff foi zerada na Task 9
+      # (Épico 3 / T3.2). Não reintroduza `continue-on-error` aqui.
+      - name: Lint (ruff check)
+        run: ruff check app tests
+
+      - name: Format check (ruff format --check)
+        run: ruff format --check .
 
       - name: Run tests
         run: pytest tests/ -v
