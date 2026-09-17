@@ -61,7 +61,8 @@ jobs:
       # resumo inesperado, `ignore_errors` reativado na config do ratchet ou
       # redução silenciosa de escopo, em vez de tratar erro de shell como aprovação.
       # A lógica é coberta por bhub-backend-python/tests/ci/ratchet_step_harness.sh
-      # (executa ESTE bloco verbatim, com stub de mypy).
+      # (executa ESTE bloco verbatim, com stub de mypy) — e o step
+      # "Run ratchet step harness" logo abaixo executa o harness no CI.
       - name: Type check ratchet (mypy shadow, budget 127)
         run: |
           # FONTE ÚNICA DE VERDADE desta dupla (orçamento, escopo). Medição com
@@ -185,6 +186,21 @@ jobs:
             exit 1
           fi
           echo "OK: linha do legado intacta ($total <= $RATCHET_BUDGET) e escopo intacto ($checked source files)."
+
+      # AUTOTESTE DO GATE ACIMA (Low #3 da rodada de correção 4). O step do
+      # ratchet decide por TEXTO extraído, e as rodadas 3 e 4 fecharam 4 classes de
+      # falso verde (operando inválido de forma e de magnitude, escopo degradado,
+      # parsing, `ignore_errors` reativado) — todas com cenário congelado em
+      # bhub-backend-python/tests/ci/ratchet_step_harness.sh. Um artefato de
+      # verificação que ninguém executa apodrece: este step roda o harness no CI
+      # para que uma edição futura no step acima que reabra um falso verde fique
+      # VERMELHA aqui, em vez de passar só porque ninguém rodou o harness.
+      # Custo: <1 s, sem rede, sem mypy real (o harness usa stub) e sem tocar a
+      # árvore. Os 2 cenários de cobertura real da suíte ficam de fora de propósito
+      # (opt-in por RATCHET_HARNESS_COVERAGE=1): neste runner o venv é o global, e o
+      # step "Coverage floor" logo abaixo já cobre a suíte real.
+      - name: Run ratchet step harness
+        run: bash tests/ci/ratchet_step_harness.sh
 
       - name: Run tests
         run: pytest tests/ -v
