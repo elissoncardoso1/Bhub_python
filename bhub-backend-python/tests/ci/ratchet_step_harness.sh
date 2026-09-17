@@ -270,6 +270,71 @@ KNOWNFALSE_CFG="$TMP/other.ratchet.toml"
 cp "$BACKEND/pyproject.ratchet.toml" "$KNOWNFALSE_CFG"
 printf '\n# um modulo cujo nome apenas CONTEM o texto: app.ignore_errors_shim\nignore_errors_note = "citado em comentario acima; chave real ausente"\n' >> "$KNOWNFALSE_CFG"
 run_step "26 controle: nome/valor com o texto, sem a chave" found_127.txt    1 - PASS "RATCHET_CONFIG=$KNOWNFALSE_CFG"
+# --- rodada de correção 5 ---
+# 27-29: a chave CITADA. `"ignore_errors"` (aspas duplas) e `'ignore_errors'` (aspas
+# simples) são o MESMO nome em TOML, e o mypy as HONRA: medido com o mypy real do venv
+# (2.3.1), o bloco citado aplicado aos 5 módulos de maior contagem derruba o total de
+# 127 para 60 (36+18+11+1+1 = 67 do §6.3 da BASELINE) mantendo `(checked 105 source
+# files)` intacto. O guard da rodada 4 — `(^|[[:space:],{])ignore_errors[[:space:]]*=`,
+# com o token precedido de aspas — NÃO casava a linha e o step saía VERDE (rc=0) com o
+# ratchet anulado (rodada de correção 5 / Important #1). A tabela inline com a chave
+# citada era cega pelo mesmo motivo.
+DEGRADED_DQ_CFG="$TMP/degraded-doublequote.ratchet.toml"
+cp "$BACKEND/pyproject.ratchet.toml" "$DEGRADED_DQ_CFG"
+cat >> "$DEGRADED_DQ_CFG" <<'DQ'
+
+# --- chave ATIVA com aspas duplas (injetada pelo harness) -------------------
+[[tool.mypy.overrides]]
+module = [
+    "app.web.routes",
+]
+"ignore_errors" = true
+DQ
+run_step "27 ignore_errors com aspas duplas (ativo)"       success_105.txt   0 - FAIL "RATCHET_CONFIG=$DEGRADED_DQ_CFG"
+
+DEGRADED_SQ_CFG="$TMP/degraded-singlequote.ratchet.toml"
+cp "$BACKEND/pyproject.ratchet.toml" "$DEGRADED_SQ_CFG"
+cat >> "$DEGRADED_SQ_CFG" <<'SQ'
+
+# --- chave ATIVA com aspas simples (injetada pelo harness) ------------------
+[[tool.mypy.overrides]]
+module = [
+    'app.web.routes',
+]
+'ignore_errors' = true
+SQ
+run_step "28 ignore_errors com aspas simples (ativo)"      success_105.txt   0 - FAIL "RATCHET_CONFIG=$DEGRADED_SQ_CFG"
+
+# 29: o mesmo nome, citado, dentro de TOML de tabela inline (uma linha só).
+DEGRADED_INLINE_Q_CFG="$TMP/degraded-inline-quoted.ratchet.toml"
+cp "$BACKEND/pyproject.ratchet.toml" "$DEGRADED_INLINE_Q_CFG"
+printf '\n[tool.mypy]\noverrides = [{ module = ["app.web.routes"], "ignore_errors" = true }]\n' >> "$DEGRADED_INLINE_Q_CFG"
+run_step "29 chave citada em tabela inline (ativo)"        success_105.txt   0 - FAIL "RATCHET_CONFIG=$DEGRADED_INLINE_Q_CFG"
+
+# 30-31: CONTROLE DE VALOR (rodada de correção 5 / Important #2). `ignore_errors = false`
+# é o DEFAULT do mypy, não uma relaxação: medido com o mypy real do venv, a config com a
+# chave em `false` mede EXATAMENTE os mesmos 127 erros / 28 arquivos / checked 105 do
+# arquivo sem ela. O guard da rodada 4 rejeitava esse estado legítimo com uma mensagem
+# FALSA ("tem a chave ATIVA … o total vira 0"); o guard novo exige o valor `true`.
+# 30 = chave bare em `false`; 31 = chave CITADA em `false` (as duas correções juntas:
+# citar a chave e exigir o valor são checagens independentes).
+DEGRADED_FALSE_CFG="$TMP/degraded-false.ratchet.toml"
+cp "$BACKEND/pyproject.ratchet.toml" "$DEGRADED_FALSE_CFG"
+cat >> "$DEGRADED_FALSE_CFG" <<'FALSE'
+
+# --- chave INERTE (valor default false; injetada pelo harness) --------------
+[[tool.mypy.overrides]]
+module = [
+    "app.web.routes",
+]
+ignore_errors = false
+FALSE
+run_step "30 ignore_errors = false (inerte, nao rejeitar)" found_127.txt     1 - PASS "RATCHET_CONFIG=$DEGRADED_FALSE_CFG"
+
+DEGRADED_FALSE_Q_CFG="$TMP/degraded-false-quoted.ratchet.toml"
+cp "$BACKEND/pyproject.ratchet.toml" "$DEGRADED_FALSE_Q_CFG"
+printf '\n[tool.mypy]\noverrides = [{ module = ["app.web.routes"], "ignore_errors" = false }]\n' >> "$DEGRADED_FALSE_Q_CFG"
+run_step "31 chave citada = false (inerte, nao rejeitar)"  found_127.txt     1 - PASS "RATCHET_CONFIG=$DEGRADED_FALSE_Q_CFG"
 
 # ---------------------------------------------------------------------------
 # 4. Cenários de cobertura (opt-in: rodam a suíte REAL).
