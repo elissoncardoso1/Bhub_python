@@ -48,3 +48,16 @@ jobs:
 
       - name: Run tests
         run: pytest tests/ -v
+
+      # Piso de cobertura BLOQUEANTE (Épico 3 / T3.4). Baseline medido:
+      # 3752/6338 statements = 59,2%, logo o piso é 59%. Suba o número
+      # conforme o ratchet avançar — nunca desça.
+      # A suíte roda de novo aqui (~10 s) para que a regressão de cobertura
+      # apareça como step próprio no log do CI, e não escondida no step de testes.
+      - name: Coverage floor (fail under 59%)
+        run: |
+          pytest tests/ \
+            --cov=app \
+            --cov-report=term-missing \
+            --cov-report=xml \
+            --cov-fail-under=59
