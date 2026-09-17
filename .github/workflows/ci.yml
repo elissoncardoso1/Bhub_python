@@ -50,20 +50,32 @@ jobs:
       - name: Type check (mypy app)
         run: mypy app
 
-      # SHADOW RATCHET (rodada de correção 2): roda a MESMA config sem o bloco
-      # de `ignore_errors` (pyproject.ratchet.toml) e devolve os 105 arquivos à
-      # verificação — erro novo em QUALQUER arquivo, inclusive nos 28 fora do
-      # gate principal, passa a falhar. Não corrige nenhum erro legado: o
-      # legado medido É o orçamento abaixo.
-      # O mypy SAI COM rc=1 nesta config (é o esperado: há 127 erros), então o
-      # rc não decide nada por si: o step falha apenas se o total MEDIDO
-      # ultrapassar o orçamento, e falha alto se não conseguir extrair o total.
+      # SHADOW RATCHET (rodada de correção 2; endurecido na rodada de correção 3):
+      # roda a MESMA config sem o bloco de `ignore_errors` (pyproject.ratchet.toml)
+      # e devolve os 105 arquivos à verificação — erro novo em QUALQUER arquivo,
+      # inclusive nos 28 fora do gate principal, passa a falhar. Não corrige nenhum
+      # erro legado: o legado medido É o orçamento abaixo.
+      # O mypy SAI COM rc=1 nesta config (é o esperado: há 127 erros), então o rc
+      # não decide nada por si: o que decide é o resumo extraído. Por isso o step é
+      # FAIL CLOSED — falha (exit 1) em entrada inválida, resumo inesperado ou
+      # redução silenciosa de escopo, em vez de tratar erro de shell como aprovação.
+      # A lógica é coberta por bhub-backend-python/tests/ci/ratchet_step_harness.sh
+      # (executa ESTE bloco verbatim, com stub de mypy).
       - name: Type check ratchet (mypy shadow, budget 127)
         run: |
-          # Orçamento do legado (BASELINE.md §6.8). Medido com mypy==2.3.1:
-          # 127 erros em 28 arquivos. BAIXE este número ao corrigir erros
-          # legados — nunca suba sem justificar no mesmo PR o aumento da dívida.
+          # FONTE ÚNICA DE VERDADE desta dupla (orçamento, escopo). Medição com
+          # mypy==2.3.1, sobre app/:
+          #   $ mypy app --config-file pyproject.ratchet.toml    # rc=1
+          #   Found 127 errors in 28 files (checked 105 source files)
+          #   $ mypy app                                          # rc=0
+          #   Success: no issues found in 105 source files
+          # 105 é o TOTAL de arquivos que as duas configs checam. NÃO confunda com
+          # o 56 do bloco de relaxamento de strict: 56 é a quantidade de MÓDULOS em
+          # [[tool.mypy.overrides]], não o escopo checado.
+          # BAIXE o orçamento ao corrigir erros legados (e atualize o nome deste
+          # step); nunca suba sem justificar no mesmo PR o aumento da dívida.
           RATCHET_BUDGET=127
+          EXPECTED_SOURCE_FILES=105
           rc=0
           mypy app --config-file pyproject.ratchet.toml > /tmp/mypy-ratchet.txt 2>&1 || rc=$?
           cat /tmp/mypy-ratchet.txt
@@ -71,21 +83,57 @@ jobs:
             echo "::error::mypy ratchet saiu com rc=$rc (esperado 0 ou 1) — falha de execução, não divergência de contagem."
             exit 1
           fi
+          # FAIL CLOSED #1 — validar os OPERANDOS antes de qualquer comparação
+          # (rodada de correção 3 / C1). `[ "$total" -gt "127," ]` falha com
+          # "integer expression expected"; dentro de `if` sob `bash -e` isso é
+          # simplesmente condição falsa, o step imprime OK e sai 0 — isto é, 999
+          # erros passariam por causa de uma vírgula digitada na linha que este
+          # step manda humanos editarem. Mesma classe de bug para orçamento
+          # vazio/não numérico e para o próprio EXPECTED_SOURCE_FILES.
+          if ! [[ "$RATCHET_BUDGET" =~ ^[0-9]+$ ]]; then
+            echo "::error::RATCHET_BUDGET inválido: '$RATCHET_BUDGET' — esperado inteiro não negativo (typo clássico: '127,'). O gate falha fechado: entrada inválida não aprova nada."
+            exit 1
+          fi
+          if ! [[ "$EXPECTED_SOURCE_FILES" =~ ^[0-9]+$ ]]; then
+            echo "::error::EXPECTED_SOURCE_FILES inválido: '$EXPECTED_SOURCE_FILES' — esperado inteiro não negativo. O gate falha fechado."
+            exit 1
+          fi
           total=$(sed -nE 's/^Found ([0-9]+) errors? in .*/\1/p' /tmp/mypy-ratchet.txt | head -n 1 || true)
+          checked=$(sed -nE 's/^Found [0-9]+ errors? in .*\(checked ([0-9]+) source files\).*/\1/p' /tmp/mypy-ratchet.txt | head -n 1 || true)
           if [ -z "$total" ]; then
             if grep -q '^Success: no issues found' /tmp/mypy-ratchet.txt; then
               total=0
+              checked=$(sed -nE 's/^Success: no issues found in ([0-9]+) source files.*/\1/p' /tmp/mypy-ratchet.txt | head -n 1 || true)
             else
               echo "::error::não foi possível extrair o total de erros do ratchet — falha de parsing NÃO pode passar como aprovação."
               exit 1
             fi
           fi
-          echo "Shadow ratchet: $total erro(s) medido(s); orçamento: $RATCHET_BUDGET."
+          # FAIL CLOSED #2 — a contagem de arquivos checados precisa existir e ser
+          # numérica (rodada de correção 3 / C2).
+          if [ -z "$checked" ]; then
+            echo "::error::não foi possível extrair a contagem de source files checados ('(checked N source files)') do resumo do ratchet — falha de parsing NÃO pode passar como aprovação."
+            exit 1
+          fi
+          if ! [[ "$checked" =~ ^[0-9]+$ ]]; then
+            echo "::error::contagem de source files não numérica no resumo do ratchet: '$checked'."
+            exit 1
+          fi
+          echo "Shadow ratchet: $total erro(s) medido(s); orçamento: $RATCHET_BUDGET; escopo checado: $checked source file(s); escopo esperado: $EXPECTED_SOURCE_FILES."
+          # FAIL CLOSED #3 — o escopo tem de continuar sendo a árvore inteira
+          # (rodada de correção 3 / C2). Uma config degradada por acidente
+          # (`exclude`/`files` mais estreitos, ou alguém reintroduzindo
+          # `ignore_errors`) reduz o escopo e passaria verde num gate que só olhasse
+          # a contagem de erros — ex.: "Found 0 errors in 3 source files".
+          if [ "$checked" -ne "$EXPECTED_SOURCE_FILES" ]; then
+            echo "::error::escopo do ratchet divergente: mypy checou $checked source file(s), esperado $EXPECTED_SOURCE_FILES. Config de mypy alterada (exclude/files/ignore_errors) ou arquivo novo/removido em app/ — corrija a config e atualize EXPECTED_SOURCE_FILES no mesmo PR, com o motivo."
+            exit 1
+          fi
           if [ "$total" -gt "$RATCHET_BUDGET" ]; then
             echo "::error::regressão de tipos: $total > $RATCHET_BUDGET — corrija o erro novo (qualquer arquivo, inclusive os fora do gate principal) ou suba o orçamento no mesmo PR, com a dívida nova registrada em docs/quality/BASELINE.md §6.3."
             exit 1
           fi
-          echo "OK: linha do legado intacta ($total <= $RATCHET_BUDGET)."
+          echo "OK: linha do legado intacta ($total <= $RATCHET_BUDGET) e escopo intacto ($checked source files)."
 
       - name: Run tests
         run: pytest tests/ -v
