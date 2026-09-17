@@ -29,18 +29,23 @@
 #      workflow;
 #   4. compara o rc do step com o esperado (PASS = rc 0; FAIL = rc != 0).
 #
-# A ÚNICA mutação feita no bloco extraído é a substituição da linha de
-# atribuição do orçamento (`RATCHET_BUDGET=<n>`), usada pelos cenários de
-# orçamento inválido. Nada mais é alterado — e o harness falha alto se a
-# substituição não pegar.
+# As ÚNICAS mutações feitas no bloco extraído são as LINHAS DE DECLARAÇÃO que o
+# próprio step apresenta como entrada humana — `RATCHET_BUDGET=`,
+# `EXPECTED_SOURCE_FILES=` e `RATCHET_CONFIG=` (as três são fonte única no ci.yml,
+# e é para poder substituí-las que existem como linha própria). NENHUMA linha de
+# lógica é alterada, e um cenário que peça uma substituição que não pegue (linha
+# renomeada ou removida no ci.yml) faz o harness abortar com rc=2.
 #
 # Cenários de cobertura (10 e 11 do brief da rodada de correção 3) executam a
 # suíte REAL (~10 s cada) e por isso ficam atrás de opt-in:
 #   RATCHET_HARNESS_COVERAGE=1 bash bhub-backend-python/tests/ci/ratchet_step_harness.sh
 #
 # Uso:  bash bhub-backend-python/tests/ci/ratchet_step_harness.sh
-# Saída: 0 se TODOS os cenários baterem; 1 se algum divergir; 2 se o harness
-#        não conseguir fazer o próprio trabalho (extração, stub, etc.).
+# Saída: 0 se TODOS os cenários EXECUTADOS baterem; 1 se algum divergir; 2 se o
+#        harness não conseguir fazer o próprio trabalho (extração, stub, etc.).
+#        O resumo final separa "disponíveis" de "executados": uma corrida sem
+#        `RATCHET_HARNESS_COVERAGE=1` NÃO cobre o step de cobertura, e isso
+#        aparece no resumo, não só numa linha fácil de passar batido.
 # ---------------------------------------------------------------------------
 
 set -uo pipefail
@@ -86,6 +91,11 @@ else
   # (cenários 7b e 13 ficam vermelhos justamente por falta da asserção).
   echo "AVISO: o step NÃO declara EXPECTED_SOURCE_FILES — o gate de escopo do ratchet (C2) está ausente."
 fi
+if grep -q '^RATCHET_CONFIG=' "$TMP/step.raw.sh"; then
+  echo "info: o step declara RATCHET_CONFIG (guard de ignore_errors presente)."
+else
+  echo "AVISO: o step NÃO declara RATCHET_CONFIG — o guard de ignore_errors (Important #2 da rodada 4) está ausente; o cenário 23 deve ficar vermelho."
+fi
 
 # ---------------------------------------------------------------------------
 # 2. Stub de `mypy`: imprime a fixture e sai com o rc combinado.
@@ -129,27 +139,49 @@ fixture multi_last_127.txt "Found 200 errors in 28 files (checked 105 source fil
                            "Found 127 errors in 28 files (checked 105 source files)"
 fixture empty.txt
 fixture only_notes.txt     "app/ai/manager.py:35: note: By default the bodies of untyped functions are not checked  [annotation-unchecked]"
+# Cenário 17: formato REAL de resumo com erro bloqueante do mypy (`mypy/util.py`:
+# o sufixo `(checked N source files)` é SUBSTITUÍDO por `(errors prevented further
+# checking)`). Medido com o mypy 2.3.1 do venv:
+#   $ mypy <arquivo-com-syntax-error> --no-incremental
+#   app/bad.py:1: error: Invalid syntax  [syntax]
+#   Found 1 error in 1 file (errors prevented further checking)
+# Hoje cai no fail-closed ("não consegui extrair a contagem"); o cenário congela
+# esse comportamento para o dia em que alguém "consertar" o parser.
+fixture blocking_summary.txt "app/bad.py:1: error: Invalid syntax  [syntax]" \
+                             "Found 1 error in 1 file (errors prevented further checking)"
 
 # ---------------------------------------------------------------------------
 # 3. Executor dos cenários do ratchet.
 # ---------------------------------------------------------------------------
 PASSED=0
 FAILED=0
+SKIPPED=0
 DIVERGENCES=()
 
-run_step() {  # $1 = nome, $2 = fixture, $3 = rc do stub, $4 = orçamento ("-" = verbatim), $5 = esperado
-  local name="$1" fx="$2" stub_rc="$3" budget="$4" expected="$5"
+mutate_line() {  # $1 = VAR, $2 = valor, $3 = nome do cenário (roda sobre $TMP/step.sh)
+  # Delimitador `|` no sed: os valores usados incluem CAMINHO (`RATCHET_CONFIG=`),
+  # que contém `/`. Nenhum valor de cenário contém `|` nem `&`.
+  local var="$1" val="$2" name="$3"
+  sed "s|^$var=.*\$|$var=$val|" "$TMP/step.sh" > "$TMP/step.mut.sh"
+  if ! grep -qxF "$var=$val" "$TMP/step.mut.sh"; then
+    harness_fail "cenário '$name' pediu $var='$val' e o bloco executado não tem essa declaração literal — a substituição não pegou (linha renomeada ou removida no ci.yml?)"
+  fi
+  mv "$TMP/step.mut.sh" "$TMP/step.sh"
+}
+
+run_step() {  # $1 = nome, $2 = fixture, $3 = rc do stub, $4 = orçamento ("-" = verbatim), $5 = esperado, $6 = overrides extras ("VAR=valor VAR2=valor2")
+  local name="$1" fx="$2" stub_rc="$3" budget="$4" expected="$5" extra="${6:-}"
   local out rc got last
 
   cp "$TMP/fixtures/$fx" "$TMP/fixture.txt"
-  if [ "$budget" = "-" ]; then
-    cp "$TMP/step.raw.sh" "$TMP/step.sh"
-  else
-    sed "s/^RATCHET_BUDGET=[0-9]*\$/RATCHET_BUDGET=$budget/" "$TMP/step.raw.sh" > "$TMP/step.sh"
-    if cmp -s "$TMP/step.sh" "$TMP/step.raw.sh"; then
-      harness_fail "cenário '$name' pediu orçamento '$budget' e a substituição da linha RATCHET_BUDGET não pegou"
-    fi
+  cp "$TMP/step.raw.sh" "$TMP/step.sh"
+  if [ "$budget" != "-" ]; then
+    mutate_line RATCHET_BUDGET "$budget" "$name"
   fi
+  local ovr
+  for ovr in $extra; do
+    mutate_line "${ovr%%=*}" "${ovr#*=}" "$name"
+  done
 
   out=$( cd "$BACKEND" && PATH="$TMP/bin:$PATH" MYPY_STUB_DIR="$TMP" MYPY_STUB_RC="$stub_rc" \
          bash -e "$TMP/step.sh" 2>&1 )
@@ -188,6 +220,56 @@ run_step "13 Success em 0 source files (escopo colapsado)" success_0.txt     0 -
 run_step "14 rc=2 do mypy (falha de execução)"             found_127.txt     2 -     FAIL
 run_step "15 saída vazia (rc=1)"                           empty.txt         1 -     FAIL
 run_step "16 saída só com 'note' (rc=1)"                   only_notes.txt    1 -     FAIL
+# --- rodada de correção 4 (falsos verdes fechados nesta rodada) ---
+# 17: formato REAL de resumo com erro bloqueante do mypy (sem `(checked N ...)`).
+run_step "17 resumo com 'errors prevented further checking'"  blocking_summary.txt 1 - FAIL
+# 18-20b: MAGNITUDE dos operandos (Important #1). `^[0-9]+$` aceitava inteiro de
+# tamanho arbitrário e `[ … -gt/-ne … ]` estoura o int64 (limite 2^63): o `test`
+# devolve erro e, dentro de `if` sob `bash -e`, isso é condição falsa → o step saía
+# 0 imprimindo OK. Medido antes da correção: budget 99999999999999999999 com
+# `Found 999 errors in 28 files (checked 105 source files)` → rc=0.
+run_step "18 budget 99999999999999999999 + 999 erros"      found_999.txt     1 99999999999999999999 FAIL
+run_step "19 budget 9223372036854775808 (2^63) + 999"      found_999.txt     1 9223372036854775808 FAIL
+run_step "19b budget 9223372036854775807 (int64 max)"      found_999.txt     1 9223372036854775807 FAIL
+run_step "20 budget 999999999 (teto de 9 dígitos)"         found_127.txt     1 999999999 PASS
+run_step "20b budget 1000000000 (teto + 1) + 127 erros"    found_127.txt     1 1000000000 FAIL
+# 21-22: mesma classe no gate de ESCOPO, e controle do próprio mecanismo de override
+# (EXPECTED_SOURCE_FILES=105 é o valor real: prova que o override não quebra o verde).
+run_step "21 EXPECTED_SOURCE_FILES 99999999999999999999"   found_0_3_wc.txt  1 - FAIL "EXPECTED_SOURCE_FILES=99999999999999999999"
+run_step "22 EXPECTED_SOURCE_FILES=105 (controle)"         found_127.txt     1 - PASS "EXPECTED_SOURCE_FILES=105"
+# 23-24: `ignore_errors` ATIVO na config do ratchet (Important #2). `ignore_errors`
+# NÃO reduz `(checked N source files)` (segue 105), então o gate de ESCOPO passa e o
+# total vira 0: sem o guard o step sairia verde com o shadow ratchet anulado. O
+# cenário 23 usa uma cópia degradada em $TMP (árvore intocada); o 24 é o controle com
+# o arquivo REAL, que cita `ignore_errors` só em COMENTÁRIOS e tem de continuar verde.
+DEGRADED_CFG="$TMP/degraded.ratchet.toml"
+cp "$BACKEND/pyproject.ratchet.toml" "$DEGRADED_CFG"
+cat >> "$DEGRADED_CFG" <<'DEGRADED'
+
+# --- bloco ATIVO injetado pelo harness (não existe no arquivo real) ---------
+# Este arquivo SEGUE citando `ignore_errors` em comentários (acima): o guard do
+# step tem de ler só a CHAVE ativa, nunca a menção em comentário.
+[[tool.mypy.overrides]]
+module = [
+    "app.web.routes",
+]
+ignore_errors = true
+DEGRADED
+run_step "23 config do ratchet com ignore_errors ATIVO"    success_105.txt   0 - FAIL "RATCHET_CONFIG=$DEGRADED_CFG"
+run_step "24 config real do ratchet (só comentários)"      found_127.txt     1 - PASS "RATCHET_CONFIG=pyproject.ratchet.toml"
+# 25: mesma chave em TOML de tabela inline (uma linha só) — o guard não pode depender
+# de a chave começar a linha.
+DEGRADED_INLINE_CFG="$TMP/degraded-inline.ratchet.toml"
+cp "$BACKEND/pyproject.ratchet.toml" "$DEGRADED_INLINE_CFG"
+printf '\n[tool.mypy]\noverrides = [{ module = ["app.web.routes"], ignore_errors = true }]\n' >> "$DEGRADED_INLINE_CFG"
+run_step "25 ignore_errors em tabela inline (1 linha)"     success_105.txt   0 - FAIL "RATCHET_CONFIG=$DEGRADED_INLINE_CFG"
+# 26: CONTROLE NEGATIVO do guard — config com módulo cujo NOME contém o texto
+# `ignore_errors` e com comentário citando a chave: isso NÃO é a chave ativa, e o
+# step tem de continuar verde (o guard não pode reprovar por substring).
+KNOWNFALSE_CFG="$TMP/other.ratchet.toml"
+cp "$BACKEND/pyproject.ratchet.toml" "$KNOWNFALSE_CFG"
+printf '\n# um modulo cujo nome apenas CONTEM o texto: app.ignore_errors_shim\nignore_errors_note = "citado em comentario acima; chave real ausente"\n' >> "$KNOWNFALSE_CFG"
+run_step "26 controle: nome/valor com o texto, sem a chave" found_127.txt    1 - PASS "RATCHET_CONFIG=$KNOWNFALSE_CFG"
 
 # ---------------------------------------------------------------------------
 # 4. Cenários de cobertura (opt-in: rodam a suíte REAL).
@@ -227,19 +309,21 @@ if [ "${RATCHET_HARNESS_COVERAGE:-0}" = "1" ]; then
   run_coverage "10 cobertura real >= piso do ci.yml"        -       PASS
   run_coverage "11 cobertura real < piso (piso 60)"         60      FAIL
 else
+  SKIPPED=2
   echo
-  echo "== Cenários 10/11 (cobertura real) PULADOS — rode com RATCHET_HARNESS_COVERAGE=1 =="
+  echo "== Cenários 10/11 (cobertura real) NÃO EXECUTADOS: 2 cenário(s) disponíveis ficaram de fora desta corrida =="
+  echo "== rode com RATCHET_HARNESS_COVERAGE=1 para executá-los =="
 fi
 
 # ---------------------------------------------------------------------------
 echo
-echo "Resumo: $PASSED cenário(s) ok, $FAILED divergência(s)."
+echo "Resumo: $((PASSED + FAILED + SKIPPED)) cenário(s) disponíveis, $((PASSED + FAILED)) executado(s) — $PASSED ok, $FAILED divergência(s), $SKIPPED pulado(s)."
 if [ "$FAILED" -gt 0 ]; then
   echo "Divergências:"
   printf '  - %s\n' "${DIVERGENCES[@]}"
   exit 1
 fi
-if [ "${RATCHET_HARNESS_COVERAGE:-0}" != "1" ]; then
-  echo "(cenários 10/11 de cobertura NÃO foram executados nesta corrida)"
+if [ "$SKIPPED" -gt 0 ]; then
+  echo "ATENÇÃO: $SKIPPED cenário(s) de cobertura NÃO foram executados nesta corrida — o verde acima NÃO cobre o step 'Coverage floor'."
 fi
 exit 0
