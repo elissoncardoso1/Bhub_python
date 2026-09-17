@@ -273,12 +273,22 @@ run_step "26 controle: nome/valor com o texto, sem a chave" found_127.txt    1 -
 # --- rodada de correção 5 ---
 # 27-29: a chave CITADA. `"ignore_errors"` (aspas duplas) e `'ignore_errors'` (aspas
 # simples) são o MESMO nome em TOML, e o mypy as HONRA: medido com o mypy real do venv
-# (2.3.1), o bloco citado aplicado aos 5 módulos de maior contagem derruba o total de
-# 127 para 60 (36+18+11+1+1 = 67 do §6.3 da BASELINE) mantendo `(checked 105 source
-# files)` intacto. O guard da rodada 4 — `(^|[[:space:],{])ignore_errors[[:space:]]*=`,
+# (2.3.1), a chave citada aplicada a UM módulo (`app.web.routes`) derruba o total de 127
+# para 109 (127 − 18, a contagem do §6.3) mantendo `(checked 105 source files)` intacto.
+# O `60` que a rodada 5 citava era a chave em 5 módulos (36+18+11+1+1 = 67 → 127 − 67;
+# reproduzido na rodada de correção 1: `Found 60 errors in 23 files (checked 105 source
+# files)`), composição que NÃO é o top-5 do §6.3 (esse soma 80 → 47) e que não está lá.
+# O guard da rodada 4 — `(^|[[:space:],{])ignore_errors[[:space:]]*=`,
 # com o token precedido de aspas — NÃO casava a linha e o step saía VERDE (rc=0) com o
 # ratchet anulado (rodada de correção 5 / Important #1). A tabela inline com a chave
 # citada era cega pelo mesmo motivo.
+# CAVEAT DOS CENÁRIOS DE TABELA INLINE (25, 29 e 31 — rodada de correção 1 / O1): eles
+# anexam um SEGUNDO cabeçalho `[tool.mypy]` a uma config que JÁ tem um, e o resultado é
+# TOML INVÁLIDO (`tomllib`: `Cannot declare ('tool','mypy') twice`); o mypy 2.3.1 mede
+# `Found 135 errors in 29 files (checked 105 source files)` (medido), que NÃO é o efeito
+# "chave ativa em tabela inline". O que eles exercitam é a asserção do GUARD (o `stub`
+# decide o rc), e consertá-los exige converter o bloco de `[[tool.mypy.overrides]]` para
+# a forma inline — melhoria nomeada, não feita (ver docs/quality/BASELINE.md §6.8).
 DEGRADED_DQ_CFG="$TMP/degraded-doublequote.ratchet.toml"
 cp "$BACKEND/pyproject.ratchet.toml" "$DEGRADED_DQ_CFG"
 cat >> "$DEGRADED_DQ_CFG" <<'DQ'
