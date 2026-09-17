@@ -590,10 +590,13 @@ Roda também **no CI** (step `Run ratchet step harness`, rodada de correção 4)
 cobertura ficam para o step `Coverage floor`, que roda a suíte real logo em seguida. Os 28
 cenários que existiam na rodada 4 foram executados também em **ubuntu 24.04 / bash 5.2 /
 GNU sed 4.9 / mawk 1.3.4 e gawk**, além do bash 3.2 do macOS, com o mesmo resultado (rc=0 do
-harness) — é o que autoriza o step no CI. Os **5 cenários novos da rodada 5** (27-31) foram
-executados até agora no **bash 3.2 + BSD grep do macOS** (33 ok, 2 pulados, rc=0); eles não
-usam nada além de `cp`/`cat`/`printf` e da mesma linha de guard, e o primeiro run do step no
-ubuntu será a segunda testemunha — não há medição própria em ubuntu para eles nesta rodada.
+harness) — é o que autoriza o step no CI. Os **5 cenários novos da rodada 5** (27-31) também
+têm medição em ubuntu: o **controller** (não o implementador da Task 11) rodou o harness num
+container **`ubuntu:24.04`**, com **bash 5.2.21** e **GNU grep 3.11**, pela mesma invocação
+do step do CI → `33 executados, 33 ok, 0 divergências, 2 pulados`, com os cenários 27-31
+passando sob GNU grep. Essa medição é a que importa para eles: o guard é `grep`-based, e
+BSD grep (macOS) e GNU grep (runner) divergem em ERE — sem o run em ubuntu, a cobertura
+deles fora do macOS ficaria por conta do primeiro run do step no runner.
 
 | # | Entrada (stub) | Esperado | Medido |
 |---|---|---|---|
@@ -625,8 +628,8 @@ ubuntu será a segunda testemunha — não há medição própria em ubuntu para
 | 24 | config REAL do ratchet (cita `ignore_errors` só em comentários), `Found 127 …` | PASS | rc=0 — controle do guard |
 | 25 | `ignore_errors` em TOML de tabela inline (uma linha), `Success … 105` | FAIL | rc=1 — o guard não depende de a chave começar a linha |
 | 26 | config com módulo/valor que só CONTÉM o texto `ignore_errors` | PASS | rc=0 — controle negativo: o guard não reprova por substring |
-| 27 | `"ignore_errors" = true` (chave CITADA, aspas duplas) em linha própria | FAIL | rc=1 — `tem a chave ATIVA 'ignore_errors' (valor 'true')` (antes: **rc=0** com o ratchet anulado; o mypy real mediu **60** erros em vez de 127, `checked 105`) |
-| 28 | `'ignore_errors' = true` (chave CITADA, aspas simples) | FAIL | rc=1 — idem (antes: **rc=0**; o mypy real mediu 126 erros com a chave em 1 módulo) |
+| 27 | `"ignore_errors" = true` (chave CITADA, aspas duplas) em linha própria | FAIL | rc=1 — `tem a chave ATIVA 'ignore_errors' (valor 'true')` (antes: **rc=0** com o ratchet anulado; o mypy real mediu **109** erros com a chave no módulo que o cenário injeta, `module = ["app.web.routes"]`, `checked 105` — o **60** do comentário do harness é a medição da chave citada nos 5 módulos de maior contagem, não a deste cenário) |
+| 28 | `'ignore_errors' = true` (chave CITADA, aspas simples) | FAIL | rc=1 — idem (antes: **rc=0**; o mypy real mediu **109** erros com a chave no módulo que o cenário injeta, `module = ['app.web.routes']` — 127 − **18**, a contagem de `app/web/routes.py` no §6.3; medido nesta rodada: `Found 109 errors in 27 files (checked 105 source files)`) |
 | 29 | `overrides = [{ module = [...], "ignore_errors" = true }]` (tabela inline com a chave citada) | FAIL | rc=1 — idem (antes: **rc=0**) |
 | 30 | `ignore_errors = false` (chave presente, valor default/inertes) | PASS | rc=0 — `OK: … (127 <= 127) e escopo intacto (105 source files)` (antes: **rc=1** com a mensagem FALSA de que a chave "ANULA o ratchet"; o mypy real mede os mesmos 127/28/checked 105) |
 | 31 | `"ignore_errors" = false` em tabela inline (citada + inerte) | PASS | rc=0 — controle negativo das duas checagens juntas (citar a chave e exigir o valor são independentes) |
