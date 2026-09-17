@@ -8,6 +8,7 @@ Create Date: 2026-03-13 00:00:00.000000
 
 from typing import Sequence, Union
 
+import fastapi_users_db_sqlalchemy.generics  # users.id é UUID (GUID); VARCHAR(36) não é comparável
 from alembic import op
 import sqlalchemy as sa
 
@@ -25,9 +26,9 @@ def upgrade() -> None:
         "refresh_tokens",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("token_id", sa.String(length=128), nullable=False),
-        sa.Column("user_id", sa.String(length=36), nullable=False),
+        sa.Column("user_id", fastapi_users_db_sqlalchemy.generics.GUID(), nullable=False),
         sa.Column("expires_at", sa.DateTime(timezone=True), nullable=False),
-        sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.text("1")),
+        sa.Column("is_active", sa.Boolean(), nullable=False, server_default="1"),
         sa.Column("revoked_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("replaced_by_token_id", sa.String(length=128), nullable=True),
         sa.Column(
