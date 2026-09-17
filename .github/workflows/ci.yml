@@ -50,7 +50,7 @@ jobs:
       - name: Type check (mypy app)
         run: mypy app
 
-      # SHADOW RATCHET (rodada de correção 2; endurecido nas rodadas 3 e 4):
+      # SHADOW RATCHET (rodada de correção 2; endurecido nas rodadas 3, 4 e 5):
       # roda a MESMA config sem o bloco de `ignore_errors` (pyproject.ratchet.toml)
       # e devolve os 105 arquivos à verificação — erro novo em QUALQUER arquivo,
       # inclusive nos 28 fora do gate principal, passa a falhar. A ressalva: o
@@ -204,7 +204,7 @@ jobs:
           echo "OK: linha do legado intacta ($total <= $RATCHET_BUDGET) e escopo intacto ($checked source files)."
 
       # AUTOTESTE DO GATE ACIMA (Low #3 da rodada de correção 4). O step do
-      # ratchet decide por TEXTO extraído, e as rodadas 3 e 4 fecharam 4 classes de
+      # ratchet decide por TEXTO extraído, e as rodadas 3, 4 e 5 fecharam 5 classes de
       # falso verde (operando inválido de forma e de magnitude, escopo degradado,
       # parsing, `ignore_errors` reativado) — todas com cenário congelado em
       # bhub-backend-python/tests/ci/ratchet_step_harness.sh. Um artefato de

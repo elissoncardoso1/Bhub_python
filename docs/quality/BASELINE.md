@@ -190,7 +190,7 @@ espalhado.
 
 `.github/workflows/ci.yml` deixou de ter lint informativo: o `continue-on-error: true` foi
 removido na Task 9 e, na Task 10, entraram os dois gates do Épico 3 que faltavam. Hoje são
-**cinco steps bloqueantes** em `bhub-backend-python` (`defaults.run.working-directory`),
+**seis steps bloqueantes** em `bhub-backend-python` (`defaults.run.working-directory`),
 mais o de testes — **nenhum** deles usa `continue-on-error`:
 
 ```yaml
@@ -203,15 +203,29 @@ mais o de testes — **nenhum** deles usa `continue-on-error`:
 - name: Type check (mypy app)             # Task 10 / T3.3 — gate PARCIAL (§6.6)
   run: mypy app
 
-- name: Type check ratchet (mypy shadow, budget 127)   # rodadas de correção 2 e 3 / §6.8
+- name: Type check ratchet (mypy shadow, budget 127)   # rodadas de correção 2, 3, 4 e 5 / §6.8
   run: |
     RATCHET_BUDGET=127
     EXPECTED_SOURCE_FILES=105
+    RATCHET_CONFIG=pyproject.ratchet.toml
     rc=0
-    mypy app --config-file pyproject.ratchet.toml > /tmp/mypy-ratchet.txt 2>&1 || rc=$?
+    mypy app --config-file "$RATCHET_CONFIG" > /tmp/mypy-ratchet.txt 2>&1 || rc=$?
     cat /tmp/mypy-ratchet.txt
-    # rc=1 é o esperado nesta config; o que decide o step é o resumo extraído —
-    # orçamento/escopo inválidos, escopo degradado ou parsing duvidoso FALHAM.
+    if [ "$rc" -gt 1 ]; then exit 1; fi
+    # FAIL CLOSED #0 — guard da config do ratchet: `ignore_errors` ATIVO (valor
+    # `true`, com a chave citada com " ou ' ou não, em linha própria ou tabela
+    # inline) → ::error:: + exit 1.
+    # FAIL CLOSED #1 — operandos validados por FORMA e MAGNITUDE (`^[0-9]{1,9}$`)
+    # antes de qualquer comparação; #2 = parsing da última linha de resumo;
+    # #3 = escopo (`checked == 105`) e teto (`total <= 127`).
+    # (Transcrição abreviada: o corpo real, comentado linha a linha, está em
+    # ci.yml; os cenários congelados, no harness abaixo e no §6.8.)
+
+- name: Run ratchet step harness          # autoteste do step acima (rodada de correção 4)
+  run: bash tests/ci/ratchet_step_harness.sh
+
+- name: Run tests
+  run: pytest tests/ -v
 
 - name: Coverage floor (fail under 59.19%, precision 2, >= 3752 statements)  # Task 10 / T3.4
   run: |
@@ -231,9 +245,11 @@ plano e no brief da task, porque a redação antiga prometia mais do que o gate 
 | "Mypy bloqueia PR" / "`mypy app` passa" (Task 19) | **Sob o gate PARCIAL do §6.6**: 28 de 105 arquivos ficam fora de verificação (`ignore_errors`). Erro novo nos 44 em strict pleno e nos 33 relaxados falha o CI; erro novo nos 28 é pego pelo shadow ratchet do §6.8, não pelo step `mypy app`. Ratchet pós-release (corrigir os 127 legados) segue pendente. |
 | "Coverage não pode cair abaixo do baseline" | Piso `--cov-precision=2 --cov-fail-under=59.19` ⇒ piso **efetivo 3752 statements cobertos** (59,1985% → 59,20 ≥ 59,19): qualquer perda de statement coberto falha. Antes da rodada de correção 2, `--cov-fail-under=59` com precisão 0 tolerava até 3708 (58,50%) — 44 statements de folga; a rodada 2 usou `--cov-precision=1 --cov-fail-under=59.2` (efetivo 3749). |
 
-(O step `Run tests` — `pytest tests/ -v` — continua no lugar, antes do de cobertura. A suíte
-roda duas vezes de propósito: ~10 s, e assim uma regressão de cobertura aparece como falha
-do próprio step, não escondida no step de testes.)
+(O step `Run tests` — `pytest tests/ -v` — continua no lugar, logo depois do step do harness e
+antes do de cobertura. A suíte roda duas vezes de propósito: ~10 s, e assim uma regressão de
+cobertura aparece como falha do próprio step, não escondida no step de testes. O step
+`Run ratchet step harness` entrou na rodada de correção 4, entre o ratchet e o de testes: sem
+ele o harness só rodava à mão, e um artefato de verificação que ninguém executa apodrece.)
 
 `requirements-dev.txt` fixa `ruff==0.16.7`, a versão em que o repositório foi validado: um
 `ruff format --check` bloqueante só é determinístico se a versão do formatter for fixa.
@@ -482,7 +498,7 @@ decisão já tomada para o `ruff` na Task 9 (que é o footgun apontado na re-rev
 | ruff | `ruff==0.16.7` | `ruff==0.16.7` |
 | mypy | `mypy==2.3.1` | `mypy==2.3.1` |
 
-### 6.8 Shadow ratchet de mypy (rodadas de correção 2 e 3)
+### 6.8 Shadow ratchet de mypy (rodadas de correção 2, 3, 4 e 5)
 
 **Motivo.** Com o bloco de `ignore_errors` (§6.3), 28 de 105 arquivos ficavam fora de
 **qualquer** verificação e nada no CI falhava se um erro novo fosse introduzido neles: o gate
