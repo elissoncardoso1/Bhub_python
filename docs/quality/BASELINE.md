@@ -18,27 +18,46 @@ HEAD de referência do baseline: `c9d578a` (`docs(di): document global singleton
 | Formatter | `ruff format --check .` | **99 seriam reformatados**, 82 já formatados | **0 pendentes** (179 já formatados) |
 | Tipagem | `mypy app` | **369 erros em 61 arquivos** (105 arquivos analisados) | **rc=0** na Task 10 / T3.3 — via ratchet de strict por módulo + 28 arquivos com `ignore_errors` enumerado: **é um gate PARCIAL** (§6.6); desde a rodada de correção 2 há o shadow ratchet por contagem (§6.8) cobrindo os 28 |
 | Testes | `pytest tests/ -q` | **256 passed**, 0 failed | **256 passed**, 0 failed |
-| Cobertura | `pytest tests/ -q --cov=app --cov-report=term-missing` | **59%** (6359 statements, 2609 missing) | **59%** (6338 statements, 2586 missing) — com piso bloqueante `--cov-precision=1 --cov-fail-under=59.2` (piso efetivo ≥ 59,15%) desde a Task 10 / T3.4 (§6.4) |
+| Cobertura | `pytest tests/ -q --cov=app --cov-report=term-missing` | **59%** (6359 statements, 2609 missing) | **59%** (6338 statements, 2586 missing) — com piso bloqueante `--cov-precision=2 --cov-fail-under=59.19` (piso efetivo ≥ 3752 statements cobertos, = 59,19%) desde a Task 10 / T3.4 (§6.4) |
 
 Notas de leitura:
 
 - O baseline de lint/format/testes/cobertura foi medido pelo controller sobre o HEAD
   limpo (`c9d578a`), usando `git stash` para isolar o diff parcial do implementador
   interrompido.
-- A cobertura **não regrediu** (59% → 59%). O total de statements caiu de 6359 para 6338
-  porque refatorações do Ruff (por exemplo, fusão de `if` aninhados em `app/services/article_parser.py`
-  e remoção de código morto) eliminaram linhas executáveis. Menos statements e a mesma
-  porcentagem = menos linhas descobertas em termos absolutos (2609 → 2586).
-- **Reconciliação do drift de 1 statement (rodada de correção 2).** Esta coluna trazia
-  `6339 statements` enquanto o §6.4 e o `ci.yml` traziam `6338`. Nenhum dos dois números
-  estava errado por conta própria: 6339 era a medição feita ANTES do commit `141302d`
-  (rodada de correção da Task 9), que moveu `from sqlalchemy import event  # noqa: E402`
-  do meio de `app/database.py` para o topo, onde a linha se fundiu na
-  `from sqlalchemy import event, text` já existente: duas **statements** de import
-  viraram uma (−1 statement). Era uma linha executada, logo os cobertos caem de 3753
-  para 3752 com o mesmo `missing` 2586 — e ambos os totais exibem 59,2%. O número foi
-  corrigido aqui para a medição atual deste HEAD (`coverage 7.16.1`):
-  `TOTAL 6338 2586 59.2%`.
+- A cobertura **não regrediu** (59% → 59%) e as **duas medições** dos statements estão na
+  tabela acima — **fato verificado** (o HEAD atual mede `TOTAL 6338 2586 59.2%`, §6.4).
+  Menos statements com a mesma porcentagem = menos linhas descobertas em termos absolutos
+  (2609 → 2586) — **fato verificado**, decorre das duas linhas da tabela.
+- **A CAUSA** da queda de 6359 para 6338 statements é **inferência, não medida** (rotulada
+  na rodada de correção 3). Atribuí-la às refatorações do Ruff (fusão de `if` aninhados,
+  remoção de código morto) é plausível — a Task 9 é de lint/format e não registra mudança
+  de comportamento —, mas ninguém isolou os statements removidos nem re-mediu o estado
+  intermediário. O exemplo específico que esta nota citava
+  (`app/services/article_parser.py`) foi **removido por não ter evidência no repositório
+  que o sustentasse**. **Hipótese** não descartada: parte da diferença pode vir da mudança
+  de versão das ferramentas de medição entre os dois momentos, não do código.
+- **Reconciliação do drift de 1 statement (rodada de correção 2; rotulada na rodada de
+  correção 3).** Esta coluna trazia `6339 statements` enquanto o §6.4 e o `ci.yml` traziam
+  `6338`. **Fato verificado pelo histórico do git:** o commit `141302d` (rodada de correção
+  da Task 9) fundiu os dois imports de `event` de `app/database.py` em uma única statement —
+  `from sqlalchemy import event  # noqa: E402` saiu do meio do arquivo e a linha virou
+  `from sqlalchemy import event, text` no topo (−1 statement):
+
+  ```console
+  $ git show 141302d^:bhub-backend-python/app/database.py | grep -n "sqlalchemy import"
+  8:from sqlalchemy import text
+  49:from sqlalchemy import event  # noqa: E402
+  $ git show 141302d:bhub-backend-python/app/database.py | grep -n "sqlalchemy import"
+  8:from sqlalchemy import event, text
+  ```
+
+  **Inferência consistente com a aritmética, NÃO re-medida:** que o `6339` fosse exatamente
+  a medição de ANTES de `141302d` e que os cobertos caíssem de 3753 para 3752 com o mesmo
+  `missing` 2586. A aritmética fecha (−1 statement, como no diff acima), mas **a suíte não
+  foi rodada no commit anterior a `141302d`** para re-medir os 6339 — o re-reviewer declarou
+  esse limite e ninguém o refutou desde então. O que está **medido neste HEAD**
+  (`coverage 7.16.1`) é `TOTAL 6338 2586 59.2%`, e é esse o número que as colunas usam.
 - `mypy` continua intencionalmente fora do escopo: os 369 erros são a dívida tratada na
   Task 10 (T3.3, "mypy strict check"). Nenhum `continue-on-error` de mypy foi alterado aqui.
 - Sobre o formatter: os números de baseline **99 reformatados + 82 já formatados = 181**
@@ -184,22 +203,24 @@ mais o de testes — **nenhum** deles usa `continue-on-error`:
 - name: Type check (mypy app)             # Task 10 / T3.3 — gate PARCIAL (§6.6)
   run: mypy app
 
-- name: Type check ratchet (mypy shadow, budget 127)   # rodada de correção 2 / §6.8
+- name: Type check ratchet (mypy shadow, budget 127)   # rodadas de correção 2 e 3 / §6.8
   run: |
     RATCHET_BUDGET=127
+    EXPECTED_SOURCE_FILES=105
     rc=0
     mypy app --config-file pyproject.ratchet.toml > /tmp/mypy-ratchet.txt 2>&1 || rc=$?
     cat /tmp/mypy-ratchet.txt
-    # rc=1 é o esperado nesta config; só o TOTAL acima do orçamento falha o step.
+    # rc=1 é o esperado nesta config; o que decide o step é o resumo extraído —
+    # orçamento/escopo inválidos, escopo degradado ou parsing duvidoso FALHAM.
 
-- name: Coverage floor (fail under 59.2%, precision 1)  # Task 10 / T3.4
+- name: Coverage floor (fail under 59.19%, precision 2, >= 3752 statements)  # Task 10 / T3.4
   run: |
     pytest tests/ \
       --cov=app \
       --cov-report=term-missing \
       --cov-report=xml \
-      --cov-precision=1 \
-      --cov-fail-under=59.2
+      --cov-precision=2 \
+      --cov-fail-under=59.19
 ```
 
 **Rótulo dos critérios de aceite do CI** (aplicado nesta rodada de correção 2 no ledger do
@@ -208,7 +229,7 @@ plano e no brief da task, porque a redação antiga prometia mais do que o gate 
 | Critério | Como ele realmente vale |
 |---|---|
 | "Mypy bloqueia PR" / "`mypy app` passa" (Task 19) | **Sob o gate PARCIAL do §6.6**: 28 de 105 arquivos ficam fora de verificação (`ignore_errors`). Erro novo nos 44 em strict pleno e nos 33 relaxados falha o CI; erro novo nos 28 é pego pelo shadow ratchet do §6.8, não pelo step `mypy app`. Ratchet pós-release (corrigir os 127 legados) segue pendente. |
-| "Coverage não pode cair abaixo do baseline" | Piso `--cov-precision=1 --cov-fail-under=59.2` ⇒ reprova a partir de 59,1% (efetivo: < 59,15%, i.e. qualquer queda de 4+ statements). Antes era `--cov-fail-under=59` com precisão 0 ⇒ reprovava apenas abaixo de 58,5%. |
+| "Coverage não pode cair abaixo do baseline" | Piso `--cov-precision=2 --cov-fail-under=59.19` ⇒ piso **efetivo 3752 statements cobertos** (59,1985% → 59,20 ≥ 59,19): qualquer perda de statement coberto falha. Antes da rodada de correção 2, `--cov-fail-under=59` com precisão 0 tolerava até 3708 (58,50%) — 44 statements de folga; a rodada 2 usou `--cov-precision=1 --cov-fail-under=59.2` (efetivo 3749). |
 
 (O step `Run tests` — `pytest tests/ -v` — continua no lugar, antes do de cobertura. A suíte
 roda duas vezes de propósito: ~10 s, e assim uma regressão de cobertura aparece como falha
@@ -334,38 +355,57 @@ pura):
 
 ```bash
 pytest tests/ -q --cov=app --cov-report=term-missing --cov-report=xml \
-  --cov-precision=1 --cov-fail-under=59.2
+  --cov-precision=2 --cov-fail-under=59.19
 ```
 
 | Medida | Valor |
 |---|---|
 | Cobertura do baseline | **59,2%** (3752/6338 statements; 2586 linhas não cobertas) — valor cru **59,1985%** |
-| Piso do CI | `--cov-precision=1 --cov-fail-under=59.2` |
-| Piso **efetivo** | reprova a partir de 59,1% (na prática: < 59,15%, ou seja, qualquer queda de **4+ statements** cobertos) |
+| Piso do CI | `--cov-precision=2 --cov-fail-under=59.19` |
+| Piso **efetivo** | **3752 statements cobertos** (= 59,1985% → 59,20 ≥ 59,19). Qualquer perda de statement coberto no baseline (3751 → 59,1827% → 59,18) **falha**: é o critério escrito como "nenhum statement coberto pode ser perdido" |
 | Testes | **256 passed**, 0 failed |
 
-**Precisão do piso (corrigida na rodada de correção 2).** O `coverage 7.16.1` decide por
-`round(total, precision) < fail_under` (`coverage/results.py:503`), e `precision` tem
-default **0**: o antigo `--cov-fail-under=59` só reprovava abaixo de **58,5%** — uma queda
-de até 44 statements (−0,70 p.p.) passava verde, inclusive um valor **abaixo** do baseline
-medido. Com `--cov-precision=1` a comparação passa a ser a 1 decimal: o total de hoje
-(59,1985%) arredonda para 59,2 e **passa**, enquanto um total que arredonde para 59,1
-**falha**. Evidências locais do piso mordendo:
+**Precisão do piso (corrigida na rodada de correção 2, endurecida na rodada 3).** O
+`coverage 7.16.1` decide por `round(total, precision) < fail_under`
+(`coverage/results.py:503`), e `precision` tem default **0**: o antigo
+`--cov-fail-under=59` só reprovava abaixo de **58,5%** — uma queda de até 44 statements
+(−0,70 p.p.) passava verde, inclusive um valor **abaixo** do baseline medido. A rodada de
+correção 2 trocou a precisão para 1 (`59.2`), o que deixou o piso efetivo em 3749; a rodada
+3 adotou `--cov-precision=2 --cov-fail-under=59.19`, que aperta o piso efetivo para **3752**
+(zero folga sobre o baseline) e elimina uma mensagem enganosa (§ nota abaixo).
+
+Aritmética do piso, com o total real de 6338 statements
+(`round(covered/6338*100, 2) ≥ 59.19`):
+
+| Cobertos | % cru | round(·,2) | passa? |
+|---|---|---|---|
+| 3749 | 59,1512% | 59,15 | não |
+| 3750 | 59,1669% | 59,17 | não |
+| 3751 | 59,1827% | 59,18 | não |
+| **3752** | **59,1985%** | **59,20** | **sim** (o baseline) |
+
+Evidências locais do piso mordendo (**execuções reais**, `.venv/bin/python -m pytest
+tests/ -q --cov=app <flags>`, saída colada verbatim):
 
 | Comando | rc | Saída |
 |---|---|---|
-| `--cov-precision=1 --cov-fail-under=59.2` (o do CI) | **0** | `TOTAL 6338 2586 59.2%` — passa |
-| `--cov-precision=0 --cov-fail-under=59.2` | **1** | `Coverage failure: total of 59 is less than fail-under=59` |
-| `--cov-precision=1 --cov-fail-under=59.25` | **1** | `Coverage failure: total of 59.2 is less than fail-under=59.2` (a mensagem formata o `fail-under` com a precisão do gate: 59,25 → 59,2) |
-| `--cov-precision=1 --cov-fail-under=60` | **1** | reprova |
+| `--cov-precision=2 --cov-fail-under=59.19` (o do CI) | **0** | `TOTAL 6338 2586 59.20%` + `Required test coverage of 59.19% reached. Total coverage: 59.20%` |
+| `--cov-precision=1 --cov-fail-under=59.2` (o da rodada 2) | 0 | `TOTAL 6338 2586 59.2%` + `FAIL Required test coverage of 59.2% not reached. Total coverage: 59.20%` ← rc verde com a palavra FAIL no log (a nota abaixo) |
+| `--cov-precision=0 --cov-fail-under=59.2` | 1 | `ERROR: Coverage failure: total of 59 is less than fail-under=59` |
+| `--cov-precision=1 --cov-fail-under=59.25` | 1 | `ERROR: Coverage failure: total of 59.2 is less than fail-under=59.2` (a mensagem formata o `fail-under` com a precisão do gate: 59,25 → 59,2) |
+| `--cov-precision=2 --cov-fail-under=60` | 1 | `ERROR: Coverage failure: total of 59.20 is less than fail-under=60.00` |
 
-> Nuance conhecida, medida e **não** escondida: o resumo final do `pytest-cov 7.1.0` compara
-> o total **cru** com o `fail_under` sem aplicar a precisão
-> (`failed = self.cov_total < self.options.cov_fail_under`, `pytest_cov/plugin.py:413`), e
-> por isso imprime `FAIL Required test coverage of 59.2% not reached. Total coverage: 59.20%`
-> **mesmo com o step verde** (o total cru é 59,1985, abaixo do 59,2 nominal). Quem decide o
-> `rc` é a checagem do `coverage`, que arredonda por precisão — e ela passa. Não "conserte"
-> isso baixando o piso; o `rc` é a fonte da verdade.
+> **Por que a precisão 2 e não 1 (footgun removido na rodada de correção 3).** O resumo
+> final do `pytest-cov 7.1.0` compara o total **cru** com o `fail_under` sem aplicar a
+> precisão (`failed = self.cov_total < self.options.cov_fail_under`,
+> `pytest_cov/plugin.py:413`). Com o `59.2` nominal, o total cru (59,1985) fica **abaixo**
+> do piso nominal e o plugin imprimia `FAIL Required test coverage of 59.2% not reached`
+> em **toda execução verde** — ver a segunda linha da tabela acima, com rc=0. Quem decide o
+> `rc` sempre foi a checagem do `coverage` (arredondada), e ela passava; mas normalizar a
+> palavra FAIL ao lado de um check verde convidava exatamente o conserto errado (baixar o
+> piso). Com `59.19` + precisão 2 as duas checagens **concordam** em todo inteiro alcançável:
+> 3752 passa nas duas (`Required test coverage of 59.19% reached`); 3751 falha nas duas.
+> Não "conserte" um log de cobertura baixando o piso: o `rc` é a fonte da verdade.
 
 O `coverage.xml` pedido pelo plano é gerado e está no `.gitignore` (junto de `.mypy_cache/`).
 
@@ -374,9 +414,9 @@ O `coverage.xml` pedido pelo plano é gerado e está no `.gitignore` (junto de `
 | Comando | Antes (BASE `141302d`) | Depois |
 |---|---|---|
 | `mypy app` | 369 erros, rc=1 | `Success: no issues found`, rc=0 |
-| `mypy app --config-file pyproject.ratchet.toml` (§6.8) | *(não existia)* | 127 erros em 28 arquivos, **rc=1** — e o step do CI **passa** (127 ≤ 127); com o mesmo comando e o orçamento rebaixado para 126, o step **falha** |
-| `pytest tests/ -q --cov=app --cov-precision=1 --cov-fail-under=59.2` | *(não existia)* | 256 passed, rc=0 |
-| `pytest tests/ -q --cov=app --cov-precision=1 --cov-fail-under=59.25` | *(não existia)* | rc=1 — o piso morde |
+| `mypy app --config-file pyproject.ratchet.toml` (§6.8) | *(não existia)* | `Found 127 errors in 28 files (checked 105 source files)`, **rc=1** — e o step do CI **passa** (127 ≤ 127, escopo 105 = esperado); com o orçamento rebaixado para 126, o step **falha** |
+| `pytest tests/ -q --cov=app --cov-precision=2 --cov-fail-under=59.19` | *(não existia)* | 256 passed, rc=0 — `Required test coverage of 59.19% reached. Total coverage: 59.20%` |
+| `pytest tests/ -q --cov=app --cov-precision=2 --cov-fail-under=60` | *(não existia)* | rc=1 — o piso morde |
 | `pytest tests/ -q --cov=app --cov-precision=0 --cov-fail-under=59.2` | *(não existia)* | rc=1 — a precisão da comparação é o que muda o resultado |
 | `ruff check app tests` | 0 erros | 0 erros |
 | `ruff format --check .` | 0 pendentes | 0 pendentes (179 já formatados) |
@@ -430,7 +470,7 @@ decisão já tomada para o `ruff` na Task 9 (que é o footgun apontado na re-rev
 | ruff | `ruff==0.16.7` | `ruff==0.16.7` |
 | mypy | `mypy==2.3.1` | `mypy==2.3.1` |
 
-### 6.8 Shadow ratchet de mypy (rodada de correção 2)
+### 6.8 Shadow ratchet de mypy (rodadas de correção 2 e 3)
 
 **Motivo.** Com o bloco de `ignore_errors` (§6.3), 28 de 105 arquivos ficavam fora de
 **qualquer** verificação e nada no CI falhava se um erro novo fosse introduzido neles: o gate
@@ -440,9 +480,10 @@ diz "nunca olhe"; o ratchet por contagem diz "olhe sempre, não piore".
 
 | Peça | O que é |
 |---|---|
-| `bhub-backend-python/pyproject.ratchet.toml` | Cópia fiel da config de mypy do `pyproject.toml` (`python_version`, `ignore_missing_imports`, `strict = true` e o MESMO bloco de relaxamento dos 56 módulos) **sem** o bloco `[[tool.mypy.overrides]]` que aplica `ignore_errors`. Autossuficiente de propósito: `--config-file` **ignora** o `pyproject.toml`. |
-| Step `Type check ratchet (mypy shadow, budget 127)` | Roda `mypy app --config-file pyproject.ratchet.toml`, captura a saída, extrai o total e **falha apenas se total > 127**; falha alto (rc>1 ou total não parseável) em vez de aprovar em silêncio. |
-| `RATCHET_BUDGET=127` (no `ci.yml`) | Orçamento do legado. **BAIXE** ao corrigir erros legados; nunca suba sem registrar a dívida nova no mesmo PR. |
+| `bhub-backend-python/pyproject.ratchet.toml` | Cópia fiel da config de mypy do `pyproject.toml` (`python_version`, `ignore_missing_imports`, `strict = true` e o MESMO bloco de relaxamento dos 56 módulos) **sem** o bloco `[[tool.mypy.overrides]]` que aplica `ignore_errors`. Autossuficiente de propósito: `--config-file` **ignora** o `pyproject.toml`. A lista de módulos é **duplicada à mão**: qualquer patch nela tem de ser aplicado nos DOIS arquivos (`pyproject.toml` avisa). |
+| Step `Type check ratchet (mypy shadow, budget 127)` | Roda `mypy app --config-file pyproject.ratchet.toml`, extrai o resumo e **falha se total > 127**; e falha FECHADO (exit 1) em qualquer entrada inválida, escopo degradado ou parsing duvidoso. |
+| `RATCHET_BUDGET=127` + `EXPECTED_SOURCE_FILES=105` (no `ci.yml`) | Orçamento do legado e escopo esperado, numa fonte única. **BAIXE** o orçamento ao corrigir erros legados; nunca suba sem registrar a dívida nova no mesmo PR. Atualize o escopo se um arquivo entrar/sair de `app/`. |
+| `bhub-backend-python/tests/ci/ratchet_step_harness.sh` | Harness determinístico: extrai o bloco `run:` **real** do `ci.yml` (verbatim, dedent), põe um **stub de `mypy`** no PATH e executa o step com `bash -e` e cwd = `bhub-backend-python/`. 16 cenários do ratchet + 2 de cobertura (opt-in `RATCHET_HARNESS_COVERAGE=1`). É o que impede o retorno dos falsos verdes de C1/C2/C3. |
 
 **Medição** (mypy 2.3.1, o pin): `Found 127 errors in 28 files (checked 105 source files)`,
 rc=1 — os mesmos 28 arquivos do §6.3, e as **28 contagens comentadas conferem uma a uma**
@@ -452,25 +493,62 @@ os 25 da medição a strictness default) é o reexport implícito de `app/ai/mod
 já explicado no §6.2. O `model_manager` é também o único arquivo cuja contagem difere entre
 as duas medições (11 aqui, 10 a strictness default).
 
+> **O `105` não é o `56`.** O escopo checado é o número de **arquivos** de `app/` que o mypy
+> lê — `Success: no issues found in 105 source files` na config principal e
+> `(checked 105 source files)` no ratchet. O `56` é a quantidade de **módulos** do bloco de
+> relaxamento de strict (§6.2), não o escopo. `EXPECTED_SOURCE_FILES=105` é o valor medido;
+> codificar 56 deixaria o step vermelho no primeiro run.
+
 **A armadilha, explicitada.** O mypy sai com **rc=1** nesta config por *design* (há 127
 erros), então o rc não pode decidir o step: um step que falhasse no rc seria vermelho para
 sempre, e um step que o ignorasse sem checar o total seria verde para sempre. O que decide é
-o total extraído da saída. Comportamento verificado executando o **próprio script do step**
-(extraído do `ci.yml`) com o mypy real do venv:
+o resumo extraído — e um gate que decide por texto extraído precisa falhar fechado. Foi
+exatamente aí que a rodada 2 passou a perna em três classes de falso verde, todas
+reproduzidas pelo harness antes da correção (**10 das 18 linhas divergiam**: 8 falsos verdes
++ 2 desempates errados de parsing):
 
-| Cenário | Medido |
-|---|---|
-| Saída real: `Found 127 errors in 28 files`, rc=1, `RATCHET_BUDGET=127` | ✅ **rc=0** — `OK: linha do legado intacta (127 <= 127)` |
-| Mesmo mypy real, só o orçamento rebaixado para 126 | ✅ **rc=1** — `::error::regressão de tipos: 127 > 126` |
-| `Found 128 errors in 28 files`, rc=1 (erro novo de verdade) | ✅ rc=1 — `::error::regressão de tipos: 128 > 127` |
-| `Success: no issues found`, rc=0 | ✅ rc=0 (total 0) |
-| `Found 1 error in 1 file` (singular) | ✅ rc=0 (1 ≤ 127) |
-| rc=2 (falha de execução do mypy) | ✅ rc=1 — `::error::mypy ratchet saiu com rc=2` |
-| Saída vazia ou não parseável (rc=1) | ✅ rc=1 — `::error::não foi possível extrair o total` |
+| Classe | Falso verde (rodada 2) | Correção (rodada 3) |
+|---|---|---|
+| **C1 — operandos** | `RATCHET_BUDGET=127,` (typo na linha que o próprio step manda humanos editarem) + `Found 999 errors`: `[ "$total" -gt "127," ]` falha com `integer expression expected`; dentro de `if` sob `bash -e` isso é condição falsa → imprime `OK: linha do legado intacta (999 <= 127,)` e **sai 0**. Idem orçamento vazio ou `abc`. | `[[ "$RATCHET_BUDGET" =~ ^[0-9]+$ ]]` (idem `EXPECTED_SOURCE_FILES`) antes de qualquer comparação: entrada inválida → `::error::` + `exit 1`. |
+| **C2 — escopo** | `Found 0 errors in 3 source files`: o step só olhava o total, então uma config degradada (`exclude`/`files` estreitados, ou `ignore_errors` reintroduzido) virava um no-op verde. | Exige `(checked N source files)` e `N == 105`. Vale para os dois formatos de resumo (`Found ...` e `Success ...`). |
+| **C3 — parsing** | `head -n 1` ficava com a **primeira** linha `Found`: `Found 3 errors in 1 file` antes de `Found 200 errors in 28 files` → `OK` com 3 ≤ 127. | A ÚLTIMA linha de resumo é a única usada (`tail -n 1`), e os dois números saem dela; sem resumo reconhecível ou com número não numérico → `exit 1`. |
+
+**Comportamento verificado — cenários do harness** (`bash
+bhub-backend-python/tests/ci/ratchet_step_harness.sh`; **18/18 ok** com
+`RATCHET_HARNESS_COVERAGE=1`, rc do harness = 0 — 16 do ratchet + 2 de cobertura). Coluna
+"stub" = saída sintética do mypy / rc sintético; orçamento 127 salvo onde indicado:
+
+| # | Entrada (stub) | Esperado | Medido |
+|---|---|---|---|
+| 1 | `Found 127 errors in 28 files (checked 105 source files)` / rc=1 | PASS | rc=0 — `OK: … (127 <= 127) e escopo intacto (105 source files)` |
+| 2 | `Found 128 errors in 28 files (checked 105)` / rc=1 | FAIL | rc=1 — `regressão de tipos: 128 > 127` |
+| 3 | `Found 0 errors in 28 files (checked 105)` / rc=1, `RATCHET_BUDGET=127,` | FAIL | rc=1 — `RATCHET_BUDGET inválido: '127,'` |
+| 4 | `Found 999 errors in 28 files (checked 105)` / rc=1, `RATCHET_BUDGET=127,` | FAIL | rc=1 — `RATCHET_BUDGET inválido: '127,'` (antes: rc=0 com 999) |
+| 5 | `RATCHET_BUDGET=""` | FAIL | rc=1 — `RATCHET_BUDGET inválido: ''` |
+| 6 | `RATCHET_BUDGET=abc` | FAIL | rc=1 — `RATCHET_BUDGET inválido: 'abc'` |
+| 7 | `Found 0 errors in 3 source files` / rc=1 | FAIL | rc=1 — não conseguiu extrair a contagem de source files |
+| 7b | `Found 0 errors in 3 files (checked 3 source files)` / rc=1 | FAIL | rc=1 — `escopo divergente: checou 3, esperado 105` |
+| 8 | `Found 127 errors in 28 files` (sem contagem) / rc=1 | FAIL | rc=1 — não conseguiu extrair a contagem |
+| 9 | `Found 3 errors in 1 file (checked 105)` + `Found 200 errors in 28 files (checked 105)` / rc=1 | FAIL | rc=1 — usou a ÚLTIMA (200 > 127) |
+| 9b | mesma ordem invertida (última = 127) | PASS | rc=0 — usou a ÚLTIMA |
+| 12 | `Success: no issues found in 105 source files` / rc=0 | PASS | rc=0 (total 0, escopo 105) |
+| 13 | `Success: no issues found in 0 source files` / rc=0 | FAIL | rc=1 — `escopo divergente: checou 0, esperado 105` |
+| 14 | rc=2 do mypy | FAIL | rc=1 — `mypy ratchet saiu com rc=2` |
+| 15 | saída vazia / rc=1 | FAIL | rc=1 — não conseguiu extrair o total |
+| 16 | saída só com linha `note` / rc=1 | FAIL | rc=1 — não conseguiu extrair o total |
+| 10 | cobertura real, piso do `ci.yml` (`RATCHET_HARNESS_COVERAGE=1`) | PASS | rc=0 — 256 passed, `Required test coverage of 59.19% reached` |
+| 11 | cobertura real com piso temporário 60 | FAIL | rc=1 — `total of 59.20 is less than fail-under=60.00` |
+
+E com o **mypy real** do venv (bloco `run:` extraído do `ci.yml`, orçamento 127):
+`Found 127 errors in 28 files (checked 105 source files)`, rc do mypy = 1 → **rc=0** no step,
+com `OK: linha do legado intacta (127 <= 127) e escopo intacto (105 source files)`.
 
 O ratchet custa uma segunda passada do mypy (~10 s), o mesmo custo que o step de cobertura já
 aceitava por legibilidade do log, e é determinístico porque o `mypy` está pinado (§6.7).
 
 **O que ele NÃO faz:** não valida cada comentário `# N` individualmente (só o total), não
 corrige nenhum dos 127 erros legados e não substitui o ratchet pós-release — ele apenas
-garante que a linha do legado não suba.
+garante que a linha do legado não suba. Limite conhecido e não resolvido pelo desenho: o
+**total** pode ser mascarado por um PR que conserte 5 erros legados e introduza 5 novos
+(127 → 127, verde). O caso que a §6.6 nomeia (erro novo sem conserto compensatório) é pego,
+e o step manda baixar o orçamento ao corrigir legado — mas isso depende de disciplina do PR.
