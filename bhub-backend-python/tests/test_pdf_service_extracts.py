@@ -1,4 +1,3 @@
-
 from app.services.pdf_service import PDFService
 
 
@@ -65,6 +64,8 @@ def test_extract_text_fallback_pdfplumber(monkeypatch):
             return False
 
     monkeypatch.setattr("app.services.pdf_service.fitz.open", fail_open)
-    monkeypatch.setattr("app.services.pdf_service.pdfplumber.open", lambda *_args, **_kwargs: FakePDF())
+    monkeypatch.setattr(
+        "app.services.pdf_service.pdfplumber.open", lambda *_args, **_kwargs: FakePDF()
+    )
     text = service._extract_text(b"%PDF-1.4\n")
     assert text == "x"

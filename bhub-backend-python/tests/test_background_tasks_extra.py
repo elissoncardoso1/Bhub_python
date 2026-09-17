@@ -80,12 +80,16 @@ async def test_classify_article_task_happy(monkeypatch):
         "FakeCS",
         (),
         {
-            "classify_with_multiple_categories": staticmethod(fake_classify_with_multiple_categories),
+            "classify_with_multiple_categories": staticmethod(
+                fake_classify_with_multiple_categories
+            ),
             "assign_categories_to_article": staticmethod(fake_assign_categories_to_article),
         },
     )
     bt.ClassificationService = FakeCS
-    monkeypatch.setattr("app.services.classification_service.ClassificationService", FakeCS, raising=False)
+    monkeypatch.setattr(
+        "app.services.classification_service.ClassificationService", FakeCS, raising=False
+    )
 
     FakeImpact = type("FakeImpact", (), {"calculate_impact": staticmethod(fake_calc_impact)})
     bt.ImpactRatingService = FakeImpact

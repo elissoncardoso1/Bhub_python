@@ -11,7 +11,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.models.base import BaseModel
 
 
-class BannerPosition(str, enum.Enum):
+class BannerPosition(enum.StrEnum):
     """Posições disponíveis para banners."""
 
     HEADER = "HEADER"
@@ -65,10 +65,7 @@ class Banner(BaseModel):
         if self.start_date and now < self.start_date.replace(tzinfo=None):
             return False
 
-        if self.end_date and now > self.end_date.replace(tzinfo=None):
-            return False
-
-        return True
+        return not (self.end_date and now > self.end_date.replace(tzinfo=None))
 
     @property
     def ctr(self) -> float:

@@ -82,11 +82,7 @@ def _format_percent(value: float | None) -> str:
 
 def _csrf_token_from_request(request: Request) -> str:
     """Token CSRF disponível server-side: cookie (HttpOnly) ou state do middleware."""
-    return (
-        request.cookies.get("csrf_token")
-        or getattr(request.state, "csrf_token", None)
-        or ""
-    )
+    return request.cookies.get("csrf_token") or getattr(request.state, "csrf_token", None) or ""
 
 
 @lru_cache
@@ -105,6 +101,7 @@ def get_templates() -> Jinja2Templates:
     templates.env.globals["cookie_consent_enabled"] = lambda: settings.cookie_consent_enabled
 
     from app.utils.icons import icons
+
     templates.env.globals["icon"] = icons.get
 
     return templates

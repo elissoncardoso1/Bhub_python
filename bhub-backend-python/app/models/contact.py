@@ -11,7 +11,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.models.base import BaseModel
 
 
-class MessageStatus(str, enum.Enum):
+class MessageStatus(enum.StrEnum):
     """Status da mensagem."""
 
     UNREAD = "UNREAD"

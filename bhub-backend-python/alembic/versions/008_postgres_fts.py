@@ -5,6 +5,7 @@ Revises: 007_fix_analytics_metric_types
 Create Date: 2026-05-06 00:00:00.000000
 
 """
+
 from typing import Sequence, Union
 
 import sqlalchemy as sa

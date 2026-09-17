@@ -114,7 +114,7 @@ class WebScrapingService:
         parsed = urlparse(url)
 
         # Validar esquema - apenas HTTP/HTTPS permitidos
-        if parsed.scheme not in ['http', 'https']:
+        if parsed.scheme not in ["http", "https"]:
             raise ValueError(
                 f"Esquema '{parsed.scheme}' não permitido. Apenas HTTP/HTTPS são permitidos."
             )
@@ -126,12 +126,12 @@ class WebScrapingService:
 
         # Bloquear localhost e variações
         blocked_hosts = [
-            'localhost',
-            '127.0.0.1',
-            '0.0.0.0',
-            '::1',
-            '[::1]',
-            'localhost.localdomain',
+            "localhost",
+            "127.0.0.1",
+            "0.0.0.0",
+            "::1",
+            "[::1]",
+            "localhost.localdomain",
         ]
 
         if hostname in blocked_hosts:
@@ -151,15 +151,11 @@ class WebScrapingService:
 
                 # Bloquear IPs de loopback
                 if ip.is_loopback:
-                    raise ValueError(
-                        f"IP de loopback '{hostname}' bloqueado por segurança"
-                    )
+                    raise ValueError(f"IP de loopback '{hostname}' bloqueado por segurança")
 
                 # Bloquear IPs de link-local
                 if ip.is_link_local:
-                    raise ValueError(
-                        f"IP link-local '{hostname}' bloqueado por segurança"
-                    )
+                    raise ValueError(f"IP link-local '{hostname}' bloqueado por segurança")
 
             except ValueError:
                 # Não é um IP válido, verificar se é hostname bloqueado
@@ -168,7 +164,7 @@ class WebScrapingService:
 
         # Validar que não há caracteres perigosos no path
         if parsed.path:
-            dangerous_chars = ['../', '..\\', '%2e%2e', '%2f']
+            dangerous_chars = ["../", "..\\", "%2e%2e", "%2f"]
             path_lower = parsed.path.lower()
             if any(dangerous in path_lower for dangerous in dangerous_chars):
                 raise ValueError("Path contém caracteres perigosos")
@@ -209,7 +205,7 @@ class WebScrapingService:
         soup = BeautifulSoup(html, "lxml")
 
         # Parse com selectolax para operações mais rápidas
-        tree = HTMLParser(html)
+        HTMLParser(html)
 
         # Extrair dados
         data = {
@@ -257,9 +253,7 @@ class WebScrapingService:
             data["abstract"] = text[:5000] if len(text) > 5000 else text
 
         if not data.get("authors") and extracted.author:
-            data["authors"] = [
-                a.strip() for a in extracted.author.split(";") if a.strip()
-            ]
+            data["authors"] = [a.strip() for a in extracted.author.split(";") if a.strip()]
 
     def _extract_title(self, soup: BeautifulSoup) -> str:
         """Extrai título do artigo."""
@@ -327,10 +321,7 @@ class WebScrapingService:
         for selector in self.AUTHOR_SELECTORS:
             elements = soup.select(selector)
             for el in elements:
-                if el.name == "meta":
-                    text = el.get("content", "")
-                else:
-                    text = el.get_text(strip=True)
+                text = el.get("content", "") if el.name == "meta" else el.get_text(strip=True)
 
                 if text and len(text) > 2:
                     # Dividir se houver múltiplos autores
@@ -372,10 +363,7 @@ class WebScrapingService:
             for selector in self.KEYWORDS_SELECTORS:
                 elements = soup.select(selector)
                 for el in elements:
-                    if el.name == "meta":
-                        text = el.get("content", "")
-                    else:
-                        text = el.get_text(strip=True)
+                    text = el.get("content", "") if el.name == "meta" else el.get_text(strip=True)
 
                     if text:
                         if "," in text:
@@ -445,7 +433,11 @@ class WebScrapingService:
         for selector in self.DATE_SELECTORS:
             element = soup.select_one(selector)
             if element:
-                text = element.get("datetime") or element.get("content") or element.get_text(strip=True)
+                text = (
+                    element.get("datetime")
+                    or element.get("content")
+                    or element.get_text(strip=True)
+                )
                 if text:
                     try:
                         return date_parser.parse(text)

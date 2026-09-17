@@ -98,4 +98,3 @@ class AnalyticsOverviewResponse(BaseSchema):
     time_series: list[TimeSeriesDataPoint]
     top_pages: list[TopPageResponse]
     period_days: int
-

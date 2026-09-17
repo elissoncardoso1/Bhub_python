@@ -143,7 +143,9 @@ class ModelManager:
                         continue
 
                 # Se nenhum arquivo específico funcionou, listar arquivos disponíveis
-                log.warning("Nenhum arquivo específico encontrado. Listando arquivos disponíveis...")
+                log.warning(
+                    "Nenhum arquivo específico encontrado. Listando arquivos disponíveis..."
+                )
                 try:
                     # Fazer snapshot download para ver o que está disponível
                     snapshot_path = snapshot_download(

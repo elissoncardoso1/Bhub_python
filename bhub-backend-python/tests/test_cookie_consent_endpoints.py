@@ -156,7 +156,10 @@ class TestConsentEndpoints:
             follow_redirects=False,
         )
         set_cookies = resp.headers.get_list("set-cookie")
-        assert any(CONSENT_COOKIE_NAME in c and ("Max-Age=0" in c or "expires" in c.lower()) for c in set_cookies)
+        assert any(
+            CONSENT_COOKIE_NAME in c and ("Max-Age=0" in c or "expires" in c.lower())
+            for c in set_cookies
+        )
         # analytics_session_id também precisa ser uma deleção de fato (Max-Age=0
         # ou expiração no passado), não só um Set-Cookie qualquer com esse nome.
         assert any(

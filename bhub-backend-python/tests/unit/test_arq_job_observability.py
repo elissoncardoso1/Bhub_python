@@ -330,9 +330,7 @@ class BrokenPDFService:
         raise RuntimeError("pdf inválido")
 
 
-async def test_task_download_pdf_registra_logs_de_inicio_e_sucesso(
-    log_records, monkeypatch
-):
+async def test_task_download_pdf_registra_logs_de_inicio_e_sucesso(log_records, monkeypatch):
     monkeypatch.setattr("app.services.pdf_service.PDFService", FakePDFService)
 
     ctx = make_ctx()
@@ -395,9 +393,7 @@ async def test_task_classify_article_registra_log_de_sucesso(log_records, monkey
     assert logs[-1]["extra"]["article_id"] == 5
 
 
-async def test_task_que_levanta_excecao_registra_falha_antes_de_propagar(
-    log_records, monkeypatch
-):
+async def test_task_que_levanta_excecao_registra_falha_antes_de_propagar(log_records, monkeypatch):
     """Exceção na task: falha registrada (com attempt) antes de propagar."""
     monkeypatch.setattr("app.services.pdf_service.PDFService", BrokenPDFService)
 

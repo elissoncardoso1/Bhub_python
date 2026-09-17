@@ -35,9 +35,7 @@ def _create_engine_kwargs() -> dict:
     return {
         "poolclass": StaticPool if ":memory:" in settings.database_url else None,
         "connect_args": (
-            {"check_same_thread": False, "timeout": 30}
-            if "sqlite" in settings.database_url
-            else {}
+            {"check_same_thread": False, "timeout": 30} if "sqlite" in settings.database_url else {}
         ),
     }
 
@@ -48,16 +46,18 @@ engine = create_async_engine(
     **_create_engine_kwargs(),
 )
 
-from sqlalchemy import event
+from sqlalchemy import event  # noqa: E402
 
 # Habilitar WAL mode para SQLite
 if "sqlite" in settings.database_url:
+
     @event.listens_for(engine.sync_engine, "connect")
-    def set_sqlite_pragma(dbapi_connection, connection_record):
+    def set_sqlite_pragma(dbapi_connection, _connection_record):
         cursor = dbapi_connection.cursor()
         cursor.execute("PRAGMA journal_mode=WAL")
         cursor.execute("PRAGMA synchronous=NORMAL")
         cursor.close()
+
 
 # Session factory assíncrona
 async_session_maker = async_sessionmaker(
@@ -129,7 +129,9 @@ async def init_db() -> None:
                 $$ LANGUAGE plpgsql
                 """)
             )
-            await conn.execute(text("DROP TRIGGER IF EXISTS articles_search_vector_trigger ON articles"))
+            await conn.execute(
+                text("DROP TRIGGER IF EXISTS articles_search_vector_trigger ON articles")
+            )
             await conn.execute(
                 text("""
                 CREATE TRIGGER articles_search_vector_trigger

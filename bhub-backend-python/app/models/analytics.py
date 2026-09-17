@@ -21,7 +21,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.models.base import BaseModel
 
 
-class EventType(str, enum.Enum):
+class EventType(enum.StrEnum):
     """Tipos de eventos rastreados."""
 
     PAGE_VIEW = "page_view"
@@ -38,7 +38,7 @@ class EventType(str, enum.Enum):
     API_REQUEST = "api_request"
 
 
-class SessionStatus(str, enum.Enum):
+class SessionStatus(enum.StrEnum):
     """Status da sessão."""
 
     ACTIVE = "active"
@@ -58,15 +58,11 @@ class AnalyticsEvent(BaseModel):
     # Identificação
     session_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     user_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
-    event_type: Mapped[EventType] = mapped_column(
-        Enum(EventType), nullable=False, index=True
-    )
+    event_type: Mapped[EventType] = mapped_column(Enum(EventType), nullable=False, index=True)
 
     # Dados do evento
     event_name: Mapped[str] = mapped_column(String(255), nullable=False)
-    properties: Mapped[str | None] = mapped_column(
-        Text, nullable=True
-    )  # JSON string
+    properties: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON string
 
     # Contexto
     page_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
@@ -109,9 +105,7 @@ class AnalyticsSession(BaseModel):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 
     # Identificação
-    session_id: Mapped[str] = mapped_column(
-        String(255), unique=True, nullable=False, index=True
-    )
+    session_id: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     user_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
 
     # Dados da sessão
@@ -128,9 +122,7 @@ class AnalyticsSession(BaseModel):
     started_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, index=True
     )
-    ended_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_activity: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=datetime.utcnow
     )
@@ -170,12 +162,8 @@ class AnalyticsMetric(BaseModel):
     searches: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     # Métricas de engajamento
-    avg_session_duration: Mapped[float | None] = mapped_column(
-        Float, nullable=True
-    )  # em segundos
+    avg_session_duration: Mapped[float | None] = mapped_column(Float, nullable=True)  # em segundos
     bounce_rate: Mapped[float | None] = mapped_column(Float, nullable=True)  # porcentagem
 
     # Índices compostos
-    __table_args__ = (
-        Index("ix_analytics_metrics_date_period", "metric_date", "period_type"),
-    )
+    __table_args__ = (Index("ix_analytics_metrics_date_period", "metric_date", "period_type"),)

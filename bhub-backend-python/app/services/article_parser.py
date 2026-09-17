@@ -69,7 +69,7 @@ class ArticleParserService:
             patterns = [
                 rf"\s+[-|–]\s+{re.escape(journal_name)}$",
                 rf"\s+\[{re.escape(journal_name)}\]$",
-                rf"\s+\({re.escape(journal_name)}\)$"
+                rf"\s+\({re.escape(journal_name)}\)$",
             ]
             for pattern in patterns:
                 title = re.sub(pattern, "", title, flags=re.IGNORECASE)
@@ -110,10 +110,17 @@ class ArticleParserService:
             abstract = html.unescape(abstract)
 
             # Remover boilerplate de WordPress "Tempo de Leitura: X minutos"
-            abstract = re.sub(r"^Tempo de Leitura:\s*<?[\s\d]+\s*minutos?\s*", "", abstract, flags=re.IGNORECASE)
+            abstract = re.sub(
+                r"^Tempo de Leitura:\s*<?[\s\d]+\s*minutos?\s*", "", abstract, flags=re.IGNORECASE
+            )
 
             # Remover rodapé "O post ... apareceu primeiro em ..."
-            abstract = re.sub(r"\s*O post\s+.+?\s+apareceu primeiro em\s+.+\.\s*$", "", abstract, flags=re.IGNORECASE)
+            abstract = re.sub(
+                r"\s*O post\s+.+?\s+apareceu primeiro em\s+.+\.\s*$",
+                "",
+                abstract,
+                flags=re.IGNORECASE,
+            )
 
             abstract = abstract.strip()
 
@@ -134,12 +141,12 @@ class ArticleParserService:
 
         # Tentar lista de links
         links = entry.get("links", [])
-        for l in links:
-            if isinstance(l, dict):
-                if l.get("rel") == "alternate" or l.get("type") == "text/html":
-                    return l.get("href")
-                if "href" in l:
-                    return l["href"]
+        for link in links:
+            if isinstance(link, dict):
+                if link.get("rel") == "alternate" or link.get("type") == "text/html":
+                    return link.get("href")
+                if "href" in link:
+                    return link["href"]
 
         return entry.get("id")
 
@@ -168,12 +175,12 @@ class ArticleParserService:
     def _extract_authors(self, entry: dict) -> list[dict[str, str]]:
         """Extrai autores do artigo com papéis (author/editor)."""
         authors_list = []
-        role = 'author'
+        role = "author"
 
         # Heurística para detectar se é um editorial
         title = self._extract_title(entry).lower()
-        if 'editorial' in title:
-            role = 'editor'
+        if "editorial" in title:
+            role = "editor"
 
         # 1. Tentar authors (lista de dicts)
         if "authors" in entry and isinstance(entry["authors"], list):
@@ -188,18 +195,17 @@ class ArticleParserService:
                     # segmentos com 2+ palavras. Evita quebrar autores legítimos
                     # em "Sobrenome, Nome" ("de Rose, Júlio C." tem 1º segmento
                     # com 2 palavras) ou credenciais ("Angela West, MS, BCBA").
-                    parts = [p.strip() for p in name.split(',') if p.strip()]
+                    parts = [p.strip() for p in name.split(",") if p.strip()]
                     words = [len(p.split()) for p in parts]
                     # Lista: 3+ segmentos todos 2+ palavras, ou 2 segmentos
                     # ambos 2+ palavras com algum 3+ ("Nome Meio Sobrenome").
                     # Exclui "Sobrenote, Nome" legítimo ("de Rose, Júlio C.",
                     # "de Carvalho, Lucas Couto" — nenhum segmento 3+ palavras)
                     # e credenciais ("Angela West, MS, BCBA" — segmento de 1 palavra).
-                    looks_like_list = (
-                        (len(parts) >= 3 and all(w >= 2 for w in words))
-                        or (len(parts) == 2
-                            and all(w >= 2 for w in words)
-                            and (words[0] >= 3 or words[1] >= 3))
+                    looks_like_list = (len(parts) >= 3 and all(w >= 2 for w in words)) or (
+                        len(parts) == 2
+                        and all(w >= 2 for w in words)
+                        and (words[0] >= 3 or words[1] >= 3)
                     )
                     if looks_like_list:
                         # Dividir SÓ por vírgula (partes já validadas acima).
@@ -210,10 +216,10 @@ class ArticleParserService:
                             clean = self._clean_author_name(part)
                             if clean:
                                 authors_list.append(
-                                    {'name': re.sub(r'\s+', ' ', clean), 'role': role}
+                                    {"name": re.sub(r"\s+", " ", clean), "role": role}
                                 )
                     else:
-                        authors_list.append({'name': name, 'role': role})
+                        authors_list.append({"name": name, "role": role})
             if authors_list:
                 return authors_list
 
@@ -224,24 +230,24 @@ class ArticleParserService:
             if isinstance(dc_creator, list):
                 # Se for lista, processar cada um
                 for creator in dc_creator:
-                     authors_list.append({'name': str(creator), 'role': role})
+                    authors_list.append({"name": str(creator), "role": role})
                 return authors_list
             elif isinstance(dc_creator, str):
                 # Se for string, pode ser "A, B, C"
                 names = self._split_authors(dc_creator)
-                return [{'name': name, 'role': role} for name in names]
+                return [{"name": name, "role": role} for name in names]
 
         # 3. Tentar author (string)
         author_str = entry.get("author", "")
         # Processar string única com spliter
         names = self._split_authors(author_str)
-        return [{'name': name, 'role': role} for name in names]
+        return [{"name": name, "role": role} for name in names]
 
     def parse_html_authors(self, html_content: str) -> list[dict[str, str]]:
         """Extrai autores de meta tags HTML (fallback para feeds incompletos)."""
         authors = []
         try:
-            soup = BeautifulSoup(html_content, 'html.parser')
+            soup = BeautifulSoup(html_content, "html.parser")
 
             # Tentar citation_author (Google Scholar / Highwire Press)
             meta_authors = soup.find_all("meta", {"name": "citation_author"})
@@ -254,7 +260,7 @@ class ArticleParserService:
                 if content:
                     # Springer format: "Surname, Firstname" -> maintain as is or normalize?
                     # Our normalizer handles "Surname, Firstname".
-                    authors.append({'name': content, 'role': 'author'})
+                    authors.append({"name": content, "role": "author"})
 
         except Exception as e:
             log.error(f"Erro ao parsear HTML para autores: {e}")
@@ -274,25 +280,25 @@ class ArticleParserService:
 
         # 1. Tratar formato "email (Name)" ou "Name (email)" comum em Blogger/Atom
         # Ex: "noreply@blogger.com (Tameika Meadows" -> "Tameika Meadows"
-        email_paren_match = re.search(r'[\w\.-]+@[\w\.-]+\s*\(([^)]+)\)', author_str)
+        email_paren_match = re.search(r"[\w\.-]+@[\w\.-]+\s*\(([^)]+)\)", author_str)
         if email_paren_match:
             return [self._clean_author_name(email_paren_match.group(1))]
 
-        name_paren_email_match = re.search(r'([^)]+)\s*\([\w\.-]+@[\w\.-]+\)', author_str)
+        name_paren_email_match = re.search(r"([^)]+)\s*\([\w\.-]+@[\w\.-]+\)", author_str)
         if name_paren_email_match:
             return [self._clean_author_name(name_paren_email_match.group(1))]
 
         # Regex para separar por vírgula, "e", "and", etc.
         # Mas CUIDADO com sufixos de titulação: "Name, PhD", "Name, BCBA"
         # Lista de sufixos para NÃO separar ou para remover
-        credentials = r'\b(PhD|M\.?S\.?|B\.?C\.?B\.?A\.?(-D)?|M\.?A\.?|Dr\.?|R\.?B\.?T\.?|L\.?M\.?F\.?T\.?|L\.?C\.?S\.?W\.?)\b'
+        credentials = r"\b(PhD|M\.?S\.?|B\.?C\.?B\.?A\.?(-D)?|M\.?A\.?|Dr\.?|R\.?B\.?T\.?|L\.?M\.?F\.?T\.?|L\.?C\.?S\.?W\.?)\b"
 
         # Primeiro, remover credenciais da string para evitar split incorreto nelas
         # Ex: "Tameika Meadows, BCBA" -> "Tameika Meadows"
-        clean_str = re.sub(rf',\s*{credentials}', '', author_str, flags=re.IGNORECASE)
-        clean_str = re.sub(rf'\s+{credentials}', '', clean_str, flags=re.IGNORECASE)
+        clean_str = re.sub(rf",\s*{credentials}", "", author_str, flags=re.IGNORECASE)
+        clean_str = re.sub(rf"\s+{credentials}", "", clean_str, flags=re.IGNORECASE)
 
-        names = re.split(r',\s*|\s+and\s+|\s+e\s+|\s+&\s+|\s*\|\s*', clean_str, flags=re.IGNORECASE)
+        names = re.split(r",\s*|\s+and\s+|\s+e\s+|\s+&\s+|\s*\|\s*", clean_str, flags=re.IGNORECASE)
 
         cleaned_names = []
         for name in names:
@@ -307,24 +313,34 @@ class ArticleParserService:
         name = name.strip()
 
         # Remover parenteses e emails residuais
-        name = re.sub(r'\([^)]*\)', '', name).strip()
-        name = re.sub(r'[\w\.-]+@[\w\.-]+', '', name).strip()
-        name = re.sub(r'\)', '', name).strip()  # Remover parentes soltos
+        name = re.sub(r"\([^)]*\)", "", name).strip()
+        name = re.sub(r"[\w\.-]+@[\w\.-]+", "", name).strip()
+        name = re.sub(r"\)", "", name).strip()  # Remover parentes soltos
 
         if len(name) < 2:
             return None
 
         # Blacklist de termos genéricos
         blacklist = [
-            "admin", "noreply", "editor", "author", "blog author", "contributor",
-            "unknown", "anonymous", "staff", "team", "guest", "bhub"
+            "admin",
+            "noreply",
+            "editor",
+            "author",
+            "blog author",
+            "contributor",
+            "unknown",
+            "anonymous",
+            "staff",
+            "team",
+            "guest",
+            "bhub",
         ]
 
         if name.lower() in blacklist:
             return None
 
         # Remover prefixos/sufixos comuns
-        name = re.sub(r'^(Dr\.|Prof\.|Mr\.|Mrs\.|Ms\.)\s+', '', name, flags=re.IGNORECASE)
+        name = re.sub(r"^(Dr\.|Prof\.|Mr\.|Mrs\.|Ms\.)\s+", "", name, flags=re.IGNORECASE)
 
         return name if len(name) > 1 else None
 
@@ -388,11 +404,7 @@ class ArticleParserService:
 
     def _extract_journal(self, entry: dict) -> str | None:
         """Extrai nome do periódico."""
-        return (
-            entry.get("prism_publicationname")
-            or entry.get("dc_source")
-            or entry.get("source")
-        )
+        return entry.get("prism_publicationname") or entry.get("dc_source") or entry.get("source")
 
     def _detect_language(self, entry: dict) -> str:
         """Detecta idioma do artigo."""
@@ -419,9 +431,12 @@ class ArticleParserService:
         media = entry.get("media_content", [])
         if media and isinstance(media, list):
             for m in media:
-                if isinstance(m, dict) and "url" in m:
-                    if m.get("medium") == "image" or "image" in m.get("type", ""):
-                        return m["url"]
+                if (
+                    isinstance(m, dict)
+                    and "url" in m
+                    and (m.get("medium") == "image" or "image" in m.get("type", ""))
+                ):
+                    return m["url"]
 
         # Campo media:thumbnail
         thumbnail = entry.get("media_thumbnail", [])
@@ -432,17 +447,14 @@ class ArticleParserService:
 
         # Procurar no content
         abstract = self._extract_abstract(entry)
-        if abstract:
-            match = re.search(r'<img[^>]+src=["\']([^"\']+)["\']', abstract)
-            if match:
-                return match.group(1)
+        if abstract and (match := re.search(r'<img[^>]+src=["\']([^"\']+)["\']', abstract)):
+            return match.group(1)
 
         # Campo enclosure
         enclosures = entry.get("enclosures", [])
         for enc in enclosures:
-            if isinstance(enc, dict):
-                if "image" in enc.get("type", ""):
-                    return enc.get("url") or enc.get("href")
+            if isinstance(enc, dict) and "image" in enc.get("type", ""):
+                return enc.get("url") or enc.get("href")
 
         return None
 
@@ -450,10 +462,13 @@ class ArticleParserService:
         """Extrai URL do PDF do artigo."""
         # 1. Tentar campo pdf_url direto
         pdf_url = entry.get("pdf_url") or entry.get("prism_url") or entry.get("dc_identifier")
-        if pdf_url:
-            # Verificar se é realmente um PDF
-            if isinstance(pdf_url, str) and (pdf_url.endswith(".pdf") or "pdf" in pdf_url.lower()):
-                return pdf_url
+        # Verificar se é realmente um PDF
+        if (
+            pdf_url
+            and isinstance(pdf_url, str)
+            and (pdf_url.endswith(".pdf") or "pdf" in pdf_url.lower())
+        ):
+            return pdf_url
 
         # 2. Tentar enclosures (comum em feeds RSS)
         enclosures = entry.get("enclosures", [])
@@ -496,7 +511,7 @@ class ArticleParserService:
                 if match:
                     # Tentar construir URL do PDF
                     base_url = article_url.rsplit("/", 1)[0]
-                    potential_pdf = f"{base_url}/pdf" or f"{article_url}.pdf"
+                    potential_pdf = f"{base_url}/pdf"
                     return potential_pdf
 
         return None

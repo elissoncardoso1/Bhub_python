@@ -116,6 +116,7 @@ async def create_test_user(db_session: AsyncSession):
 async def admin_user(create_test_user):
     """Cria usuário admin para testes."""
     from app.models import UserRole
+
     return await create_test_user(
         email="admin@test.com",
         password="adminpass123",

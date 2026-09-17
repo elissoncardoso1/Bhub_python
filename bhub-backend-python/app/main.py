@@ -27,7 +27,7 @@ from app.schemas import ErrorResponse, HealthResponse
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(_app: FastAPI):
     """Gerencia ciclo de vida da aplicação."""
     # Startup
     setup_logging()
@@ -72,10 +72,12 @@ async def lifespan(app: FastAPI):
     # Inicializar ML (em background)
     try:
         from app.ml import EmbeddingClassifier
+
         await EmbeddingClassifier.initialize()
 
         # Carregar embeddings das categorias
         from app.models import DEFAULT_CATEGORIES
+
         await EmbeddingClassifier.load_category_embeddings(DEFAULT_CATEGORIES)
     except Exception as e:
         log.warning(f"ML não inicializado: {e}")
@@ -135,7 +137,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SecurityHeadersMiddleware)
 
 # CSRF Middleware (gera tokens CSRF automaticamente)
-from app.core.csrf_middleware import CSRFMiddleware
+from app.core.csrf_middleware import CSRFMiddleware  # noqa: E402
 
 app.add_middleware(CSRFMiddleware, auto_validate=False)  # Validação manual via dependência
 
@@ -196,11 +198,11 @@ else:
 
 # Exception handlers
 @app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request: Request, exc: RequestValidationError):
+async def validation_exception_handler(_request: Request, exc: RequestValidationError):
     """Handler para erros de validação."""
     errors = []
     for error in exc.errors():
-        loc = " -> ".join(str(l) for l in error["loc"])
+        loc = " -> ".join(str(part) for part in error["loc"])
         errors.append(f"{loc}: {error['msg']}")
 
     return JSONResponse(
@@ -265,10 +267,13 @@ async def http_exception_handler(request: Request, exc: HTTPException):
         )
 
     # UX: redirecionar para login ao tentar acessar admin sem auth (mesmo sem Accept HTML).
-    if exc.status_code in (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN) and request.url.path.startswith(
-        "/admin"
-    ):
-        return RedirectResponse(url=f"/login?next={request.url.path}", status_code=status.HTTP_303_SEE_OTHER)
+    if exc.status_code in (
+        status.HTTP_401_UNAUTHORIZED,
+        status.HTTP_403_FORBIDDEN,
+    ) and request.url.path.startswith("/admin"):
+        return RedirectResponse(
+            url=f"/login?next={request.url.path}", status_code=status.HTTP_303_SEE_OTHER
+        )
 
     if not wants_html:
         return JSONResponse(
@@ -304,14 +309,16 @@ async def http_exception_handler(request: Request, exc: HTTPException):
             "csrf_token": csrf_token,
             "static_version": f"{settings.app_version}",
             "current_user": None,
-            "message": str(exc.detail) if exc.detail else "Ocorreu um erro ao processar sua solicitação.",
+            "message": str(exc.detail)
+            if exc.detail
+            else "Ocorreu um erro ao processar sua solicitação.",
         },
         status_code=exc.status_code,
     )
 
 
 # Incluir routers
-from app.web.router import router as web_router
+from app.web.router import router as web_router  # noqa: E402
 
 app.mount(
     "/static",
@@ -329,7 +336,11 @@ app.include_router(users_router)
 @app.get("/api", tags=["Root"])
 async def api_root():
     """Rota raiz da API."""
-    return {"name": settings.app_name, "version": settings.app_version, "docs": "/docs" if settings.debug else None}
+    return {
+        "name": settings.app_name,
+        "version": settings.app_version,
+        "docs": "/docs" if settings.debug else None,
+    }
 
 
 @app.get("/health", response_model=HealthResponse, tags=["Health"])

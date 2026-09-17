@@ -4,7 +4,7 @@ Gerenciador de provedores de IA externa.
 
 import time
 from abc import ABC, abstractmethod
-from enum import Enum
+from enum import StrEnum
 
 import httpx
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -16,8 +16,9 @@ from app.core.logging import log
 CONTENT_TYPE_JSON = "application/json"
 
 
-class AIProvider(str, Enum):
+class AIProvider(StrEnum):
     """Provedores de IA disponíveis."""
+
     LOCAL_LLM = "local_llm"
     DEEPSEEK = "deepseek"
     OPENROUTER = "openrouter"
@@ -40,6 +41,7 @@ class AIManager:
         if settings.local_llm_enabled:
             try:
                 from app.ai.local_llm_service import LocalLLMService
+
                 self.providers[AIProvider.LOCAL_LLM] = LocalLLMService()
                 log.info("Local LLM configurado")
             except ImportError as e:
@@ -67,8 +69,8 @@ class AIManager:
             Tupla (categoria, confiança, provider_usado)
         """
         providers_order = [
-            AIProvider.DEEPSEEK,    # Prioridade máxima: API externa (mais rápida)
-            AIProvider.LOCAL_LLM,   # Fallback: LLM local (sem custos)
+            AIProvider.DEEPSEEK,  # Prioridade máxima: API externa (mais rápida)
+            AIProvider.LOCAL_LLM,  # Fallback: LLM local (sem custos)
             AIProvider.OPENROUTER,
             AIProvider.HUGGINGFACE,
         ]
@@ -110,8 +112,8 @@ class AIManager:
         Traduz texto usando provedores em ordem de prioridade.
         """
         providers_order = [
-            AIProvider.DEEPSEEK,    # Prioridade máxima: API externa (mais rápida)
-            AIProvider.LOCAL_LLM,   # Fallback: LLM local (sem custos)
+            AIProvider.DEEPSEEK,  # Prioridade máxima: API externa (mais rápida)
+            AIProvider.LOCAL_LLM,  # Fallback: LLM local (sem custos)
             AIProvider.OPENROUTER,
         ]
 
@@ -231,14 +233,17 @@ Texto: {text}
                 json={
                     "model": "deepseek-chat",
                     "messages": [
-                        {"role": "user", "content": self.CLASSIFY_PROMPT.format(
-                            title=text[:500],
-                            abstract=text[500:2000] if len(text) > 500 else "",
-                        )}
+                        {
+                            "role": "user",
+                            "content": self.CLASSIFY_PROMPT.format(
+                                title=text[:500],
+                                abstract=text[500:2000] if len(text) > 500 else "",
+                            ),
+                        }
                     ],
                     "temperature": 0.1,
                     "max_tokens": 100,
-                    "response_format": {"type": "json_object"}
+                    "response_format": {"type": "json_object"},
                 },
             )
             response.raise_for_status()
@@ -248,14 +253,21 @@ Texto: {text}
 
             try:
                 import json
+
                 result_json = json.loads(content)
                 category = result_json.get("category", "outros").lower()
                 confidence = float(result_json.get("confidence", 0.5))
 
                 valid_categories = [
-                    "clinica", "educacao", "organizacional", "pesquisa",
-                    "autismo", "behaviorismo-radical", "comportamento-verbal",
-                    "noticias", "outros"
+                    "clinica",
+                    "educacao",
+                    "organizacional",
+                    "pesquisa",
+                    "autismo",
+                    "behaviorismo-radical",
+                    "comportamento-verbal",
+                    "noticias",
+                    "outros",
                 ]
                 if category in valid_categories:
                     return (category, confidence)
@@ -271,7 +283,7 @@ Texto: {text}
                 return ("outros", 0.0)
 
     @retry(stop=stop_after_attempt(2), wait=wait_exponential(min=1, max=5))
-    async def translate(self, text: str, target_lang: str = "pt") -> str:
+    async def translate(self, text: str, target_lang: str = "pt") -> str:  # noqa: ARG002
         async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.post(
                 f"{self.base_url}/chat/completions",
@@ -318,10 +330,13 @@ class OpenRouterService(BaseAIService):
                 json={
                     "model": "anthropic/claude-3-haiku",
                     "messages": [
-                        {"role": "user", "content": DeepSeekService.CLASSIFY_PROMPT.format(
-                            title=text[:500],
-                            abstract=text[500:2000] if len(text) > 500 else "",
-                        )}
+                        {
+                            "role": "user",
+                            "content": DeepSeekService.CLASSIFY_PROMPT.format(
+                                title=text[:500],
+                                abstract=text[500:2000] if len(text) > 500 else "",
+                            ),
+                        }
                     ],
                     "temperature": 0.1,
                     "max_tokens": 50,
@@ -334,6 +349,7 @@ class OpenRouterService(BaseAIService):
 
             try:
                 import json
+
                 # OpenRouter models might return markdown block ```json ... ```
                 if "```json" in content:
                     content = content.split("```json")[1].split("```")[0].strip()
@@ -354,7 +370,7 @@ class OpenRouterService(BaseAIService):
                 return ("outros", 0.0)
 
     @retry(stop=stop_after_attempt(2), wait=wait_exponential(min=1, max=5))
-    async def translate(self, text: str, target_lang: str = "pt") -> str:
+    async def translate(self, text: str, target_lang: str = "pt") -> str:  # noqa: ARG002
         async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.post(
                 f"{self.base_url}/chat/completions",
@@ -365,7 +381,10 @@ class OpenRouterService(BaseAIService):
                 json={
                     "model": "anthropic/claude-3-haiku",
                     "messages": [
-                        {"role": "user", "content": DeepSeekService.TRANSLATE_PROMPT.format(text=text)}
+                        {
+                            "role": "user",
+                            "content": DeepSeekService.TRANSLATE_PROMPT.format(text=text),
+                        }
                     ],
                     "temperature": 0.3,
                     "max_tokens": len(text) * 2,
@@ -427,7 +446,7 @@ class HuggingFaceService(BaseAIService):
 
             return ("outros", 0.5)
 
-    async def translate(self, text: str, target_lang: str = "pt") -> str:
+    async def translate(self, text: str, target_lang: str = "pt") -> str:  # noqa: ARG002
         # HuggingFace translation usando modelo Helsinki-NLP
         async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.post(

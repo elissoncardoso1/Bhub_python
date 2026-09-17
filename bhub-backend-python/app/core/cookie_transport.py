@@ -2,7 +2,6 @@
 Transport customizado para autenticação usando HttpOnly cookies.
 """
 
-
 from fastapi import Response
 from fastapi_users.authentication import BearerTransport
 

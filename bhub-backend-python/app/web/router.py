@@ -15,7 +15,7 @@ router.include_router(admin_router)
 router.include_router(public_router)
 router.include_router(consent_router)
 
-from app.web.translation import router as translation_router
+from app.web.translation import router as translation_router  # noqa: E402
 
 router.include_router(translation_router)
 

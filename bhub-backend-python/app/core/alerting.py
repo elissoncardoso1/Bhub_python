@@ -4,6 +4,7 @@ Alertas mínimos via webhook (opcional).
 
 from __future__ import annotations
 
+import contextlib
 from collections.abc import Callable
 
 import httpx
@@ -31,10 +32,8 @@ def create_alert_sink(webhook_url: str, timeout_seconds: int) -> Callable:
             "exception": str(record["exception"]) if record["exception"] else None,
         }
         payload = sanitize_for_logging(payload)
-        try:
+        # Não propagar erros de alertas para não quebrar o app.
+        with contextlib.suppress(Exception):
             client.post(webhook_url, json=payload)
-        except Exception:
-            # Não propagar erros de alertas para não quebrar o app.
-            pass
 
     return _sink

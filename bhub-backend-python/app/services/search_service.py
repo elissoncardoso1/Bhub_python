@@ -69,7 +69,7 @@ class SearchService:
         stmt = (
             select(Article.id)
             .where(
-                Article.is_published == True,
+                Article.is_published,
                 Article.search_vector.op("@@")(ts_query),
             )
             .order_by(rank.desc(), Article.publication_date.desc())
@@ -208,7 +208,7 @@ class SearchService:
         """
         terms = query.split()
 
-        stmt = select(Article.id).where(Article.is_published == True)
+        stmt = select(Article.id).where(Article.is_published)
 
         # Adicionar condições de busca
         for term in terms:
@@ -248,7 +248,7 @@ class SearchService:
             result = await self.db.execute(
                 select(Article.title)
                 .where(
-                    Article.is_published == True,
+                    Article.is_published,
                     Article.title.ilike(pattern),
                 )
                 .distinct()
@@ -261,7 +261,7 @@ class SearchService:
         result = await self.db.execute(
             select(Article.title)
             .where(
-                Article.is_published == True,
+                Article.is_published,
                 Article.title.ilike(pattern),
             )
             .distinct()
@@ -298,7 +298,7 @@ class SearchService:
 
         # Whitelist approach: apenas permitir caracteres alfanuméricos, espaços e acentos
         # Remover todos os caracteres especiais perigosos
-        sanitized = re.sub(r'[^a-zA-Z0-9\s\u00C0-\u017F]', '', query)
+        sanitized = re.sub(r"[^a-zA-Z0-9\s\u00C0-\u017F]", "", query)
 
         # Remover espaços extras
         sanitized = " ".join(sanitized.split())
@@ -307,7 +307,7 @@ class SearchService:
             return ""
 
         # Remover palavras reservadas do FTS5 que podem ser exploradas
-        fts5_reserved = ['AND', 'OR', 'NOT', 'MATCH', 'NEAR', 'rebuild', 'DELETE']
+        fts5_reserved = ["AND", "OR", "NOT", "MATCH", "NEAR", "rebuild", "DELETE"]
         terms = sanitized.split()
 
         # Filtrar termos reservados e validar cada termo
@@ -319,7 +319,7 @@ class SearchService:
                 continue
 
             # Remover qualquer caractere especial restante
-            clean_term = re.sub(r'[^a-zA-Z0-9\u00C0-\u017F]', '', term)
+            clean_term = re.sub(r"[^a-zA-Z0-9\u00C0-\u017F]", "", term)
 
             # Validar tamanho mínimo e máximo
             if len(clean_term) >= 2 and len(clean_term) <= 50:
@@ -377,7 +377,9 @@ class SearchService:
         if self._is_postgres():
             try:
                 indexed_count = await self.db.scalar(
-                    select(func.count()).select_from(Article).where(Article.search_vector.isnot(None))
+                    select(func.count())
+                    .select_from(Article)
+                    .where(Article.search_vector.isnot(None))
                 )
                 return {
                     "indexed_articles": indexed_count or 0,
@@ -392,9 +394,7 @@ class SearchService:
                 }
 
         try:
-            result = await self.db.execute(
-                text("SELECT COUNT(*) FROM articles_fts")
-            )
+            result = await self.db.execute(text("SELECT COUNT(*) FROM articles_fts"))
             indexed_count = result.scalar()
 
             return {

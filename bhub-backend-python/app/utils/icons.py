@@ -1,4 +1,3 @@
-from functools import lru_cache
 from pathlib import Path
 
 
@@ -6,9 +5,17 @@ class LucideIcons:
     def __init__(self, icons_dir: str = "app/static/icons"):
         # Adjust path if needed based on where the app is running
         self.icons_dir = Path(icons_dir)
+        self._cache: dict[str, str] = {}
 
-    @lru_cache(maxsize=128)
     def get(self, name: str, css_class: str = "w-5 h-5", aria_hidden: bool = True) -> str:
+        key = f"{name}:{css_class}:{aria_hidden}"
+        if key in self._cache:
+            return self._cache[key]
+        result = self._get_icon(name, css_class, aria_hidden)
+        self._cache[key] = result
+        return result
+
+    def _get_icon(self, name: str, css_class: str, aria_hidden: bool) -> str:
         """
         Retorna o SVG do ícone com classes CSS aplicadas.
         Se não encontrar o arquivo, retorna um fallback (ou string vazia).
@@ -34,8 +41,9 @@ class LucideIcons:
         # pois não tenho garantia que os SVGs estão baixados localmente users filesystem yet.
         # O User não baixou os ícones ainda.
 
-        aria_attr = 'aria-hidden="true"' if aria_hidden else ''
+        aria_attr = 'aria-hidden="true"' if aria_hidden else ""
         return f'<i data-lucide="{name}" class="{css_class}" {aria_attr}></i>'
+
 
 # Export instance
 icons = LucideIcons()

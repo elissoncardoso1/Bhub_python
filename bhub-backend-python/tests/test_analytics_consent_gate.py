@@ -38,19 +38,23 @@ def track_spy(monkeypatch):
 
 
 def _consent_cookie(analytics: bool = True) -> str:
-    return json.dumps({
-        "necessary": True,
-        "analytics": analytics,
-        "external_media": False,
-        "marketing": False,
-        "version": settings.cookie_consent_version,
-        "updated_at": datetime.now(UTC).isoformat(timespec="seconds"),
-    })
+    return json.dumps(
+        {
+            "necessary": True,
+            "analytics": analytics,
+            "external_media": False,
+            "marketing": False,
+            "version": settings.cookie_consent_version,
+            "updated_at": datetime.now(UTC).isoformat(timespec="seconds"),
+        }
+    )
 
 
 @pytest.mark.asyncio
 class TestSemConsentimento:
-    async def test_nao_cria_cookie_nem_header_nem_evento(self, client: AsyncClient, analytics_on, track_spy):
+    async def test_nao_cria_cookie_nem_header_nem_evento(
+        self, client: AsyncClient, analytics_on, track_spy
+    ):
         resp = await client.get("/")
         assert resp.status_code == 200
         assert "analytics_session_id" not in resp.cookies
@@ -82,7 +86,9 @@ class TestConsentimentoAceito:
         assert resp.headers.get("X-Session-ID")
         assert "track_event" in track_spy
 
-    async def test_config_desligada_vence_consentimento(self, client: AsyncClient, track_spy, monkeypatch):
+    async def test_config_desligada_vence_consentimento(
+        self, client: AsyncClient, track_spy, monkeypatch
+    ):
         monkeypatch.setattr(settings, "enable_analytics", False)
         client.cookies.set(CONSENT_COOKIE_NAME, _consent_cookie(analytics=True))
         resp = await client.get("/")
@@ -98,10 +104,19 @@ class TestConsentimentoAceito:
 
 @pytest.mark.asyncio
 class TestRotasExcluidas:
-    @pytest.mark.parametrize("path", [
-        "/login", "/contact", "/health", "/static/css/output.css", "/privacy",
-    ])
-    async def test_rotas_excluidas_nao_rastreadas(self, client: AsyncClient, analytics_on, track_spy, path):
+    @pytest.mark.parametrize(
+        "path",
+        [
+            "/login",
+            "/contact",
+            "/health",
+            "/static/css/output.css",
+            "/privacy",
+        ],
+    )
+    async def test_rotas_excluidas_nao_rastreadas(
+        self, client: AsyncClient, analytics_on, track_spy, path
+    ):
         client.cookies.set(CONSENT_COOKIE_NAME, _consent_cookie(analytics=True))
         await client.get(path)
         assert track_spy == []
@@ -121,7 +136,9 @@ class TestRotasExcluidas:
 
 @pytest.mark.asyncio
 class TestRevogacao:
-    async def test_pos_revogacao_middleware_nao_reseta_cookie(self, client: AsyncClient, analytics_on, track_spy):
+    async def test_pos_revogacao_middleware_nao_reseta_cookie(
+        self, client: AsyncClient, analytics_on, track_spy
+    ):
         """Regressão: a resposta do revoke não pode ter o cookie re-setado pelo middleware,
         e requests seguintes sem consentimento não recriam o cookie."""
         # visita com consentimento → cookie criado
@@ -146,14 +163,18 @@ class TestRevogacao:
         assert all("Max-Age=0" in c or "expires" in c.lower() for c in analytics_headers)
         # request seguinte (sem cookie de consentimento) não recria nada
         client.cookies.delete(CONSENT_COOKIE_NAME)
-        client.cookies.delete("analytics_session_id") if "analytics_session_id" in client.cookies else None
+        client.cookies.delete(
+            "analytics_session_id"
+        ) if "analytics_session_id" in client.cookies else None
         resp2 = await client.get("/")
         assert "analytics_session_id" not in resp2.cookies
 
 
 @pytest.mark.asyncio
 class TestCookieAdulterado:
-    async def test_cookie_invalido_bloqueia_e_nao_quebra(self, client: AsyncClient, analytics_on, track_spy):
+    async def test_cookie_invalido_bloqueia_e_nao_quebra(
+        self, client: AsyncClient, analytics_on, track_spy
+    ):
         client.cookies.set(CONSENT_COOKIE_NAME, "lixo-nao-json")
         resp = await client.get("/")
         assert resp.status_code == 200
@@ -169,7 +190,9 @@ class TestCookieAdulterado:
 
 @pytest.mark.asyncio
 class TestApiTrackingRespeitaConsentimento:
-    async def test_track_sem_consentimento_nao_grava(self, client: AsyncClient, analytics_on, track_spy):
+    async def test_track_sem_consentimento_nao_grava(
+        self, client: AsyncClient, analytics_on, track_spy
+    ):
         resp = await client.post(
             "/api/v1/analytics/track",
             json={"event_type": "page_view", "event_name": "x"},
@@ -178,7 +201,9 @@ class TestApiTrackingRespeitaConsentimento:
         assert resp.json()["success"] is False
         assert track_spy == []
 
-    async def test_track_com_consentimento_grava(self, client: AsyncClient, analytics_on, track_spy):
+    async def test_track_com_consentimento_grava(
+        self, client: AsyncClient, analytics_on, track_spy
+    ):
         client.cookies.set(CONSENT_COOKIE_NAME, _consent_cookie(analytics=True))
         resp = await client.post(
             "/api/v1/analytics/track",

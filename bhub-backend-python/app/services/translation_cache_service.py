@@ -28,12 +28,12 @@ def normalize_text(text: str) -> str:
     text = text.strip()
 
     # Remove espaços duplicados
-    text = re.sub(r'\s+', ' ', text)
+    text = re.sub(r"\s+", " ", text)
 
     # Mantém case-sensitive para preservar termos técnicos
     # Mas remove espaços extras e normaliza quebras de linha
-    text = text.replace('\n', ' ').replace('\r', ' ')
-    text = re.sub(r'\s+', ' ', text)
+    text = text.replace("\n", " ").replace("\r", " ")
+    text = re.sub(r"\s+", " ", text)
 
     return text
 
@@ -62,7 +62,7 @@ def generate_cache_key(
     key_data = f"{source_lang}|{target_lang}|{normalized}|{model_version}"
 
     # Gera hash SHA256
-    hash_obj = hashlib.sha256(key_data.encode('utf-8'))
+    hash_obj = hashlib.sha256(key_data.encode("utf-8"))
     return hash_obj.hexdigest()
 
 
@@ -84,9 +84,7 @@ class TranslationCacheService:
         Returns:
             TranslationCache se encontrado, None caso contrário
         """
-        stmt = select(TranslationCache).where(
-            TranslationCache.content_hash == cache_key
-        )
+        stmt = select(TranslationCache).where(TranslationCache.content_hash == cache_key)
         result = await session.execute(stmt)
         return result.scalar_one_or_none()
 
@@ -153,8 +151,7 @@ class TranslationCacheService:
         await session.refresh(translation_cache)
 
         log.info(
-            f"Tradução salva no cache: {cache_key[:8]}... "
-            f"({source_language} -> {target_language})"
+            f"Tradução salva no cache: {cache_key[:8]}... ({source_language} -> {target_language})"
         )
 
         return translation_cache
@@ -178,9 +175,7 @@ class TranslationCacheService:
 
         cutoff_date = datetime.utcnow() - timedelta(days=days)
 
-        stmt = delete(TranslationCache).where(
-            TranslationCache.last_accessed_at < cutoff_date
-        )
+        stmt = delete(TranslationCache).where(TranslationCache.last_accessed_at < cutoff_date)
 
         result = await session.execute(stmt)
         await session.commit()
@@ -210,16 +205,13 @@ class TranslationCacheService:
         total = total_result.scalar() or 0
 
         # Traduções por idioma
-        lang_stmt = (
-            select(
-                TranslationCache.source_language,
-                TranslationCache.target_language,
-                func.count(TranslationCache.id).label("count"),
-            )
-            .group_by(
-                TranslationCache.source_language,
-                TranslationCache.target_language,
-            )
+        lang_stmt = select(
+            TranslationCache.source_language,
+            TranslationCache.target_language,
+            func.count(TranslationCache.id).label("count"),
+        ).group_by(
+            TranslationCache.source_language,
+            TranslationCache.target_language,
         )
         lang_result = await session.execute(lang_stmt)
         by_language = [
@@ -233,9 +225,7 @@ class TranslationCacheService:
 
         # Traduções mais antigas
         oldest_stmt = (
-            select(TranslationCache)
-            .order_by(TranslationCache.last_accessed_at.asc())
-            .limit(1)
+            select(TranslationCache).order_by(TranslationCache.last_accessed_at.asc()).limit(1)
         )
         oldest_result = await session.execute(oldest_stmt)
         oldest = oldest_result.scalar_one_or_none()

@@ -64,9 +64,7 @@ def make_service(feed: Feed, fetch_result: FetchResult) -> FeedAggregatorService
 @pytest.mark.asyncio
 async def test_erro_transitorio_nao_incrementa_error_count():
     feed = make_feed(error_count=2)
-    service = make_service(
-        feed, FetchResult(status=FetchStatus.TRANSIENT_ERROR, error="HTTP 502")
-    )
+    service = make_service(feed, FetchResult(status=FetchStatus.TRANSIENT_ERROR, error="HTTP 502"))
     result = await service.sync_feed(feed_id=1)
     assert result.success is False
     assert feed.error_count == 2

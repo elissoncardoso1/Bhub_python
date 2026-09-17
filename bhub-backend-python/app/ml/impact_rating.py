@@ -16,25 +16,59 @@ class ImpactRatingService:
     # Palavras que indicam alto impacto
     HIGH_IMPACT_KEYWORDS = [
         # Metodológicos
-        "meta-analysis", "meta-análise", "systematic review", "revisão sistemática",
-        "randomized", "randomizado", "controlled trial", "ensaio controlado",
-        "longitudinal", "multicenter", "multicêntrico",
+        "meta-analysis",
+        "meta-análise",
+        "systematic review",
+        "revisão sistemática",
+        "randomized",
+        "randomizado",
+        "controlled trial",
+        "ensaio controlado",
+        "longitudinal",
+        "multicenter",
+        "multicêntrico",
         # Resultados
-        "breakthrough", "novel", "innovative", "inovador",
-        "significant", "significativo", "effective", "eficaz",
-        "first", "primeiro", "new approach", "nova abordagem",
+        "breakthrough",
+        "novel",
+        "innovative",
+        "inovador",
+        "significant",
+        "significativo",
+        "effective",
+        "eficaz",
+        "first",
+        "primeiro",
+        "new approach",
+        "nova abordagem",
         # Escala
-        "large-scale", "nationwide", "international", "internacional",
-        "population", "população",
+        "large-scale",
+        "nationwide",
+        "international",
+        "internacional",
+        "population",
+        "população",
     ]
 
     # Palavras que indicam menor impacto
     LOW_IMPACT_KEYWORDS = [
-        "preliminary", "preliminar", "pilot", "piloto",
-        "case study", "estudo de caso", "single case", "caso único",
-        "exploratory", "exploratório", "descriptive", "descritivo",
-        "commentary", "comentário", "letter", "carta",
-        "erratum", "corrigendum",
+        "preliminary",
+        "preliminar",
+        "pilot",
+        "piloto",
+        "case study",
+        "estudo de caso",
+        "single case",
+        "caso único",
+        "exploratory",
+        "exploratório",
+        "descriptive",
+        "descritivo",
+        "commentary",
+        "comentário",
+        "letter",
+        "carta",
+        "erratum",
+        "corrigendum",
     ]
 
     # Periódicos de alto impacto em ABA
@@ -80,10 +114,10 @@ class ImpactRatingService:
             return score
 
         # Tentar usar IA para análise mais sofisticada (opcional)
-        ai_boost = 0.0
         if use_ai:
             try:
                 from app.ai import get_ai_manager
+
                 ai_manager = get_ai_manager()
 
                 # Se IA externa disponível, usar para análise de impacto
@@ -96,17 +130,11 @@ class ImpactRatingService:
 
         try:
             # Fator 1: Keywords de alto impacto (+0.5 cada, máx +2.0)
-            high_impact_count = sum(
-                1 for kw in cls.HIGH_IMPACT_KEYWORDS
-                if kw.lower() in text
-            )
+            high_impact_count = sum(1 for kw in cls.HIGH_IMPACT_KEYWORDS if kw.lower() in text)
             score += min(high_impact_count * 0.5, 2.0)
 
             # Fator 2: Keywords de baixo impacto (-0.3 cada, máx -1.5)
-            low_impact_count = sum(
-                1 for kw in cls.LOW_IMPACT_KEYWORDS
-                if kw.lower() in text
-            )
+            low_impact_count = sum(1 for kw in cls.LOW_IMPACT_KEYWORDS if kw.lower() in text)
             score -= min(low_impact_count * 0.3, 1.5)
 
             # Fator 3: Periódico de alto impacto (+1.5)
@@ -127,10 +155,11 @@ class ImpactRatingService:
                     score += 0.25
 
             # Fator 6: Presença de dados quantitativos no abstract
-            if abstract:
+            if abstract and re.search(
+                r"\d+%|\bp\s*[<>=]\s*\d|n\s*=\s*\d+", abstract, re.IGNORECASE
+            ):
                 # Procurar números, percentuais, estatísticas
-                if re.search(r'\d+%|\bp\s*[<>=]\s*\d|n\s*=\s*\d+', abstract, re.IGNORECASE):
-                    score += 0.5
+                score += 0.5
 
             # Fator 7: Keywords definidas
             if keywords and len(keywords.split(",")) >= 3:

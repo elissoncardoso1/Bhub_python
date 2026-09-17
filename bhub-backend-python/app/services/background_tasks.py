@@ -43,17 +43,19 @@ async def classify_article_task(article_id: int):
             ai_manager = get_ai_manager()
 
             # Usar novo serviço de classificação com suporte a múltiplas categorias
-            category_slugs_with_confidence = await ClassificationService.classify_with_multiple_categories(
-                db=db,
-                text=classification_text,
-                ai_manager=ai_manager,
-                min_confidence=0.3,
+            category_slugs_with_confidence = (
+                await ClassificationService.classify_with_multiple_categories(
+                    db=db,
+                    text=classification_text,
+                    ai_manager=ai_manager,
+                    min_confidence=0.3,
+                )
             )
 
             # Calcular impact_score se ainda não foi calculado (ou se está no valor padrão)
             needs_impact_calculation = (
-                article.impact_score is None or
-                abs(article.impact_score - 5.0) < 0.01  # Tolerância para comparação de float
+                article.impact_score is None
+                or abs(article.impact_score - 5.0) < 0.01  # Tolerância para comparação de float
             )
 
             if needs_impact_calculation:
@@ -81,19 +83,27 @@ async def classify_article_task(article_id: int):
 
                 # Atualizar confiança média (ou da primeira categoria)
                 if assigned_categories:
-                    primary_confidence = category_slugs_with_confidence[0][1] if category_slugs_with_confidence else 0.0
+                    primary_confidence = (
+                        category_slugs_with_confidence[0][1]
+                        if category_slugs_with_confidence
+                        else 0.0
+                    )
                     article.classification_confidence = primary_confidence
 
                     await db.commit()
                     category_names = ", ".join([cat.name for cat in assigned_categories])
-                    log.info(f"Artigo {article_id} atualizado com {len(assigned_categories)} categorias: {category_names}, impact_score: {article.impact_score:.2f}")
+                    log.info(
+                        f"Artigo {article_id} atualizado com {len(assigned_categories)} categorias: {category_names}, impact_score: {article.impact_score:.2f}"
+                    )
                 else:
                     log.warning(f"Nenhuma categoria atribuída ao artigo {article_id}")
             else:
                 # Mesmo sem categoria, salvar o impact_score se foi calculado
                 if abs(article.impact_score - 5.0) >= 0.01:
                     await db.commit()
-                    log.info(f"Artigo {article_id} - Impact score atualizado: {article.impact_score:.2f} (sem categoria)")
+                    log.info(
+                        f"Artigo {article_id} - Impact score atualizado: {article.impact_score:.2f} (sem categoria)"
+                    )
                 else:
                     log.info(f"Nenhuma categoria determinada para artigo {article_id}")
 

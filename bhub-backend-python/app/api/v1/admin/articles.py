@@ -35,19 +35,16 @@ router = APIRouter(prefix="/articles", tags=["Admin - Articles"])
 @router.get("", response_model=ArticleListResponse)
 async def admin_list_articles(
     db: DBSession,
-    admin: CurrentAdmin,
+    _admin: CurrentAdmin,  # noqa: ARG001  # dependência de autorização
     pagination: Pagination,
     category_id: int | None = None,
     feed_id: int | None = None,
     is_published: bool | None = None,
 ):
     """Lista todos os artigos (admin)."""
-    stmt = (
-        select(Article)
-        .options(
-            selectinload(Article.category),
-            selectinload(Article.authors),
-        )
+    stmt = select(Article).options(
+        selectinload(Article.category),
+        selectinload(Article.authors),
     )
 
     if category_id:
@@ -84,7 +81,7 @@ async def admin_list_articles(
 @router.post("", response_model=ArticleResponse)
 async def admin_create_article(
     db: DBSession,
-    admin: CurrentAdmin,
+    _admin: CurrentAdmin,  # noqa: ARG001  # dependência de autorização
     data: ArticleCreate,
 ):
     """Cria um novo artigo manualmente."""
@@ -114,9 +111,7 @@ async def admin_create_article(
     for author_name in data.authors:
         normalized = Author.normalize_name(author_name)
 
-        result = await db.execute(
-            select(Author).where(Author.normalized_name == normalized)
-        )
+        result = await db.execute(select(Author).where(Author.normalized_name == normalized))
         author = result.scalar_one_or_none()
 
         if not author:
@@ -135,7 +130,7 @@ async def admin_create_article(
 @router.put("/{article_id}", response_model=ArticleResponse)
 async def admin_update_article(
     db: DBSession,
-    admin: CurrentAdmin,
+    _admin: CurrentAdmin,  # noqa: ARG001  # dependência de autorização
     article_id: int,
     data: ArticleUpdate,
 ):
@@ -168,13 +163,11 @@ async def admin_update_article(
 async def admin_delete_article(
     db: DBSession,
     pdf_service: PDFDep,
-    admin: CurrentAdmin,
+    _admin: CurrentAdmin,  # noqa: ARG001  # dependência de autorização
     article_id: int,
 ):
     """Remove um artigo."""
-    result = await db.execute(
-        select(Article).where(Article.id == article_id)
-    )
+    result = await db.execute(select(Article).where(Article.id == article_id))
     article = result.scalar_one_or_none()
 
     if not article:
@@ -196,7 +189,7 @@ async def admin_delete_article(
 @router.patch("/{article_id}/highlight", response_model=ArticleResponse)
 async def admin_toggle_highlight(
     db: DBSession,
-    admin: CurrentAdmin,
+    _admin: CurrentAdmin,  # noqa: ARG001  # dependência de autorização
     article_id: int,
     data: ArticleHighlightRequest,
 ):
@@ -225,7 +218,7 @@ async def admin_toggle_highlight(
 async def admin_upload_pdf(
     db: DBSession,
     pdf_service: PDFDep,
-    admin: CurrentAdmin,
+    _admin: CurrentAdmin,  # noqa: ARG001  # dependência de autorização
     file: UploadFile = File(...),
     category_id: int | None = None,
 ):
@@ -253,9 +246,7 @@ async def admin_upload_pdf(
         # Buscar ou criar feed de PDFs
         from app.models import PDF_FEED_NAME, PDF_FEED_URL, FeedType
 
-        result = await db.execute(
-            select(Feed).where(Feed.feed_url == PDF_FEED_URL)
-        )
+        result = await db.execute(select(Feed).where(Feed.feed_url == PDF_FEED_URL))
         feed = result.scalar_one_or_none()
 
         if not feed:
@@ -301,9 +292,7 @@ async def admin_upload_pdf(
         for author_name in pdf_data.get("authors", []):
             normalized = Author.normalize_name(author_name)
 
-            result = await db.execute(
-                select(Author).where(Author.normalized_name == normalized)
-            )
+            result = await db.execute(select(Author).where(Author.normalized_name == normalized))
             author = result.scalar_one_or_none()
 
             if not author:
@@ -331,7 +320,7 @@ async def admin_upload_pdf(
 @router.post("/scrape", response_model=ScrapeResponse)
 async def admin_scrape_url(
     db: DBSession,
-    admin: CurrentAdmin,
+    _admin: CurrentAdmin,  # noqa: ARG001  # dependência de autorização
     data: ScrapeRequest,
 ):
     """Faz scraping de URL para criar artigo."""
@@ -355,9 +344,7 @@ async def admin_scrape_url(
         # Buscar ou criar feed de scraping
         from app.models import SCRAPING_FEED_NAME, SCRAPING_FEED_URL, FeedType
 
-        result = await db.execute(
-            select(Feed).where(Feed.feed_url == SCRAPING_FEED_URL)
-        )
+        result = await db.execute(select(Feed).where(Feed.feed_url == SCRAPING_FEED_URL))
         feed = result.scalar_one_or_none()
 
         if not feed:
@@ -393,9 +380,7 @@ async def admin_scrape_url(
         for author_name in scraped_data.get("authors", []):
             normalized = Author.normalize_name(author_name)
 
-            result = await db.execute(
-                select(Author).where(Author.normalized_name == normalized)
-            )
+            result = await db.execute(select(Author).where(Author.normalized_name == normalized))
             author = result.scalar_one_or_none()
 
             if not author:

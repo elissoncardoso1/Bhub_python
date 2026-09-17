@@ -122,12 +122,19 @@ class TestSerializeAndCookie:
         raw = cc.serialize_consent({"analytics": True, "external_media": False, "marketing": False})
         data = json.loads(raw)
         assert set(data.keys()) == {
-            "necessary", "analytics", "external_media", "marketing", "version", "updated_at",
+            "necessary",
+            "analytics",
+            "external_media",
+            "marketing",
+            "version",
+            "updated_at",
         }
 
     def test_set_consent_cookie_flags(self):
         resp = Response()
-        cc.set_consent_cookie(resp, {"analytics": False, "external_media": False, "marketing": False})
+        cc.set_consent_cookie(
+            resp, {"analytics": False, "external_media": False, "marketing": False}
+        )
         header = resp.headers["set-cookie"]
         assert "bhub_consent=" in header
         assert "SameSite=lax" in header or "samesite=lax" in header.lower()

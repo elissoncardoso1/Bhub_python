@@ -182,6 +182,7 @@ def main():
             print(f"\nBackups disponíveis em {backup_dir}:")
             for backup in backups:
                 from datetime import datetime
+
                 mtime = datetime.fromtimestamp(backup.stat().st_mtime)
                 size = backup.stat().st_size / 1024 / 1024
                 print(f"  - {backup.name} ({mtime.strftime('%Y-%m-%d %H:%M:%S')}, {size:.2f} MB)")

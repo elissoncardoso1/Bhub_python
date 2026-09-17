@@ -4,6 +4,7 @@ Script para sincronizar todos os feeds RSS.
 
 import asyncio
 import sys
+
 sys.path.insert(0, ".")
 
 from app.core.logging import setup_logging, log

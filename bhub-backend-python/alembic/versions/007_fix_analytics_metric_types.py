@@ -5,6 +5,7 @@ Revises: 006_refresh_tokens
 Create Date: 2026-03-13 00:10:00.000000
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op

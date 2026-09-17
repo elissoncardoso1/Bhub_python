@@ -2,7 +2,6 @@
 Rotas de Open Graph para geração dinâmica de meta tags e imagens.
 """
 
-
 from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import FileResponse, HTMLResponse
 from sqlalchemy import select
@@ -16,7 +15,7 @@ router = APIRouter(prefix="/og", tags=["Open Graph"])
 @router.get("/articles/{article_id}/meta")
 async def get_article_og_meta(
     request: Request,
-    db: DBSession,
+    _db: DBSession,  # noqa: ARG001
     article_id: int,
     og_service: OpenGraphDep,
 ):
@@ -44,12 +43,12 @@ async def get_article_og_meta(
     <!DOCTYPE html>
     <html>
     <head>
-        <title>{metadata.get('title', 'BHub')}</title>
-        {''.join(meta_tags)}
+        <title>{metadata.get("title", "BHub")}</title>
+        {"".join(meta_tags)}
     </head>
     <body>
-        <h1>{metadata.get('og:title', 'BHub')}</h1>
-        <p>{metadata.get('og:description', '')}</p>
+        <h1>{metadata.get("og:title", "BHub")}</h1>
+        <p>{metadata.get("og:description", "")}</p>
     </body>
     </html>
     """
@@ -69,9 +68,7 @@ async def get_article_og_image(
     Gera a imagem sob demanda se não existir em cache.
     """
     # Verificar se artigo existe
-    result = await db.execute(
-        select(Article).where(Article.id == article_id, Article.is_published == True)
-    )
+    result = await db.execute(select(Article).where(Article.id == article_id, Article.is_published))
     article = result.scalar_one_or_none()
 
     if not article:
@@ -121,7 +118,7 @@ async def get_default_og_image(
 @router.get("/articles/{article_id}/json")
 async def get_article_og_json(
     request: Request,
-    db: DBSession,
+    _db: DBSession,  # noqa: ARG001
     article_id: int,
     og_service: OpenGraphDep,
 ):
@@ -147,9 +144,7 @@ async def regenerate_article_og_image(
 
     Útil após atualizações no artigo.
     """
-    result = await db.execute(
-        select(Article).where(Article.id == article_id)
-    )
+    result = await db.execute(select(Article).where(Article.id == article_id))
     article = result.scalar_one_or_none()
 
     if not article:

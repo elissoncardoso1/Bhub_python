@@ -11,6 +11,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
 # Forçar API key do ambiente
@@ -149,6 +150,7 @@ async def reprocess_classification():
 
                     # Criar nova associação na tabela many-to-many
                     from sqlalchemy import insert
+
                     await db.execute(
                         insert(article_categories).values(
                             article_id=article.id,
@@ -186,6 +188,7 @@ async def reprocess_classification():
             except Exception as e:
                 log.error(f"  -> ERRO: {e}")
                 import traceback
+
                 log.debug(traceback.format_exc())
                 errors += 1
 
@@ -212,4 +215,5 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Erro fatal: {e}")
         import traceback
+
         traceback.print_exc()

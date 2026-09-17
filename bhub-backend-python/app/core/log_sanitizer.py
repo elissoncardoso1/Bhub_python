@@ -23,25 +23,21 @@ def sanitize_log_message(message: str) -> str:
     # Remover tokens JWT (Bearer tokens)
     # Formato: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
     message = re.sub(
-        r'Bearer\s+[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+',
-        'Bearer [REDACTED]',
-        message
+        r"Bearer\s+[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+", "Bearer [REDACTED]", message
     )
 
     # Remover tokens JWT sem "Bearer" prefix
     message = re.sub(
-        r'\beyJ[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+\b',
-        '[JWT_TOKEN_REDACTED]',
-        message
+        r"\beyJ[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+\b", "[JWT_TOKEN_REDACTED]", message
     )
 
     # Remover senhas em diferentes formatos
     # password="senha" ou password: senha ou password=senha
     message = re.sub(
         r'password["\']?\s*[:=]\s*["\']?[^"\'\s]+',
-        'password=[REDACTED]',
+        "password=[REDACTED]",
         message,
-        flags=re.IGNORECASE
+        flags=re.IGNORECASE,
     )
 
     # Remover chaves de API comuns
@@ -52,20 +48,11 @@ def sanitize_log_message(message: str) -> str:
         r'access[_-]?token["\']?\s*[:=]\s*["\']?[^"\'\s]+',
     ]
     for pattern in api_key_patterns:
-        message = re.sub(
-            pattern,
-            '[API_KEY_REDACTED]',
-            message,
-            flags=re.IGNORECASE
-        )
+        message = re.sub(pattern, "[API_KEY_REDACTED]", message, flags=re.IGNORECASE)
 
     # Remover possíveis números de cartão (parcial - apenas últimos 4 dígitos)
     # Formato: 1234-5678-9012-3456 ou 1234567890123456
-    message = re.sub(
-        r'\b\d{4}[\s\-]?\d{4}[\s\-]?\d{4}[\s\-]?\d{4}\b',
-        '[CARD_REDACTED]',
-        message
-    )
+    message = re.sub(r"\b\d{4}[\s\-]?\d{4}[\s\-]?\d{4}[\s\-]?\d{4}\b", "[CARD_REDACTED]", message)
 
     return message
 
@@ -75,12 +62,22 @@ def sanitize_dict(data: dict) -> dict:
     Sanitiza um dicionário removendo valores sensíveis.
     """
     sensitive_keys = [
-        'password', 'passwd', 'pwd',
-        'token', 'access_token', 'refresh_token',
-        'api_key', 'apikey', 'secret_key',
-        'authorization', 'auth',
-        'credit_card', 'card_number',
-        'ssn', 'cpf', 'cnpj',
+        "password",
+        "passwd",
+        "pwd",
+        "token",
+        "access_token",
+        "refresh_token",
+        "api_key",
+        "apikey",
+        "secret_key",
+        "authorization",
+        "auth",
+        "credit_card",
+        "card_number",
+        "ssn",
+        "cpf",
+        "cnpj",
     ]
 
     sanitized = {}
@@ -89,7 +86,7 @@ def sanitize_dict(data: dict) -> dict:
 
         # Verificar se a chave é sensível
         if any(sensitive in key_lower for sensitive in sensitive_keys):
-            sanitized[key] = '[REDACTED]'
+            sanitized[key] = "[REDACTED]"
         elif isinstance(value, str):
             sanitized[key] = sanitize_log_message(value)
         elif isinstance(value, dict):

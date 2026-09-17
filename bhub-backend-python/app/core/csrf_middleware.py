@@ -68,6 +68,7 @@ class CSRFMiddleware(BaseHTTPMiddleware):
             except Exception as e:
                 # Se validação falhar, retornar erro
                 from fastapi import HTTPException, status
+
                 if isinstance(e, HTTPException):
                     raise
                 raise HTTPException(

@@ -124,11 +124,7 @@ async def release_lock(lock_name: str, instance_id: str | None = None) -> bool:
             lock = result.scalar_one_or_none()
 
             if lock:
-                await db.execute(
-                    sql_delete(SchedulerLock).where(
-                        SchedulerLock.id == lock.id
-                    )
-                )
+                await db.execute(sql_delete(SchedulerLock).where(SchedulerLock.id == lock.id))
                 await db.commit()
                 log.info(f"Lock {lock_name} liberado por {instance_id}")
                 return True
@@ -151,9 +147,7 @@ async def cleanup_expired_locks(db: AsyncSession) -> int:
     """
     try:
         now = datetime.utcnow()
-        result = await db.execute(
-            sql_delete(SchedulerLock).where(SchedulerLock.expires_at < now)
-        )
+        result = await db.execute(sql_delete(SchedulerLock).where(SchedulerLock.expires_at < now))
         await db.commit()
         count = result.rowcount
         if count > 0:

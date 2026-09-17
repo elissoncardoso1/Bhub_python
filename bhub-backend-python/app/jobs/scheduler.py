@@ -94,11 +94,13 @@ def get_scheduler_status() -> dict:
     """Retorna status do scheduler."""
     jobs = []
     for job in scheduler.get_jobs():
-        jobs.append({
-            "id": job.id,
-            "name": job.name,
-            "next_run": str(job.next_run_time) if job.next_run_time else None,
-        })
+        jobs.append(
+            {
+                "id": job.id,
+                "name": job.name,
+                "next_run": str(job.next_run_time) if job.next_run_time else None,
+            }
+        )
 
     return {
         "running": scheduler.running,

@@ -15,17 +15,10 @@ router = APIRouter(prefix="/feeds", tags=["Feeds"])
 @router.get("", response_model=FeedListResponse)
 async def list_feeds(db: DBSession):
     """Lista todos os feeds ativos."""
-    result = await db.execute(
-        select(Feed)
-        .where(Feed.is_active == True)
-        .order_by(Feed.name)
-    )
+    result = await db.execute(select(Feed).where(Feed.is_active).order_by(Feed.name))
     feeds = result.scalars().all()
 
-    return FeedListResponse(
-        feeds=[FeedResponse.model_validate(f) for f in feeds],
-        total=len(feeds)
-    )
+    return FeedListResponse(feeds=[FeedResponse.model_validate(f) for f in feeds], total=len(feeds))
 
 
 @router.get("/{feed_id}", response_model=FeedResponse)
@@ -34,13 +27,12 @@ async def get_feed(
     feed_id: int,
 ):
     """Retorna detalhes de um feed."""
-    result = await db.execute(
-        select(Feed).where(Feed.id == feed_id)
-    )
+    result = await db.execute(select(Feed).where(Feed.id == feed_id))
     feed = result.scalar_one_or_none()
 
     if not feed:
         from fastapi import HTTPException, status
+
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Feed não encontrado",

@@ -64,14 +64,10 @@ class AnalyticsService:
         return event
 
     @staticmethod
-    async def _update_session_events_count(
-        db: AsyncSession, session_id: str
-    ) -> None:
+    async def _update_session_events_count(db: AsyncSession, session_id: str) -> None:
         """Atualiza contador de eventos da sessão."""
         session = await db.scalar(
-            select(AnalyticsSession).where(
-                AnalyticsSession.session_id == session_id
-            )
+            select(AnalyticsSession).where(AnalyticsSession.session_id == session_id)
         )
         if session:
             session.events_count += 1
@@ -83,20 +79,19 @@ class AnalyticsService:
         session_id: str,
         user_id: int | None = None,
         user_agent: str | None = None,
-        ip_address: str | None = None,
+        # `ip_address` integra a API pública do serviço e é passado por keyword
+        # pelos chamadores (ex.: app/core/analytics_middleware.py); o nome não
+        # pode virar `_ip_address`.
+        ip_address: str | None = None,  # noqa: ARG004
     ) -> AnalyticsSession:
         """Obtém ou cria uma sessão de analytics."""
         session = await db.scalar(
-            select(AnalyticsSession).where(
-                AnalyticsSession.session_id == session_id
-            )
+            select(AnalyticsSession).where(AnalyticsSession.session_id == session_id)
         )
 
         if not session:
             # Extrair informações do user agent
-            device_type, browser, os = AnalyticsService._parse_user_agent(
-                user_agent or ""
-            )
+            device_type, browser, os = AnalyticsService._parse_user_agent(user_agent or "")
 
             session = AnalyticsSession(
                 session_id=session_id,
@@ -162,14 +157,10 @@ class AnalyticsService:
         return device_type, browser, os_name
 
     @staticmethod
-    async def end_session(
-        db: AsyncSession, session_id: str, duration: int | None = None
-    ) -> None:
+    async def end_session(db: AsyncSession, session_id: str, duration: int | None = None) -> None:
         """Finaliza uma sessão."""
         session = await db.scalar(
-            select(AnalyticsSession).where(
-                AnalyticsSession.session_id == session_id
-            )
+            select(AnalyticsSession).where(AnalyticsSession.session_id == session_id)
         )
         if session and session.status == SessionStatus.ACTIVE:
             session.status = SessionStatus.ENDED
@@ -195,9 +186,7 @@ class AnalyticsService:
             stmt = stmt.where(AnalyticsEvent.event_type == event_type)
 
         # Total de eventos
-        total = await db.scalar(
-            select(func.count()).select_from(stmt.subquery())
-        ) or 0
+        total = await db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
 
         # Eventos por tipo
         type_stats = await db.execute(
@@ -212,9 +201,7 @@ class AnalyticsService:
             .group_by(AnalyticsEvent.event_type)
         )
 
-        events_by_type = {
-            row[0].value: row[1] for row in type_stats.fetchall()
-        }
+        events_by_type = {row[0].value: row[1] for row in type_stats.fetchall()}
 
         return {
             "total_events": total,
@@ -230,51 +217,63 @@ class AnalyticsService:
         start_date = datetime.utcnow() - timedelta(days=days)
 
         # Total de sessões
-        total_sessions = await db.scalar(
-            select(func.count()).select_from(
-                select(AnalyticsSession).where(
-                    AnalyticsSession.started_at >= start_date
-                ).subquery()
+        total_sessions = (
+            await db.scalar(
+                select(func.count()).select_from(
+                    select(AnalyticsSession)
+                    .where(AnalyticsSession.started_at >= start_date)
+                    .subquery()
+                )
             )
-        ) or 0
+            or 0
+        )
 
         # Visitantes autenticados únicos (distinct user_id).
-        authenticated_visitors = await db.scalar(
-            select(func.count(func.distinct(AnalyticsSession.user_id)))
-            .where(
-                AnalyticsSession.started_at >= start_date,
-                AnalyticsSession.user_id.isnot(None),
+        authenticated_visitors = (
+            await db.scalar(
+                select(func.count(func.distinct(AnalyticsSession.user_id))).where(
+                    AnalyticsSession.started_at >= start_date,
+                    AnalyticsSession.user_id.isnot(None),
+                )
             )
-        ) or 0
+            or 0
+        )
 
         # Visitantes anônimos únicos (distinct session_id quando user_id é nulo).
-        anonymous_visitors = await db.scalar(
-            select(func.count(func.distinct(AnalyticsSession.session_id)))
-            .where(
-                AnalyticsSession.started_at >= start_date,
-                AnalyticsSession.user_id.is_(None),
+        anonymous_visitors = (
+            await db.scalar(
+                select(func.count(func.distinct(AnalyticsSession.session_id))).where(
+                    AnalyticsSession.started_at >= start_date,
+                    AnalyticsSession.user_id.is_(None),
+                )
             )
-        ) or 0
+            or 0
+        )
         unique_visitors = authenticated_visitors + anonymous_visitors
 
         # Total de page views
-        total_page_views = await db.scalar(
-            select(func.count())
-            .select_from(AnalyticsEvent)
-            .where(
-                AnalyticsEvent.event_type == EventType.PAGE_VIEW,
-                AnalyticsEvent.timestamp >= start_date,
+        total_page_views = (
+            await db.scalar(
+                select(func.count())
+                .select_from(AnalyticsEvent)
+                .where(
+                    AnalyticsEvent.event_type == EventType.PAGE_VIEW,
+                    AnalyticsEvent.timestamp >= start_date,
+                )
             )
-        ) or 0
+            or 0
+        )
 
         # Média de duração de sessão
-        avg_duration = await db.scalar(
-            select(func.avg(AnalyticsSession.duration_seconds))
-            .where(
-                AnalyticsSession.started_at >= start_date,
-                AnalyticsSession.duration_seconds.isnot(None),
+        avg_duration = (
+            await db.scalar(
+                select(func.avg(AnalyticsSession.duration_seconds)).where(
+                    AnalyticsSession.started_at >= start_date,
+                    AnalyticsSession.duration_seconds.isnot(None),
+                )
             )
-        ) or 0
+            or 0
+        )
 
         return {
             "total_sessions": total_sessions,
@@ -292,34 +291,43 @@ class AnalyticsService:
         start_date = datetime.utcnow() - timedelta(days=days)
 
         # Visualizações de artigos
-        article_views = await db.scalar(
-            select(func.count())
-            .select_from(AnalyticsEvent)
-            .where(
-                AnalyticsEvent.event_type == EventType.ARTICLE_VIEW,
-                AnalyticsEvent.timestamp >= start_date,
+        article_views = (
+            await db.scalar(
+                select(func.count())
+                .select_from(AnalyticsEvent)
+                .where(
+                    AnalyticsEvent.event_type == EventType.ARTICLE_VIEW,
+                    AnalyticsEvent.timestamp >= start_date,
+                )
             )
-        ) or 0
+            or 0
+        )
 
         # Downloads de artigos
-        article_downloads = await db.scalar(
-            select(func.count())
-            .select_from(AnalyticsEvent)
-            .where(
-                AnalyticsEvent.event_type == EventType.ARTICLE_DOWNLOAD,
-                AnalyticsEvent.timestamp >= start_date,
+        article_downloads = (
+            await db.scalar(
+                select(func.count())
+                .select_from(AnalyticsEvent)
+                .where(
+                    AnalyticsEvent.event_type == EventType.ARTICLE_DOWNLOAD,
+                    AnalyticsEvent.timestamp >= start_date,
+                )
             )
-        ) or 0
+            or 0
+        )
 
         # Buscas
-        searches = await db.scalar(
-            select(func.count())
-            .select_from(AnalyticsEvent)
-            .where(
-                AnalyticsEvent.event_type == EventType.SEARCH,
-                AnalyticsEvent.timestamp >= start_date,
+        searches = (
+            await db.scalar(
+                select(func.count())
+                .select_from(AnalyticsEvent)
+                .where(
+                    AnalyticsEvent.event_type == EventType.SEARCH,
+                    AnalyticsEvent.timestamp >= start_date,
+                )
             )
-        ) or 0
+            or 0
+        )
 
         return {
             "article_views": article_views,

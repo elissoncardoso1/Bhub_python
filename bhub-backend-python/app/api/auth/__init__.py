@@ -54,10 +54,11 @@ router.include_router(
     fastapi_users.get_verify_router(UserRead),
 )
 
+
 # Rota customizada de login com refresh token
 @router.post("/login")
 async def login_with_refresh_token(
-    request: Request,
+    _request: Request,
     response: Response,
     db: DBSession,
     user_manager: UserManager = Depends(get_user_manager),
@@ -86,6 +87,7 @@ async def login_with_refresh_token(
 
     # Atualizar último login
     from datetime import datetime
+
     user.last_login_at = datetime.utcnow()
     await db.commit()
 

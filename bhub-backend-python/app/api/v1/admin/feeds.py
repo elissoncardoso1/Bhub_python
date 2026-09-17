@@ -25,7 +25,7 @@ router = APIRouter(prefix="/feeds", tags=["Admin - Feeds"])
 @router.get("", response_model=FeedListResponse)
 async def admin_list_feeds(
     db: DBSession,
-    admin: CurrentAdmin,
+    _admin: CurrentAdmin,  # noqa: ARG001  # dependência de autorização
     pagination: Pagination,
     is_active: bool | None = None,
 ):
@@ -40,11 +40,7 @@ async def admin_list_feeds(
     total = await db.scalar(count_stmt) or 0
 
     # Ordenar e paginar
-    stmt = (
-        stmt.order_by(Feed.name)
-        .offset(pagination.offset)
-        .limit(pagination.page_size)
-    )
+    stmt = stmt.order_by(Feed.name).offset(pagination.offset).limit(pagination.page_size)
 
     result = await db.execute(stmt)
     feeds = result.scalars().all()
@@ -58,14 +54,12 @@ async def admin_list_feeds(
 @router.post("", response_model=FeedResponse)
 async def admin_create_feed(
     db: DBSession,
-    admin: CurrentAdmin,
+    _admin: CurrentAdmin,  # noqa: ARG001  # dependência de autorização
     data: FeedCreate,
 ):
     """Cria um novo feed."""
     # Verificar se URL já existe
-    result = await db.execute(
-        select(Feed).where(Feed.feed_url == data.feed_url)
-    )
+    result = await db.execute(select(Feed).where(Feed.feed_url == data.feed_url))
     if result.scalar_one_or_none():
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -83,13 +77,11 @@ async def admin_create_feed(
 @router.get("/{feed_id}", response_model=FeedResponse)
 async def admin_get_feed(
     db: DBSession,
-    admin: CurrentAdmin,
+    _admin: CurrentAdmin,  # noqa: ARG001  # dependência de autorização
     feed_id: int,
 ):
     """Retorna detalhes de um feed."""
-    result = await db.execute(
-        select(Feed).where(Feed.id == feed_id)
-    )
+    result = await db.execute(select(Feed).where(Feed.id == feed_id))
     feed = result.scalar_one_or_none()
 
     if not feed:
@@ -104,14 +96,12 @@ async def admin_get_feed(
 @router.put("/{feed_id}", response_model=FeedResponse)
 async def admin_update_feed(
     db: DBSession,
-    admin: CurrentAdmin,
+    _admin: CurrentAdmin,  # noqa: ARG001  # dependência de autorização
     feed_id: int,
     data: FeedUpdate,
 ):
     """Atualiza um feed."""
-    result = await db.execute(
-        select(Feed).where(Feed.id == feed_id)
-    )
+    result = await db.execute(select(Feed).where(Feed.id == feed_id))
     feed = result.scalar_one_or_none()
 
     if not feed:
@@ -133,13 +123,11 @@ async def admin_update_feed(
 @router.delete("/{feed_id}", response_model=MessageResponse)
 async def admin_delete_feed(
     db: DBSession,
-    admin: CurrentAdmin,
+    _admin: CurrentAdmin,  # noqa: ARG001  # dependência de autorização
     feed_id: int,
 ):
     """Remove um feed."""
-    result = await db.execute(
-        select(Feed).where(Feed.id == feed_id)
-    )
+    result = await db.execute(select(Feed).where(Feed.id == feed_id))
     feed = result.scalar_one_or_none()
 
     if not feed:
@@ -156,7 +144,7 @@ async def admin_delete_feed(
 
 @router.post("/test", response_model=FeedTestResult)
 async def admin_test_feed(
-    admin: CurrentAdmin,
+    _admin: CurrentAdmin,  # noqa: ARG001  # dependência de autorização
     feed_url: str,
     service: FeedAggDep,
 ):
@@ -169,15 +157,13 @@ async def admin_test_feed(
 @router.post("/{feed_id}/sync", response_model=FeedSyncResult)
 async def admin_sync_feed(
     db: DBSession,
-    admin: CurrentAdmin,
+    _admin: CurrentAdmin,  # noqa: ARG001  # dependência de autorização
     feed_id: int,
     service: FeedAggDep,
 ):
     """Sincroniza um feed específico."""
     # Verificar se existe
-    result = await db.execute(
-        select(Feed).where(Feed.id == feed_id)
-    )
+    result = await db.execute(select(Feed).where(Feed.id == feed_id))
     feed = result.scalar_one_or_none()
 
     if not feed:
@@ -193,7 +179,7 @@ async def admin_sync_feed(
 
 @router.post("/sync-all", response_model=FeedSyncAllResult)
 async def admin_sync_all_feeds(
-    admin: CurrentAdmin,
+    _admin: CurrentAdmin,  # noqa: ARG001  # dependência de autorização
     service: FeedAggDep,
 ):
     """Sincroniza todos os feeds ativos."""

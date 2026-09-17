@@ -83,9 +83,7 @@ async def update_article_category(
 ) -> bool:
     """Atualiza a categoria do artigo."""
     # Buscar nova categoria
-    result = await db.execute(
-        select(Category).where(Category.slug == new_slug)
-    )
+    result = await db.execute(select(Category).where(Category.slug == new_slug))
     new_category = result.scalar_one_or_none()
 
     if not new_category:

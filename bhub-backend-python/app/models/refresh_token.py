@@ -50,6 +50,4 @@ class RefreshToken(BaseModel):
         nullable=True,
     )
 
-    __table_args__ = (
-        Index("ix_refresh_tokens_user_active", "user_id", "is_active"),
-    )
+    __table_args__ = (Index("ix_refresh_tokens_user_active", "user_id", "is_active"),)

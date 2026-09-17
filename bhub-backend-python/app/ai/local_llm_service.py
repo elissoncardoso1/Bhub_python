@@ -97,10 +97,7 @@ Texto: {text}
 
             # Verificar se arquivo existe e é válido
             model_manager = get_model_manager()
-            if not model_manager.verify_model(model_path):
-                return False
-
-            return True
+            return model_manager.verify_model(model_path)
         except Exception as e:
             log.debug(f"LocalLLM não disponível: {e}")
             return False
@@ -139,7 +136,9 @@ Texto: {text}
                 _llm_instance = Llama(
                     model_path=str(model_path),
                     n_ctx=settings.local_llm_n_ctx,
-                    n_threads=settings.local_llm_n_threads if settings.local_llm_n_threads > 0 else None,
+                    n_threads=settings.local_llm_n_threads
+                    if settings.local_llm_n_threads > 0
+                    else None,
                     n_gpu_layers=settings.local_llm_n_gpu_layers,
                     verbose=False,
                 )
@@ -190,7 +189,7 @@ Texto: {text}
             # Gerar resposta em thread separada para não bloquear o event loop
             response = await asyncio.wait_for(
                 asyncio.to_thread(self._sync_generate, llm, prompt),
-                timeout=60.0  # Timeout de 60 segundos
+                timeout=60.0,  # Timeout de 60 segundos
             )
 
             # Extrair conteúdo da resposta
@@ -246,7 +245,9 @@ Texto: {text}
                 # Fallback: procurar categoria no texto
                 for cat in valid_categories:
                     if cat in category:
-                        log.debug(f"Classificação LLM local (fallback): {cat} (conf: {confidence:.2f})")
+                        log.debug(
+                            f"Classificação LLM local (fallback): {cat} (conf: {confidence:.2f})"
+                        )
                         return (cat, confidence)
 
                 log.warning(f"Categoria inválida retornada: {category}")
@@ -286,9 +287,15 @@ Texto: {text}
 
         # Categorias válidas (definido fora do try para uso no except)
         valid_categories = [
-            "clinica", "educacao", "organizacional", "pesquisa",
-            "autismo", "behaviorismo-radical", "comportamento-verbal",
-            "noticias", "outros",
+            "clinica",
+            "educacao",
+            "organizacional",
+            "pesquisa",
+            "autismo",
+            "behaviorismo-radical",
+            "comportamento-verbal",
+            "noticias",
+            "outros",
         ]
 
         try:
@@ -303,12 +310,13 @@ Texto: {text}
                 asyncio.to_thread(
                     llm,
                     prompt,
-                    max_tokens=settings.local_llm_max_tokens * 2,  # Mais tokens para múltiplas categorias
+                    max_tokens=settings.local_llm_max_tokens
+                    * 2,  # Mais tokens para múltiplas categorias
                     temperature=settings.local_llm_temperature,
                     stop=["<|user|>", "<|system|>", "\n\n"],
                     echo=False,
                 ),
-                timeout=90.0  # Timeout de 90 segundos
+                timeout=90.0,  # Timeout de 90 segundos
             )
 
             # Extrair conteúdo da resposta
@@ -356,7 +364,9 @@ Texto: {text}
                     suggested_slug = suggested.get("slug", "").lower()
                     suggested_confidence = float(suggested.get("confidence", 0.7))
                     categories_result.append((suggested_slug, suggested_confidence))
-                    log.info(f"Categoria sugerida pelo LLM: {suggested.get('name')} ({suggested_slug})")
+                    log.info(
+                        f"Categoria sugerida pelo LLM: {suggested.get('name')} ({suggested_slug})"
+                    )
 
                 log.debug(f"Classificação múltipla LLM local: {len(categories_result)} categorias")
                 return categories_result
@@ -411,7 +421,7 @@ Texto: {text}
                     stop=["<|user|>", "<|system|>", "\n\n"],
                     echo=False,
                 ),
-                timeout=120.0  # Timeout de 120 segundos para textos longos
+                timeout=120.0,  # Timeout de 120 segundos para textos longos
             )
 
             # Extrair conteúdo

@@ -47,15 +47,21 @@ async def admin_dashboard(
     total_authors = await db.scalar(select(func.count()).select_from(Author)) or 0
     total_pdfs = await db.scalar(select(func.count()).select_from(PDFMetadata)) or 0
 
-    articles_this_month = await db.scalar(
-        select(func.count()).select_from(Article).where(Article.created_at >= month_ago)
-    ) or 0
-    articles_this_week = await db.scalar(
-        select(func.count()).select_from(Article).where(Article.created_at >= week_ago)
-    ) or 0
-    highlighted_articles = await db.scalar(
-        select(func.count()).select_from(Article).where(Article.highlighted == True)
-    ) or 0
+    articles_this_month = (
+        await db.scalar(
+            select(func.count()).select_from(Article).where(Article.created_at >= month_ago)
+        )
+        or 0
+    )
+    articles_this_week = (
+        await db.scalar(
+            select(func.count()).select_from(Article).where(Article.created_at >= week_ago)
+        )
+        or 0
+    )
+    highlighted_articles = (
+        await db.scalar(select(func.count()).select_from(Article).where(Article.highlighted)) or 0
+    )
     views_total = await db.scalar(select(func.sum(Article.view_count))) or 0
     downloads_total = await db.scalar(select(func.sum(Article.download_count))) or 0
 

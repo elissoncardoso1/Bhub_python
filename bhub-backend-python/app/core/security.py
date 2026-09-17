@@ -34,23 +34,29 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
     reset_password_token_secret = settings.secret_key
     verification_token_secret = settings.secret_key
 
-    async def on_after_register(self, user: User, request=None):
+    async def on_after_register(self, user: User, _request=None):
         from app.core.log_sanitizer import sanitize_log_message
+
         log.info(sanitize_log_message(f"Usuário registrado: {user.email}"))
 
-    async def on_after_login(self, user: User, request=None, response=None):
+    async def on_after_login(self, user: User, _request=None, _response=None):
         from app.core.log_sanitizer import sanitize_log_message
+
         log.info(sanitize_log_message(f"Login realizado: {user.email}"))
         # Atualizar último login
         user.last_login_at = datetime.utcnow()
 
-    async def on_after_forgot_password(self, user: User, token: str, request=None):
+    # `token` é imposto pela assinatura do callback do fastapi-users
+    # (BaseUserManager.on_after_forgot_password); não pode ser renomeado nem removido.
+    async def on_after_forgot_password(self, user: User, token: str, _request=None):  # noqa: ARG002
         from app.core.log_sanitizer import sanitize_log_message
+
         # Não logar o token de reset
         log.info(sanitize_log_message(f"Solicitação de reset de senha: {user.email}"))
 
-    async def on_after_reset_password(self, user: User, request=None):
+    async def on_after_reset_password(self, user: User, _request=None):
         from app.core.log_sanitizer import sanitize_log_message
+
         log.info(sanitize_log_message(f"Senha resetada: {user.email}"))
 
 

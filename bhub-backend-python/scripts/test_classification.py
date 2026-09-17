@@ -15,13 +15,15 @@ from app.core.logging import setup_logging, log
 
 # Import direto
 import importlib.util
+
 spec = importlib.util.spec_from_file_location(
     "classification_service",
-    Path(__file__).parent.parent / "app" / "services" / "classification_service.py"
+    Path(__file__).parent.parent / "app" / "services" / "classification_service.py",
 )
 classification_module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(classification_module)
 ClassificationService = classification_module.ClassificationService
+
 
 async def test_classification():
     setup_logging()
@@ -36,6 +38,7 @@ async def test_classification():
     async with get_session_context() as db:
         # Pegar apenas 1 artigo para teste
         from sqlalchemy import select
+
         result = await db.execute(select(Article).limit(1))
         article = result.scalar_one_or_none()
 
@@ -67,6 +70,7 @@ async def test_classification():
             )
             log.info(f"Categorias atribuídas: {[c.name for c in assigned]}")
             await db.commit()
+
 
 if __name__ == "__main__":
     asyncio.run(test_classification())

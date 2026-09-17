@@ -88,6 +88,7 @@ def check_dependencies():
 
     try:
         import llama_cpp
+
         print("✅ llama-cpp-python instalado")
     except ImportError:
         print("❌ llama-cpp-python não instalado")
@@ -96,6 +97,7 @@ def check_dependencies():
 
     try:
         import huggingface_hub
+
         print("✅ huggingface-hub instalado")
     except ImportError:
         print("❌ huggingface-hub não instalado")

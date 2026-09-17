@@ -35,9 +35,5 @@ class BaseModel(Base, TimestampMixin):
     __abstract__ = True
 
     def __repr__(self) -> str:
-        attrs = ", ".join(
-            f"{k}={v!r}"
-            for k, v in self.__dict__.items()
-            if not k.startswith("_")
-        )
+        attrs = ", ".join(f"{k}={v!r}" for k, v in self.__dict__.items() if not k.startswith("_"))
         return f"{self.__class__.__name__}({attrs})"

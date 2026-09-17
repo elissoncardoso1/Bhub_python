@@ -103,7 +103,9 @@ class ClassificationService:
         slug: str,
         name: str | None = None,
         description: str | None = None,
-        auto_created: bool = True,
+        # `auto_created` é documentado na docstring e faz parte da assinatura
+        # pública (chamável por keyword); não pode ser renomeado.
+        auto_created: bool = True,  # noqa: ARG004
     ) -> Category:
         """
         Busca ou cria uma categoria.
@@ -146,7 +148,9 @@ class ClassificationService:
 
     @staticmethod
     async def classify_with_multiple_categories(
-        db,
+        # `db` é documentado na docstring e faz parte da assinatura pública da
+        # classificação (chamável por keyword); não pode ser renomeado.
+        db,  # noqa: ARG004
         text: str,
         ai_manager,
         min_confidence: float = 0.3,
@@ -257,9 +261,8 @@ class ClassificationService:
             # Atualizar category_id primário se for a primeira
             if is_primary:
                 from app.models import Article
-                article_result = await db.execute(
-                    select(Article).where(Article.id == article_id)
-                )
+
+                article_result = await db.execute(select(Article).where(Article.id == article_id))
                 article = article_result.scalar_one_or_none()
                 if article:
                     article.category_id = category.id

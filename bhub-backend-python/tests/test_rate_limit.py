@@ -50,7 +50,7 @@ async def test_rate_limit_cron_endpoint(client: AsyncClient):
 
     # Nota: Este teste requer secret válido, então pode falhar por 401
     # Por enquanto, apenas verificamos que o endpoint existe
-    for i in range(4):
+    for _i in range(4):
         response = await client.post(
             "/api/v1/cron/sync",
             headers={"X-Cron-Secret": "invalid-secret"},

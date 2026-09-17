@@ -111,9 +111,7 @@ async def test_task_download_pdf_usa_operacao_transacional(monkeypatch):
         called.append((article_id, pdf_url))
         return {"article_id": article_id, "file_path": "/tmp/x.pdf", "file_hash": "h"}
 
-    monkeypatch.setattr(
-        "app.services.pdf_service.PDFService.process_article_pdf", fake_process
-    )
+    monkeypatch.setattr("app.services.pdf_service.PDFService.process_article_pdf", fake_process)
 
     result = await jobs_tasks.task_download_pdf({"db": None}, 7, "https://x/a.pdf")
 

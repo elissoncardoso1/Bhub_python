@@ -116,7 +116,10 @@ class ArticleSearchParams(BaseSchema):
     is_open_access: bool | None = None
     date_from: datetime | None = None
     date_to: datetime | None = None
-    sort_by: str = Field(default="publication_date", pattern=r"^(publication_date|title|impact_score|view_count|created_at)$")
+    sort_by: str = Field(
+        default="publication_date",
+        pattern=r"^(publication_date|title|impact_score|view_count|created_at)$",
+    )
     sort_order: str = Field(default="desc", pattern=r"^(asc|desc)$")
 
 

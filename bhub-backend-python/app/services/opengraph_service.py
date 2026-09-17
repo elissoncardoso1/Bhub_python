@@ -43,7 +43,9 @@ class OpenGraphService:
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.db = db
 
-    def _get_font_path(self, font_name: str = "arial.ttf") -> str | None:
+    # `font_name` integra a assinatura do resolvedor de fontes (chamável por keyword)
+    # e é mantido por compatibilidade; a busca usa `common_paths`.
+    def _get_font_path(self, font_name: str = "arial.ttf") -> str | None:  # noqa: ARG002
         """Retorna caminho da fonte ou None para usar padrão."""
         # Tentar encontrar fontes comuns
         common_paths = [
@@ -58,7 +60,12 @@ class OpenGraphService:
 
         return None
 
-    def _load_font(self, size: int, bold: bool = False) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
+    # `bold` é passado por keyword pelos chamadores internos (`_load_font(48, bold=True)`).
+    def _load_font(
+        self,
+        size: int,
+        bold: bool = False,  # noqa: ARG002
+    ) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
         """Carrega fonte ou retorna padrão."""
         font_path = self._get_font_path()
         if font_path:
@@ -70,7 +77,9 @@ class OpenGraphService:
         # Fallback para fonte padrão
         return ImageFont.load_default()
 
-    def _truncate_text(self, text: str, max_width: int, font: ImageFont.FreeTypeFont | ImageFont.ImageFont) -> str:
+    def _truncate_text(
+        self, text: str, max_width: int, font: ImageFont.FreeTypeFont | ImageFont.ImageFont
+    ) -> str:
         """Trunca texto para caber na largura especificada."""
         if not text:
             return ""
@@ -95,7 +104,11 @@ class OpenGraphService:
         return text + ellipsis
 
     def _wrap_text(
-        self, text: str, max_width: int, font: ImageFont.FreeTypeFont | ImageFont.ImageFont, max_lines: int = 3
+        self,
+        text: str,
+        max_width: int,
+        font: ImageFont.FreeTypeFont | ImageFont.ImageFont,
+        max_lines: int = 3,
     ) -> list[str]:
         """Quebra texto em múltiplas linhas."""
         if not text:
@@ -147,7 +160,9 @@ class OpenGraphService:
                 return cache_path
 
         # Criar imagem
-        img = Image.new("RGB", (self.OG_IMAGE_WIDTH, self.OG_IMAGE_HEIGHT), self.COLORS["background"])
+        img = Image.new(
+            "RGB", (self.OG_IMAGE_WIDTH, self.OG_IMAGE_HEIGHT), self.COLORS["background"]
+        )
         draw = ImageDraw.Draw(img)
 
         # Fontes
@@ -178,7 +193,11 @@ class OpenGraphService:
 
         # Separador
         separator_y = title_y + 30
-        draw.line([(padding, separator_y), (self.OG_IMAGE_WIDTH - padding, separator_y)], fill=self.COLORS["text_light"], width=2)
+        draw.line(
+            [(padding, separator_y), (self.OG_IMAGE_WIDTH - padding, separator_y)],
+            fill=self.COLORS["text_light"],
+            width=2,
+        )
 
         # Abstract (truncado)
         abstract_y = separator_y + 40
@@ -187,7 +206,9 @@ class OpenGraphService:
             abstract_lines = self._wrap_text(abstract, content_width, subtitle_font, max_lines=3)
 
             for line in abstract_lines:
-                draw.text((padding, abstract_y), line, fill=self.COLORS["text_light"], font=subtitle_font)
+                draw.text(
+                    (padding, abstract_y), line, fill=self.COLORS["text_light"], font=subtitle_font
+                )
                 try:
                     bbox = draw.textbbox((0, 0), line, font=subtitle_font)
                     line_height = bbox[3] - bbox[1]
@@ -209,7 +230,12 @@ class OpenGraphService:
         if article.publication_date:
             date_text = article.publication_date.strftime("%d/%m/%Y")
             date_width = draw.textlength(date_text, font=meta_font)
-            draw.text((self.OG_IMAGE_WIDTH - padding - date_width, meta_y), date_text, fill=self.COLORS["text_light"], font=meta_font)
+            draw.text(
+                (self.OG_IMAGE_WIDTH - padding - date_width, meta_y),
+                date_text,
+                fill=self.COLORS["text_light"],
+                font=meta_font,
+            )
 
         # Logo/Branding (opcional - adicionar se tiver logo)
         # brand_y = self.OG_IMAGE_HEIGHT - 50
@@ -262,7 +288,7 @@ class OpenGraphService:
 
         result = await db.execute(
             select(Article)
-            .where(Article.id == article_id, Article.is_published == True)
+            .where(Article.id == article_id, Article.is_published)
             .options(
                 selectinload(Article.category),
                 selectinload(Article.authors),
@@ -274,7 +300,7 @@ class OpenGraphService:
             return self._get_default_metadata(base_url)
 
         # Gerar imagem se necessário
-        image_path = await self.generate_article_image(article)
+        await self.generate_article_image(article)
         image_url = f"{base_url}/api/v1/og/articles/{article_id}/image"
 
         # Título e descrição
@@ -295,7 +321,9 @@ class OpenGraphService:
             "og:image:height": str(self.OG_IMAGE_HEIGHT),
             "og:image:type": "image/png",
             "og:site_name": "BHub",
-            "article:published_time": article.publication_date.isoformat() if article.publication_date else None,
+            "article:published_time": article.publication_date.isoformat()
+            if article.publication_date
+            else None,
             "article:author": article.authors_str if article.authors else None,
             "article:section": article.category.name if article.category else None,
             # Twitter Card
@@ -337,7 +365,9 @@ class OpenGraphService:
         if cache_path.exists():
             return cache_path
 
-        img = Image.new("RGB", (self.OG_IMAGE_WIDTH, self.OG_IMAGE_HEIGHT), self.COLORS["background"])
+        img = Image.new(
+            "RGB", (self.OG_IMAGE_WIDTH, self.OG_IMAGE_HEIGHT), self.COLORS["background"]
+        )
         draw = ImageDraw.Draw(img)
 
         title_font = self._load_font(64, bold=True)
@@ -369,9 +399,9 @@ class OpenGraphService:
         subtitle_x = (self.OG_IMAGE_WIDTH - subtitle_width) // 2
         subtitle_y = title_y + 80
 
-        draw.text((subtitle_x, subtitle_y), subtitle, fill=self.COLORS["text_light"], font=subtitle_font)
+        draw.text(
+            (subtitle_x, subtitle_y), subtitle, fill=self.COLORS["text_light"], font=subtitle_font
+        )
 
         img.save(cache_path, "PNG", optimize=True)
         return cache_path
-
-

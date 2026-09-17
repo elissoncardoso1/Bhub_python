@@ -39,21 +39,19 @@ def rate_limit(limit: str, key_func: Callable = None):
                     break
 
             if request is None:
-                for key, value in kwargs.items():
+                for _key, value in kwargs.items():
                     if isinstance(value, Request):
                         request = value
                         break
 
-            if request is None:
-                result = func(*args, **kwargs)
-            else:
-                result = limited_func(*args, **kwargs)
+            result = func(*args, **kwargs) if request is None else limited_func(*args, **kwargs)
 
             if isinstance(result, Awaitable):
                 return await result
             return result
 
         return wrapper
+
     return decorator
 
 
@@ -72,12 +70,13 @@ def get_user_id_for_rate_limit(request: Request) -> str:
             from jose import jwt
 
             from app.config import settings
+
             # Decodificar sem verificar expiração (apenas para rate limiting)
             payload = jwt.decode(
                 token,
                 settings.secret_key,
                 algorithms=[settings.algorithm],
-                options={"verify_exp": False, "verify_signature": True}
+                options={"verify_exp": False, "verify_signature": True},
             )
             user_id = payload.get("sub")
             if user_id:

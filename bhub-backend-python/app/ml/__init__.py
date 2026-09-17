@@ -11,6 +11,7 @@ try:
         EmbeddingClassifier,
         HeuristicClassifier,
     )
+
     _EMBEDDING_AVAILABLE = True
 except ImportError:
     # Se sentence_transformers não estiver instalado, criar stubs

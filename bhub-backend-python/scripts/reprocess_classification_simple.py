@@ -12,12 +12,14 @@ sys.path.insert(0, ".")
 load_dotenv()
 
 from app.config import settings
+
 settings.deepseek_api_key = os.getenv("DEEPSEEK_API_KEY")
 
 from app.database import get_session_context, init_db
 from app.models import Article, Category, article_categories
 from app.ai import get_ai_manager
 from app.core.logging import setup_logging, log
+
 
 async def reprocess_classification_simple():
     setup_logging()
@@ -40,6 +42,7 @@ async def reprocess_classification_simple():
     async with get_session_context() as db:
         # Garantir categorias padrão
         from app.models import DEFAULT_CATEGORIES
+
         result = await db.execute(select(Category))
         existing_cats = {c.slug: c for c in result.scalars().all()}
 
@@ -81,11 +84,14 @@ async def reprocess_classification_simple():
                     if cat_id:
                         # Remover associações antigas
                         await db.execute(
-                            delete(article_categories).where(article_categories.c.article_id == article.id)
+                            delete(article_categories).where(
+                                article_categories.c.article_id == article.id
+                            )
                         )
 
                         # Criar nova associação
                         from sqlalchemy.dialects.postgresql import insert
+
                         await db.execute(
                             insert(article_categories).values(
                                 article_id=article.id,
@@ -108,6 +114,7 @@ async def reprocess_classification_simple():
             except Exception as e:
                 log.error(f"  -> Erro: {e}")
                 import traceback
+
                 log.error(traceback.format_exc())
 
             # Commit a cada artigo
@@ -118,6 +125,7 @@ async def reprocess_classification_simple():
         log.info(f"Processados: {processed}, Atualizados: {updated}")
         log.info("=" * 60)
 
+
 if __name__ == "__main__":
     try:
         asyncio.run(reprocess_classification_simple())
@@ -126,4 +134,5 @@ if __name__ == "__main__":
     except Exception as e:
         log.error(f"Erro fatal: {e}")
         import traceback
+
         traceback.print_exc()

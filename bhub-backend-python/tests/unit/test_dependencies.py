@@ -90,9 +90,7 @@ async def test_dependency_overrides_substitui_classification_service():
         async def classify(self, text: str) -> tuple[str, float]:
             return ("autismo", 0.95)
 
-    di_app.dependency_overrides[get_classification_service] = (
-        lambda: FakeClassificationService()
-    )
+    di_app.dependency_overrides[get_classification_service] = lambda: FakeClassificationService()
 
     async with AsyncClient(
         transport=ASGITransport(app=di_app),
@@ -154,9 +152,7 @@ async def test_pdf_service_usa_client_http_injetado(tmp_path):
     http_client = FakeAsyncClient()
     service = PDFService(upload_path=tmp_path, http_client=http_client)
 
-    data = await service.download_pdf_from_url(
-        "https://example.com/p.pdf", "Título", FakeDB()
-    )
+    data = await service.download_pdf_from_url("https://example.com/p.pdf", "Título", FakeDB())
 
     assert http_client.calls == ["https://example.com/p.pdf"]
     assert data is not None
@@ -282,7 +278,10 @@ def test_opengraph_service_sem_import_de_sessao_no_modulo():
     import app.services.opengraph_service as og_module
 
     source = inspect.getsource(og_module)
-    assert "from app.database import get_session_context" not in source.split("async def get_article_metadata")[0]
+    assert (
+        "from app.database import get_session_context"
+        not in source.split("async def get_article_metadata")[0]
+    )
 
 
 async def test_opengraph_service_substituivel_na_api(client, db_session):
@@ -315,9 +314,7 @@ async def test_opengraph_service_substituivel_na_rota_web(client, db_session):
     await db_session.commit()
 
     class FakeOpenGraphService:
-        async def get_article_metadata(
-            self, article_id: int, base_url: str, db=None
-        ) -> dict:
+        async def get_article_metadata(self, article_id: int, base_url: str, db=None) -> dict:
             return {
                 "og:title": "FAKE-WEB",
                 "og:description": "desc",

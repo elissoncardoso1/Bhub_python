@@ -110,9 +110,7 @@ class PDFService:
         """
         # Verificar tamanho
         if len(content) > self.MAX_FILE_SIZE:
-            raise PDFProcessingError(
-                f"Arquivo muito grande. Máximo: {settings.max_pdf_size_mb}MB"
-            )
+            raise PDFProcessingError(f"Arquivo muito grande. Máximo: {settings.max_pdf_size_mb}MB")
 
         # Verificar magic bytes do PDF
         if not content.startswith(b"%PDF"):
@@ -126,11 +124,11 @@ class PDFService:
         content_lower = content.lower()
 
         # Bloquear JavaScript embutido
-        if b'/javascript' in content_lower or b'/js' in content_lower:
+        if b"/javascript" in content_lower or b"/js" in content_lower:
             raise PDFProcessingError("PDF contém JavaScript, não permitido por segurança")
 
         # Bloquear ações perigosas
-        dangerous_actions = [b'/launch', b'/gotor', b'/uri', b'/submitform', b'/resetform']
+        dangerous_actions = [b"/launch", b"/gotor", b"/uri", b"/submitform", b"/resetform"]
         for action in dangerous_actions:
             if action in content_lower:
                 raise PDFProcessingError(
@@ -138,7 +136,7 @@ class PDFService:
                 )
 
         # Limitar complexidade: contar objetos
-        object_count = content.count(b'obj')
+        object_count = content.count(b"obj")
         if object_count > 10000:
             raise PDFProcessingError(
                 f"PDF muito complexo ({object_count} objetos). Máximo permitido: 10000"
@@ -148,7 +146,9 @@ class PDFService:
         # Limitar tamanho após descompressão estimada (PDFs geralmente comprimem 2-3x)
         estimated_decompressed = len(content) * 3
         if estimated_decompressed > self.MAX_FILE_SIZE * 10:
-            raise PDFProcessingError("PDF pode ser um zip bomb (tamanho descomprimido estimado muito grande)")
+            raise PDFProcessingError(
+                "PDF pode ser um zip bomb (tamanho descomprimido estimado muito grande)"
+            )
 
         # Tentar abrir para validar estrutura
         try:
@@ -215,6 +215,7 @@ class PDFService:
         # Fallback para pdfplumber (melhor para alguns PDFs)
         try:
             import io
+
             with pdfplumber.open(io.BytesIO(content)) as pdf:
                 for page in pdf.pages:
                     page_text = page.extract_text()
@@ -340,9 +341,7 @@ class PDFService:
 
         from app.models import PDFMetadata
 
-        result = await db.execute(
-            select(PDFMetadata).where(PDFMetadata.file_hash == file_hash)
-        )
+        result = await db.execute(select(PDFMetadata).where(PDFMetadata.file_hash == file_hash))
         return result.scalar_one_or_none() is not None
 
     def delete_pdf(self, file_path: str) -> bool:
@@ -426,9 +425,7 @@ class PDFService:
     ) -> dict[str, Any] | None:
         downloaded_file_path: str | None = None
         try:
-            result = await db.execute(
-                select(Article).where(Article.id == article_id)
-            )
+            result = await db.execute(select(Article).where(Article.id == article_id))
             article = result.scalar_one_or_none()
 
             if not article:
@@ -455,9 +452,7 @@ class PDFService:
 
             # Verificar duplicata novamente (pode ter sido adicionada por outra task)
             if await self.check_duplicate(pdf_data["file_hash"], db):
-                log.info(
-                    f"PDF duplicado detectado para artigo {article_id}, removendo arquivo"
-                )
+                log.info(f"PDF duplicado detectado para artigo {article_id}, removendo arquivo")
                 Path(pdf_data["file_path"]).unlink(missing_ok=True)
                 return None
 
@@ -492,9 +487,7 @@ class PDFService:
                 db.add(pdf_metadata)
 
             await db.commit()
-            log.info(
-                f"PDF baixado e associado ao artigo {article_id}: {pdf_data['file_path']}"
-            )
+            log.info(f"PDF baixado e associado ao artigo {article_id}: {pdf_data['file_path']}")
             return {
                 "article_id": article_id,
                 "file_path": pdf_data["file_path"],
@@ -568,12 +561,12 @@ class PDFService:
 
         # Validar URL (prevenir SSRF)
         parsed = urlparse(pdf_url)
-        if parsed.scheme not in ['http', 'https']:
+        if parsed.scheme not in ["http", "https"]:
             log.error(f"URL inválida: {pdf_url}")
             return None
 
         # Validar que é realmente um PDF
-        if not (pdf_url.lower().endswith('.pdf') or 'pdf' in pdf_url.lower()):
+        if not (pdf_url.lower().endswith(".pdf") or "pdf" in pdf_url.lower()):
             log.warning(f"URL não parece ser um PDF: {pdf_url}")
             # Mas vamos tentar mesmo assim, pode ser um redirect
 
@@ -597,7 +590,7 @@ class PDFService:
 
             # Verificar content-type
             content_type = response.headers.get("content-type", "").lower()
-            if "pdf" not in content_type and not pdf_url.lower().endswith('.pdf'):
+            if "pdf" not in content_type and not pdf_url.lower().endswith(".pdf"):
                 log.warning(f"Content-Type não é PDF: {content_type}")
                 # Mas vamos processar mesmo assim
 
@@ -620,6 +613,7 @@ class PDFService:
 
             # Processar PDF usando o método existente
             import io
+
             file_obj = io.BytesIO(content)
             pdf_data = await self.process_pdf(file_obj, filename)
 

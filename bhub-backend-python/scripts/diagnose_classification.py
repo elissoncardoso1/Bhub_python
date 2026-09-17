@@ -11,6 +11,7 @@ sys.path.insert(0, ".")
 
 print("2. Importando módulos básicos...")
 from app.core.logging import setup_logging, log
+
 print("   ✓ Logging importado")
 
 print("3. Inicializando logging...")
@@ -19,6 +20,7 @@ print("   ✓ Logging inicializado")
 
 print("4. Importando database...")
 from app.database import init_db, get_session_context
+
 print("   ✓ Database importado")
 
 print("5. Inicializando banco de dados...")
@@ -32,10 +34,12 @@ except Exception as e:
 print("6. Importando AI Manager...")
 try:
     from app.ai import get_ai_manager
+
     print("   ✓ AI Manager importado")
 except Exception as e:
     print(f"   ✗ Erro ao importar AI Manager: {e}")
     import traceback
+
     traceback.print_exc()
     sys.exit(1)
 
@@ -46,6 +50,7 @@ try:
 except Exception as e:
     print(f"   ✗ Erro ao criar AI Manager: {e}")
     import traceback
+
     traceback.print_exc()
     sys.exit(1)
 
@@ -56,15 +61,17 @@ try:
 except Exception as e:
     print(f"   ✗ Erro ao configurar provedores: {e}")
     import traceback
+
     traceback.print_exc()
     sys.exit(1)
 
 print("9. Importando ClassificationService...")
 try:
     import importlib.util
+
     spec = importlib.util.spec_from_file_location(
         "classification_service",
-        Path(__file__).parent.parent / "app" / "services" / "classification_service.py"
+        Path(__file__).parent.parent / "app" / "services" / "classification_service.py",
     )
     classification_module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(classification_module)
@@ -73,10 +80,13 @@ try:
 except Exception as e:
     print(f"   ✗ Erro ao importar ClassificationService: {e}")
     import traceback
+
     traceback.print_exc()
     sys.exit(1)
 
 print("10. Testando classificação simples...")
+
+
 async def test():
     async with get_session_context() as db:
         from sqlalchemy import select
@@ -106,7 +116,9 @@ async def test():
         except Exception as e:
             print(f"   ✗ Erro na classificação: {e}")
             import traceback
+
             traceback.print_exc()
+
 
 try:
     asyncio.run(test())
@@ -114,4 +126,5 @@ try:
 except Exception as e:
     print(f"\n✗ Erro no teste: {e}")
     import traceback
+
     traceback.print_exc()

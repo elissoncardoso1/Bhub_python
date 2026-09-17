@@ -5,6 +5,7 @@ Revises: 008_postgres_fts
 Create Date: 2026-07-04 12:00:00.000000
 
 """
+
 from typing import Sequence, Union
 
 import sqlalchemy as sa

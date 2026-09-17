@@ -14,7 +14,6 @@ async def test_csrf_token_generated_on_get(client: AsyncClient):
     assert response.status_code == 200
 
     # Verificar se cookie CSRF foi definido
-    cookies = response.cookies
     # O cookie pode estar presente ou não dependendo da implementação
     # Por enquanto, apenas verificamos que a requisição foi bem-sucedida
 

@@ -2,7 +2,7 @@ import asyncio
 import uuid
 
 import pytest
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI, HTTPException, Request, Response
 
 from app.core.cookie_transport import CookieTransport
 from app.core.csrf_middleware import CSRFMiddleware
@@ -106,7 +106,7 @@ def test_refresh_token_service_happy_and_invalid_type():
 
     bad_payload = payload | {"type": "access"}
     bad_token = jwt.encode(bad_payload, settings.secret_key, algorithm=settings.algorithm)
-    with pytest.raises(Exception):
+    with pytest.raises(HTTPException):
         service.decode_refresh_token(bad_token)
 
 
@@ -139,7 +139,9 @@ async def test_csrf_middleware_auto_validate_blocks_without_token():
     async def call_next(request):
         return Response("ok")
 
-    request = Request({"type": "http", "method": "POST", "path": "/mut", "headers": [], "client": ("0.0.0.0", 0)})
+    request = Request(
+        {"type": "http", "method": "POST", "path": "/mut", "headers": [], "client": ("0.0.0.0", 0)}
+    )
 
-    with pytest.raises(Exception):
+    with pytest.raises(HTTPException):
         await middleware.dispatch(request, call_next)

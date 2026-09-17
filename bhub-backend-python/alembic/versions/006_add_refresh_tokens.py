@@ -5,6 +5,7 @@ Revises: 005_scheduler_locks
 Create Date: 2026-03-13 00:00:00.000000
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op

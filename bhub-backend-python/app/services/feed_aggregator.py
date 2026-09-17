@@ -73,7 +73,7 @@ class FeedAggregatorService:
         # Buscar feeds ativos que precisam sincronização
         result = await self.db.execute(
             select(Feed).where(
-                Feed.is_active == True,
+                Feed.is_active,
                 ~Feed.feed_url.startswith("internal://"),
             )
         )
@@ -196,7 +196,11 @@ class FeedAggregatorService:
                         articles_to_classify.append(created_article_id)
 
                         # Verificar se é open access e tem PDF URL para download
-                        if article_data and article_data.get("is_open_access") and article_data.get("pdf_url"):
+                        if (
+                            article_data
+                            and article_data.get("is_open_access")
+                            and article_data.get("pdf_url")
+                        ):
                             articles_to_download_pdf.append(
                                 (created_article_id, article_data.get("pdf_url"))
                             )
@@ -236,7 +240,9 @@ class FeedAggregatorService:
                 log.info(f"Enfileiradas {len(articles_to_download_pdf)} tarefas de download de PDF")
 
             duration = time.time() - start_time
-            log.info(f"Feed {feed.name} sincronizado: {new_articles} novos artigos em {duration:.2f}s")
+            log.info(
+                f"Feed {feed.name} sincronizado: {new_articles} novos artigos em {duration:.2f}s"
+            )
 
             return FeedSyncResult(
                 feed_id=feed.id,
@@ -274,9 +280,7 @@ class FeedAggregatorService:
         external_id = self.parser.generate_external_id(entry, feed.id)
 
         # Verificar se já existe
-        existing = await self.db.execute(
-            select(Article).where(Article.external_id == external_id)
-        )
+        existing = await self.db.execute(select(Article).where(Article.external_id == external_id))
         if existing.scalar_one_or_none():
             return None, None
 
@@ -288,8 +292,9 @@ class FeedAggregatorService:
             domain = ""
             try:
                 from urllib.parse import urlparse
+
                 domain = urlparse(article_data["url"]).netloc
-            except:
+            except Exception:
                 pass
 
             # Adicionar domínios que sabemos que precisam disso
@@ -300,7 +305,9 @@ class FeedAggregatorService:
                     headers = {
                         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36"
                     }
-                    page_response = await self.http_client.get(article_data["url"], headers=headers, follow_redirects=True)
+                    page_response = await self.http_client.get(
+                        article_data["url"], headers=headers, follow_redirects=True
+                    )
                     if page_response.status_code == 200:
                         scraped_authors = self.parser.parse_html_authors(page_response.text)
                         if scraped_authors:
@@ -328,7 +335,7 @@ class FeedAggregatorService:
             feed_id=feed.id,
             image_url=_truncate(article_data.get("image_url"), 500),
             pdf_url=_truncate(article_data.get("pdf_url"), 500),
-            category_id=None, # Será preenchido via background task
+            category_id=None,  # Será preenchido via background task
             classification_confidence=None,
             is_open_access=article_data.get("is_open_access", False),
         )
@@ -349,10 +356,12 @@ class FeedAggregatorService:
 
         # Obter autores existentes
         existing_authors = {}
-        if author_names: # author_names is now a list of dicts [{'name': '...', 'role': '...'}]
-            names_to_check = [a['name'] for a in author_names if a and a.get('name')]
+        if author_names:  # author_names is now a list of dicts [{'name': '...', 'role': '...'}]
+            names_to_check = [a["name"] for a in author_names if a and a.get("name")]
             if names_to_check:
-                normalized_names = [Author.normalize_name(n) for n in names_to_check if Author.normalize_name(n)]
+                normalized_names = [
+                    Author.normalize_name(n) for n in names_to_check if Author.normalize_name(n)
+                ]
                 if normalized_names:
                     stmt = select(Author).where(Author.normalized_name.in_(normalized_names))
                     result = await self.db.execute(stmt)
@@ -364,8 +373,8 @@ class FeedAggregatorService:
         from app.models.author import article_authors
 
         for idx, author_info in enumerate(author_names):
-            name = author_info.get('name')
-            role = author_info.get('role', 'author')
+            name = author_info.get("name")
+            role = author_info.get("role", "author")
 
             if not name or len(name.strip()) < 2:
                 continue
@@ -388,21 +397,17 @@ class FeedAggregatorService:
                 else:
                     author = Author(name=name.strip(), normalized_name=norm_name)
                     self.db.add(author)
-                    await self.db.flush() # Ensure ID is generated
+                    await self.db.flush()  # Ensure ID is generated
                     existing_authors[norm_name] = author
 
             check_stmt = select(article_authors).where(
-                article_authors.c.article_id == article.id,
-                article_authors.c.author_id == author.id
+                article_authors.c.article_id == article.id, article_authors.c.author_id == author.id
             )
             existing_assoc = await self.db.execute(check_stmt)
             if existing_assoc.first() is None:
                 # Inserir associação com role
                 stmt = insert(article_authors).values(
-                    article_id=article.id,
-                    author_id=author.id,
-                    position=idx,
-                    role=role
+                    article_id=article.id, author_id=author.id, position=idx, role=role
                 )
                 await self.db.execute(stmt)
                 author.article_count += 1
@@ -463,9 +468,7 @@ class FeedAggregatorService:
             select(Feed).where(Feed.feed_url == new_url, Feed.id != feed.id)
         )
         if dup.scalar_one_or_none() is not None:
-            log.warning(
-                f"Feed {feed.name}: URL redescoberta {new_url} já pertence a outro feed"
-            )
+            log.warning(f"Feed {feed.name}: URL redescoberta {new_url} já pertence a outro feed")
             return None
 
         log.info(f"Feed {feed.name}: URL redescoberta {feed.feed_url} -> {new_url}")
@@ -480,9 +483,7 @@ class FeedAggregatorService:
             from trafilatura import feeds as trafilatura_feeds
 
             # find_feed_urls é síncrono e faz I/O de rede — rodar em thread
-            candidates = await asyncio.to_thread(
-                trafilatura_feeds.find_feed_urls, feed.website_url
-            )
+            candidates = await asyncio.to_thread(trafilatura_feeds.find_feed_urls, feed.website_url)
         except Exception as e:
             log.warning(f"Redescoberta de feed falhou para {feed.name}: {e}")
             return None
@@ -526,11 +527,13 @@ class FeedAggregatorService:
             sample_items = []
             for entry in parsed.entries[:3]:
                 data = self.parser.parse_entry(entry)
-                sample_items.append({
-                    "title": data.get("title", "")[:100],
-                    "url": data.get("url", ""),
-                    "date": str(data.get("publication_date", "")),
-                })
+                sample_items.append(
+                    {
+                        "title": data.get("title", "")[:100],
+                        "url": data.get("url", ""),
+                        "date": str(data.get("publication_date", "")),
+                    }
+                )
 
             return FeedTestResult(
                 success=True,

@@ -71,10 +71,7 @@ class AuthCookieMiddleware(BaseHTTPMiddleware):
                 pass
 
         # Remover cookie em logout
-        if (
-            request.url.path == "/api/v1/auth/logout"
-            and request.method == "POST"
-        ):
+        if request.url.path == "/api/v1/auth/logout" and request.method == "POST":
             response.delete_cookie(
                 key=self.cookie_name,
                 httponly=True,

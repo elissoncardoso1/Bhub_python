@@ -27,7 +27,7 @@ class ContactRequest(BaseModel):
 async def send_contact_message(
     db: DBSession,
     data: ContactRequest,
-    csrf_valid: CSRFValid = True,  # Validação CSRF
+    _csrf_valid: CSRFValid = True,  # noqa: ARG001  # dependência CSRF
 ):
     """Envia mensagem de contato."""
 

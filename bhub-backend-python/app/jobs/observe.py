@@ -209,11 +209,7 @@ def observed_job(
                 attempt=obs["attempt"],
             ).info("arq_job_started")
 
-            span_cm = (
-                _tracer.start_as_current_span("arq.job")
-                if _tracer
-                else _NullSpan()
-            )
+            span_cm = _tracer.start_as_current_span("arq.job") if _tracer else _NullSpan()
             with span_cm as span:
                 try:
                     result = await func(ctx, *args, **kwargs)

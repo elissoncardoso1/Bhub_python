@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 RECOVERY_PROBE_INTERVAL_DAYS = 7
 
 
-class FeedType(str, enum.Enum):
+class FeedType(enum.StrEnum):
     """Tipo de feed."""
 
     RSS = "RSS"
@@ -30,7 +30,7 @@ class FeedType(str, enum.Enum):
     INTERNAL = "INTERNAL"
 
 
-class SyncFrequency(str, enum.Enum):
+class SyncFrequency(enum.StrEnum):
     """Frequência de sincronização."""
 
     HOURLY = "HOURLY"
@@ -94,7 +94,7 @@ class Feed(BaseModel):
     scraping_selectors: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON
 
     # Relacionamentos
-    articles: Mapped[list["Article"]] = relationship(
+    articles: Mapped[list[Article]] = relationship(
         "Article",
         back_populates="feed",
         lazy="selectin",

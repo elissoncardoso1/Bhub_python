@@ -15,9 +15,7 @@ router = APIRouter(prefix="/categories", tags=["Categories"])
 @router.get("", response_model=CategoryListResponse)
 async def list_categories(db: DBSession):
     """Lista todas as categorias."""
-    result = await db.execute(
-        select(Category).order_by(Category.name)
-    )
+    result = await db.execute(select(Category).order_by(Category.name))
     categories = result.scalars().all()
 
     # Contar artigos por categoria
@@ -28,7 +26,7 @@ async def list_categories(db: DBSession):
             .select_from(Article)
             .where(
                 Article.category_id == cat.id,
-                Article.is_published == True,
+                Article.is_published,
             )
         )
         article_count = count_result.scalar() or 0
@@ -46,9 +44,7 @@ async def get_category(
     category_id: int,
 ):
     """Retorna detalhes de uma categoria."""
-    result = await db.execute(
-        select(Category).where(Category.id == category_id)
-    )
+    result = await db.execute(select(Category).where(Category.id == category_id))
     category = result.scalar_one_or_none()
 
     if not category:
@@ -69,7 +65,7 @@ async def get_category(
         .select_from(Article)
         .where(
             Article.category_id == category_id,
-            Article.is_published == True,
+            Article.is_published,
         )
     )
 
@@ -78,7 +74,7 @@ async def get_category(
         .select_from(Article)
         .where(
             Article.category_id == category_id,
-            Article.is_published == True,
+            Article.is_published,
             Article.created_at >= month_ago,
         )
     )
@@ -88,7 +84,7 @@ async def get_category(
         .select_from(Article)
         .where(
             Article.category_id == category_id,
-            Article.is_published == True,
+            Article.is_published,
             Article.created_at >= week_ago,
         )
     )
@@ -107,9 +103,7 @@ async def get_category_by_slug(
     slug: str,
 ):
     """Retorna categoria pelo slug."""
-    result = await db.execute(
-        select(Category).where(Category.slug == slug)
-    )
+    result = await db.execute(select(Category).where(Category.slug == slug))
     category = result.scalar_one_or_none()
 
     if not category:

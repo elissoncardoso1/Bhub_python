@@ -173,11 +173,7 @@ async def test_pdf_job_commit_falho_nao_deixa_arquivo_para_reexecucao(
 
     async with async_session_test() as session:
         metas = (
-            (
-                await session.execute(
-                    select(PDFMetadata).where(PDFMetadata.article_id == article.id)
-                )
-            )
+            (await session.execute(select(PDFMetadata).where(PDFMetadata.article_id == article.id)))
             .scalars()
             .all()
         )
@@ -206,9 +202,7 @@ async def test_classify_job_reexecucao_nao_duplica_categorias_nem_associacoes(
     # Sem fallback ML: is_initialized() False despenca direto no heurístico.
     from app.ml import EmbeddingClassifier
 
-    monkeypatch.setattr(
-        EmbeddingClassifier, "is_initialized", staticmethod(lambda: False)
-    )
+    monkeypatch.setattr(EmbeddingClassifier, "is_initialized", staticmethod(lambda: False))
 
     first = await run_classify_job(article.id)
     assert first["category"] == "autismo"
@@ -226,9 +220,7 @@ async def test_classify_job_reexecucao_nao_duplica_categorias_nem_associacoes(
         associacoes = (
             (
                 await session.execute(
-                    select(article_categories).where(
-                        article_categories.c.article_id == article.id
-                    )
+                    select(article_categories).where(article_categories.c.article_id == article.id)
                 )
             )
             .scalars()
@@ -239,9 +231,7 @@ async def test_classify_job_reexecucao_nao_duplica_categorias_nem_associacoes(
     assert len(associacoes) == 1  # associação não duplicada
 
 
-async def test_pdf_job_reexecucao_nao_duplica_metadados_nem_arquivo(
-    db_session, monkeypatch
-):
+async def test_pdf_job_reexecucao_nao_duplica_metadados_nem_arquivo(db_session, monkeypatch):
     """Prova T1.4: reexecutar task_download_pdf é no-op — early-return em
     pdf_file_path impede novo download; metadados permanecem 1 por artigo."""
     path = "/tmp/teste-idempotencia-nao-existe.pdf"
@@ -278,11 +268,7 @@ async def test_pdf_job_reexecucao_nao_duplica_metadados_nem_arquivo(
 
     async with async_session_test() as session:
         metas = (
-            (
-                await session.execute(
-                    select(PDFMetadata).where(PDFMetadata.article_id == article.id)
-                )
-            )
+            (await session.execute(select(PDFMetadata).where(PDFMetadata.article_id == article.id)))
             .scalars()
             .all()
         )
@@ -325,11 +311,7 @@ async def test_pdf_job_metadados_preexistentes_sao_atualizados_nao_duplicados(
 
     async with async_session_test() as session:
         metas = (
-            (
-                await session.execute(
-                    select(PDFMetadata).where(PDFMetadata.article_id == article.id)
-                )
-            )
+            (await session.execute(select(PDFMetadata).where(PDFMetadata.article_id == article.id)))
             .scalars()
             .all()
         )

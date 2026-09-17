@@ -10,7 +10,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import BaseModel
 
 
-class ProcessingStatus(str, enum.Enum):
+class ProcessingStatus(enum.StrEnum):
     """Status de processamento do PDF."""
 
     PENDING = "PENDING"

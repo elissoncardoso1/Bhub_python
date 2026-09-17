@@ -82,9 +82,11 @@ async def test_rate_limit_invokes_limiter(monkeypatch):
 
         def wrapper(func):
             called["wrapped"] = True
+
             def inner(*args, **kwargs):
                 called["inner_called"] = True
                 return func(*args, **kwargs)
+
             return inner
 
         return wrapper
@@ -115,7 +117,9 @@ def test_get_user_id_for_rate_limit_with_token_and_ip_fallback():
     assert get_user_id_for_rate_limit(req_token) == "user:user-123"
 
     req_ip = make_request()
-    assert get_user_id_for_rate_limit(req_ip).startswith("127.0.0.1") or get_user_id_for_rate_limit(req_ip)
+    assert get_user_id_for_rate_limit(req_ip).startswith("127.0.0.1") or get_user_id_for_rate_limit(
+        req_ip
+    )
 
 
 # ---------- RefreshTokenService ----------

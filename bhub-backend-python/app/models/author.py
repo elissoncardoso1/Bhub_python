@@ -42,7 +42,9 @@ class Author(BaseModel):
     name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
 
     # Nome normalizado para busca (sem acentos, lowercase)
-    normalized_name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True, index=True)
+    normalized_name: Mapped[str] = mapped_column(
+        String(255), nullable=False, unique=True, index=True
+    )
 
     # Informações adicionais (quando disponíveis)
     orcid: Mapped[str | None] = mapped_column(String(50), unique=True, nullable=True)
@@ -53,7 +55,7 @@ class Author(BaseModel):
     article_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     # Relacionamentos
-    articles: Mapped[list["Article"]] = relationship(
+    articles: Mapped[list[Article]] = relationship(
         "Article",
         secondary=article_authors,
         back_populates="authors",

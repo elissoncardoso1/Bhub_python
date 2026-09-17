@@ -23,7 +23,7 @@ from app.models.author import article_authors
 from app.models.base import BaseModel
 
 
-class SourceType(str, enum.Enum):
+class SourceType(enum.StrEnum):
     """Tipo de fonte do artigo."""
 
     RSS = "RSS"
@@ -42,7 +42,9 @@ class Article(BaseModel):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 
     # Identificação externa
-    external_id: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True, index=True)
+    external_id: Mapped[str | None] = mapped_column(
+        String(255), unique=True, nullable=True, index=True
+    )
     doi: Mapped[str | None] = mapped_column(String(100), unique=True, nullable=True, index=True)
 
     # Metadados principais
@@ -59,14 +61,18 @@ class Article(BaseModel):
     image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
     # Publicação
-    publication_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    publication_date: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
     journal_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     volume: Mapped[str | None] = mapped_column(String(50), nullable=True)
     issue: Mapped[str | None] = mapped_column(String(50), nullable=True)
     pages: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
     # Classificação e scoring
-    category_id: Mapped[int | None] = mapped_column(ForeignKey("categories.id"), nullable=True, index=True)
+    category_id: Mapped[int | None] = mapped_column(
+        ForeignKey("categories.id"), nullable=True, index=True
+    )
     impact_score: Mapped[float] = mapped_column(Float, default=5.0, nullable=False)  # 1-10
     classification_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
 

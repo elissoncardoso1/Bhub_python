@@ -4,6 +4,7 @@ Rotas web (SSR + HTMX) para o frontend BHUB.
 
 from __future__ import annotations
 
+import contextlib
 from dataclasses import dataclass, field
 from datetime import datetime
 
@@ -25,8 +26,10 @@ router = APIRouter(tags=["Web"])
 
 def _is_htmx(request: Request) -> bool:
     # HTMX sends "HX-Request: true" header, but Starlette/FastAPI may lowercase it
-    return request.headers.get("hx-request", "").lower() == "true" or \
-           request.headers.get("HX-Request", "").lower() == "true"
+    return (
+        request.headers.get("hx-request", "").lower() == "true"
+        or request.headers.get("HX-Request", "").lower() == "true"
+    )
 
 
 @dataclass(frozen=True)
@@ -56,7 +59,7 @@ async def _get_categories_with_counts(db: DBSession) -> list[dict]:
         )
         .outerjoin(
             Article,
-            and_(Article.category_id == Category.id, Article.is_published == True),
+            and_(Article.category_id == Category.id, Article.is_published),
         )
         .group_by(Category.id)
         .order_by(Category.name)
@@ -71,7 +74,7 @@ async def _get_categories_with_counts(db: DBSession) -> list[dict]:
 async def _fetch_articles(db: DBSession, filters: ArticleFilters) -> tuple[list[Article], int, int]:
     stmt = (
         select(Article)
-        .where(Article.is_published == True)
+        .where(Article.is_published)
         .options(
             selectinload(Article.category),
             selectinload(Article.authors),
@@ -87,6 +90,7 @@ async def _fetch_articles(db: DBSession, filters: ArticleFilters) -> tuple[list[
         if filters.search_type == "semantic":
             try:
                 from app.ml import EmbeddingClassifier
+
                 if EmbeddingClassifier.is_initialized():
                     # Use category classification as semantic search
                     # Classify the search query to find relevant category
@@ -103,9 +107,13 @@ async def _fetch_articles(db: DBSession, filters: ArticleFilters) -> tuple[list[
                                 # If no category filter already, use semantic category
                                 stmt = stmt.where(Article.category_id == cat_id)
                             # Also do text search for better results
-                            article_ids = await search_service.search_fts5(filters.search, limit=1000)
+                            article_ids = await search_service.search_fts5(
+                                filters.search, limit=1000
+                            )
                             if not article_ids:
-                                article_ids = await search_service.search_like_fallback(filters.search, limit=1000)
+                                article_ids = await search_service.search_like_fallback(
+                                    filters.search, limit=1000
+                                )
             except Exception as e:
                 log.warning(f"Semantic search failed, falling back to text search: {e}")
 
@@ -226,23 +234,33 @@ async def home(
     categories = await _get_categories_with_counts(db)
 
     # Logic for Split View vs Search View
-    is_default_view = not (search or category_id or feed_id or highlighted or has_pdf or is_open_access or source_category)
+    is_default_view = not (
+        search
+        or category_id
+        or feed_id
+        or highlighted
+        or has_pdf
+        or is_open_access
+        or source_category
+    )
 
     journal_articles = []
     portal_articles = []
-    total_journals = 0
-    total_portals = 0
 
     if is_default_view:
         # Fetch Journals (RSS + journal_name set)
         journal_stmt = (
             select(Article)
             .where(
-                Article.is_published == True,
+                Article.is_published,
                 Article.source_type == SourceType.RSS,
-                Article.journal_name.isnot(None)
+                Article.journal_name.isnot(None),
             )
-            .options(selectinload(Article.category), selectinload(Article.authors), selectinload(Article.feed))
+            .options(
+                selectinload(Article.category),
+                selectinload(Article.authors),
+                selectinload(Article.feed),
+            )
             .order_by(Article.publication_date.desc())
             .limit(20)
         )
@@ -253,11 +271,15 @@ async def home(
         portal_stmt = (
             select(Article)
             .where(
-                Article.is_published == True,
+                Article.is_published,
                 Article.source_type == SourceType.RSS,
-                Article.journal_name.is_(None)
+                Article.journal_name.is_(None),
             )
-            .options(selectinload(Article.category), selectinload(Article.authors), selectinload(Article.feed))
+            .options(
+                selectinload(Article.category),
+                selectinload(Article.authors),
+                selectinload(Article.feed),
+            )
             .order_by(Article.publication_date.desc())
             .limit(20)
         )
@@ -276,17 +298,18 @@ async def home(
     # Hero stats — números reais para a seção hero da home
     from app.models import Feed
 
-    total_articles = await db.scalar(
-        select(func.count()).select_from(Article).where(Article.is_published == True)
-    ) or 0
-    total_feeds = await db.scalar(
-        select(func.count()).select_from(Feed).where(Feed.is_active == True)
-    ) or 0
-    oa_count = await db.scalar(
-        select(func.count())
-        .select_from(Article)
-        .where(Article.is_published == True, Article.is_open_access == True)
-    ) or 0
+    total_articles = (
+        await db.scalar(select(func.count()).select_from(Article).where(Article.is_published)) or 0
+    )
+    total_feeds = await db.scalar(select(func.count()).select_from(Feed).where(Feed.is_active)) or 0
+    oa_count = (
+        await db.scalar(
+            select(func.count())
+            .select_from(Article)
+            .where(Article.is_published, Article.is_open_access)
+        )
+        or 0
+    )
     hero_stats = {
         "articles": int(total_articles),
         "feeds": int(total_feeds),
@@ -353,7 +376,13 @@ async def articles_search(
         search_type = "text"
 
     # Validate and normalize source_category
-    if source_category and source_category.strip() and source_category not in ("journal", "portal") or source_category and not source_category.strip():
+    if (
+        source_category
+        and source_category.strip()
+        and source_category not in ("journal", "portal")
+        or source_category
+        and not source_category.strip()
+    ):
         source_category = None
 
     # Validate and normalize sort_order
@@ -363,10 +392,8 @@ async def articles_search(
     # Parse feed_id (handle empty strings)
     parsed_feed_id = None
     if feed_id and feed_id.strip():
-        try:
+        with contextlib.suppress(ValueError, TypeError):
             parsed_feed_id = int(feed_id)
-        except (ValueError, TypeError):
-            pass
 
     # Parse boolean filters (handle string "true"/"false" from checkboxes)
     parsed_highlighted = None
@@ -394,15 +421,11 @@ async def articles_search(
     parsed_date_from = None
     parsed_date_to = None
     if date_from and date_from.strip():
-        try:
+        with contextlib.suppress(BaseException):
             parsed_date_from = datetime.fromisoformat(date_from)
-        except:
-            pass
     if date_to and date_to.strip():
-        try:
+        with contextlib.suppress(BaseException):
             parsed_date_to = datetime.fromisoformat(date_to)
-        except:
-            pass
 
     filters = ArticleFilters(
         search=normalized_search,
@@ -425,10 +448,9 @@ async def articles_search(
 
     # Get active feeds for filter
     from app.models import Feed
+
     feeds_result = await db.execute(
-        select(Feed.id, Feed.name)
-        .where(Feed.is_active == True)
-        .order_by(Feed.name)
+        select(Feed.id, Feed.name).where(Feed.is_active).order_by(Feed.name)
     )
     feeds = [{"id": row[0], "name": row[1]} for row in feeds_result.fetchall()]
 
@@ -460,7 +482,9 @@ async def articles_search(
 
 
 @router.get("/categories")
-async def categories_page(request: Request, db: DBSession, current_user: CurrentUserOptional = None):
+async def categories_page(
+    request: Request, db: DBSession, current_user: CurrentUserOptional = None
+):
     templates = get_templates()
     csrf_token = await get_csrf_token(request)
     categories = await _get_categories_with_counts(db)
@@ -677,7 +701,7 @@ async def article_detail(
 
     result = await db.execute(
         select(Article)
-        .where(Article.id == article_id, Article.is_published == True)
+        .where(Article.id == article_id, Article.is_published)
         .options(
             selectinload(Article.category),
             selectinload(Article.authors),
@@ -709,7 +733,7 @@ async def article_detail(
         similar_result = await db.execute(
             select(Article)
             .where(
-                Article.is_published == True,
+                Article.is_published,
                 Article.id != article_id,
                 Article.category_id == article.category_id,
             )
@@ -745,11 +769,15 @@ async def article_detail(
             "base_url": base_url,
             # Open Graph metadata
             "og_title": og_metadata.get("og:title", article.title_translated or article.title),
-            "og_description": og_metadata.get("og:description", article.abstract_translated or article.abstract or ""),
+            "og_description": og_metadata.get(
+                "og:description", article.abstract_translated or article.abstract or ""
+            ),
             "og_image": og_image_url,
             "og_url": article_url,
             "og_type": "article",
             "twitter_card": "summary_large_image",
-            "meta_description": og_metadata.get("description", article.abstract_translated or article.abstract or ""),
+            "meta_description": og_metadata.get(
+                "description", article.abstract_translated or article.abstract or ""
+            ),
         },
     )

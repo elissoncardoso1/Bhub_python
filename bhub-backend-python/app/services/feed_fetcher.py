@@ -9,7 +9,7 @@ Estratégia (ver docs/superpowers/specs/2026-07-04-feed-resilience-design.md):
 """
 
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 
 import httpx
 from tenacity import (
@@ -29,7 +29,7 @@ DEFAULT_HEADERS = {
 TIMEOUT_SECONDS = 30.0
 
 
-class FetchStatus(str, Enum):
+class FetchStatus(StrEnum):
     """Classificação do resultado de um fetch de feed."""
 
     OK = "ok"
@@ -83,14 +83,10 @@ class FeedFetcher:
         try:
             response = await self._get_with_retry(url, headers)
         except httpx.HTTPError as e:
-            return FetchResult(
-                status=FetchStatus.TRANSIENT_ERROR, error=f"Erro de rede: {e}"
-            )
+            return FetchResult(status=FetchStatus.TRANSIENT_ERROR, error=f"Erro de rede: {e}")
 
         if response.status_code in (403, 429):
-            log.info(
-                f"Feed {url} respondeu {response.status_code}; tentando fallback impersonado"
-            )
+            log.info(f"Feed {url} respondeu {response.status_code}; tentando fallback impersonado")
             return await self._fetch_impersonated(url, headers)
 
         return self._classify_response(

@@ -57,7 +57,12 @@ class TranslateResponse(BaseModel):
 @router.post("/classify", response_model=ClassifyResponse)
 @limiter.limit(settings.ai_rate_limit_daily, key_func=get_user_id_for_rate_limit)
 @limiter.limit("10/minute", key_func=get_user_id_for_rate_limit)
-async def classify_text(request: Request, classify_request: ClassifyRequest):
+async def classify_text(
+    # slowapi exige um parâmetro chamado `request` na assinatura (é o valor padrão
+    # de `key_func`); não pode ser renomeado nem removido.
+    request: Request,  # noqa: ARG001
+    classify_request: ClassifyRequest,
+):
     """Classifica texto em uma categoria."""
 
     if classify_request.use_external:
@@ -101,7 +106,7 @@ async def classify_text(request: Request, classify_request: ClassifyRequest):
 @limiter.limit(settings.ai_rate_limit_daily, key_func=get_user_id_for_rate_limit)
 @limiter.limit("10/minute", key_func=get_user_id_for_rate_limit)
 async def translate_text(
-    http_request: Request,
+    _http_request: Request,  # noqa: ARG001  # slowapi resolve `request` abaixo
     request: TranslateRequest,
     session: AsyncSession = Depends(get_async_session),
 ):
@@ -148,8 +153,7 @@ async def translate_text(
 
     # Cache miss - chamar API
     log.info(
-        f"Cache miss - chamando API para tradução: "
-        f"{request.source_lang} -> {request.target_lang}"
+        f"Cache miss - chamando API para tradução: {request.source_lang} -> {request.target_lang}"
     )
 
     if len(request.text) > settings.ai_external_max_chars:

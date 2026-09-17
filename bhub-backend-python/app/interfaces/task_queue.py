@@ -131,9 +131,7 @@ class InlineTaskQueue:
                 if result is None:
                     log.debug(f"job inline de PDF sem trabalho (artigo {article_id})")
             except Exception as e:
-                log.error(
-                    f"job inline de PDF falhou (artigo {article_id}): {e}"
-                )
+                log.error(f"job inline de PDF falhou (artigo {article_id}): {e}")
 
         await self._run_inline(run_inline_pdf, job_id)
         return job_id

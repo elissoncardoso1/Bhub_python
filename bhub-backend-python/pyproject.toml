@@ -135,6 +135,13 @@ ignore = [
 [tool.ruff.lint.isort]
 known-first-party = ["app"]
 
+[tool.ruff.lint.per-file-ignores]
+# Testes: parâmetros de fixture do pytest são resolvidos POR NOME, então renomear
+# para `_x` quebra a injeção; fakes e lambdas precisam manter a aridade da
+# assinatura real (ex.: `FakeDB.execute(self, stmt)`, `lambda *args, **kwargs`).
+# Ignorar ARG aqui é a decisão correta, não dívida.
+"tests/**" = ["ARG001", "ARG002", "ARG004", "ARG005"]
+
 [tool.mypy]
 python_version = "3.12"
 strict = true

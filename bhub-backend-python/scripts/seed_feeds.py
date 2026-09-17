@@ -246,9 +246,7 @@ async def extract_domain(url: str) -> str:
 async def create_or_update_feed(db, feed_data: dict) -> Feed:
     """Cria ou atualiza um feed no banco de dados."""
     # Verificar se já existe
-    result = await db.execute(
-        select(Feed).where(Feed.feed_url == feed_data["feed_url"])
-    )
+    result = await db.execute(select(Feed).where(Feed.feed_url == feed_data["feed_url"]))
     existing = result.scalar_one_or_none()
 
     if existing:
@@ -307,7 +305,9 @@ async def seed_feeds():
                 try:
                     # Validar dados obrigatórios
                     if not feed_data.get("feed_url") or not feed_data.get("name"):
-                        log.warning(f"  [{idx}/{len(category_data['feeds'])}] Feed inválido: dados incompletos")
+                        log.warning(
+                            f"  [{idx}/{len(category_data['feeds'])}] Feed inválido: dados incompletos"
+                        )
                         total_errors += 1
                         continue
 
@@ -326,7 +326,7 @@ async def seed_feeds():
                                 if old_value != value:
                                     setattr(existing, key, value)
                                     updated_fields.append(key)
-                        
+
                         if updated_fields:
                             total_updated += 1
                             log.info(
@@ -334,7 +334,9 @@ async def seed_feeds():
                                 f"(campos: {', '.join(updated_fields)})"
                             )
                         else:
-                            log.debug(f"  [{idx}/{len(category_data['feeds'])}] → Já existe: {feed_data['name']}")
+                            log.debug(
+                                f"  [{idx}/{len(category_data['feeds'])}] → Já existe: {feed_data['name']}"
+                            )
                     else:
                         # Criar novo
                         feed = Feed(
@@ -344,13 +346,13 @@ async def seed_feeds():
                             website_url=feed_data.get("website_url"),
                             description=feed_data.get("description"),
                             is_active=True,
-                            sync_frequency=feed_data.get(
-                                "sync_frequency", SyncFrequency.DAILY
-                            ),
+                            sync_frequency=feed_data.get("sync_frequency", SyncFrequency.DAILY),
                         )
                         db.add(feed)
                         total_created += 1
-                        log.info(f"  [{idx}/{len(category_data['feeds'])}] + Criado: {feed_data['name']}")
+                        log.info(
+                            f"  [{idx}/{len(category_data['feeds'])}] + Criado: {feed_data['name']}"
+                        )
 
                 except Exception as e:
                     total_errors += 1
@@ -376,9 +378,11 @@ async def seed_feeds():
         log.info(f"  📊 Total processado: {total_created + total_updated}")
         log.info(f"  📝 Total de feeds no sistema: {total_created + total_updated}")
         log.info(f"{'=' * 60}")
-        
+
         if total_errors > 0:
-            log.warning(f"\n⚠ Atenção: {total_errors} feed(s) apresentaram erros. Revise os logs acima.")
+            log.warning(
+                f"\n⚠ Atenção: {total_errors} feed(s) apresentaram erros. Revise os logs acima."
+            )
 
 
 async def main():
@@ -392,4 +396,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-

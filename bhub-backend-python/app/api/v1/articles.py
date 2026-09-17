@@ -23,7 +23,9 @@ router = APIRouter(prefix="/articles", tags=["Articles"])
 @router.get("", response_model=ArticleListResponse)
 @limiter.limit("100/minute")
 async def list_articles(
-    request: Request,
+    # slowapi exige um parâmetro chamado `request` na assinatura (é o valor padrão
+    # de `key_func`); não pode ser renomeado nem removido.
+    request: Request,  # noqa: ARG001
     db: DBSession,
     pagination: Pagination,
     search_service: SearchDep,
@@ -38,7 +40,9 @@ async def list_articles(
     date_to: datetime | None = None,
     sort_by: str = Query(default="publication_date"),
     sort_order: str = Query(default="desc", pattern="^(asc|desc)$"),
-    strategy: str = Query(default="default", description="Strategy for listing (default, interleaved)"),
+    strategy: str = Query(
+        default="default", description="Strategy for listing (default, interleaved)"
+    ),
     source_category: str | None = Query(default=None, regex="^(journal|portal)$"),
 ):
     """Lista artigos com filtros e busca."""
@@ -46,7 +50,7 @@ async def list_articles(
     # Query base
     stmt = (
         select(Article)
-        .where(Article.is_published == True)
+        .where(Article.is_published)
         .options(
             selectinload(Article.category),
             selectinload(Article.authors),
@@ -90,7 +94,7 @@ async def list_articles(
             stmt = stmt.where(
                 or_(
                     Article.source_type.in_([SourceType.PDF, SourceType.MANUAL]),
-                    Article.journal_name.isnot(None)
+                    Article.journal_name.isnot(None),
                 )
             )
         elif source_category == "portal":
@@ -98,7 +102,7 @@ async def list_articles(
             stmt = stmt.where(
                 and_(
                     Article.source_type.in_([SourceType.RSS, SourceType.SCRAPING]),
-                    Article.journal_name.is_(None)
+                    Article.journal_name.is_(None),
                 )
             )
 
@@ -121,9 +125,7 @@ async def list_articles(
         stmt = stmt.where(Article.publication_date <= date_to)
 
     if author:
-        stmt = stmt.join(Article.authors).where(
-            Author.name.ilike(f"%{author}%")
-        )
+        stmt = stmt.join(Article.authors).where(Author.name.ilike(f"%{author}%"))
 
     # Contar total
     count_stmt = select(func.count()).select_from(stmt.subquery())
@@ -198,8 +200,8 @@ async def get_highlighted_articles(
     result = await db.execute(
         select(Article)
         .where(
-            Article.is_published == True,
-            Article.highlighted == True,
+            Article.is_published,
+            Article.highlighted,
         )
         .options(
             selectinload(Article.category),
@@ -255,9 +257,7 @@ async def get_similar_articles(
 ):
     """Retorna artigos similares baseado na categoria."""
     # Buscar artigo original
-    result = await db.execute(
-        select(Article).where(Article.id == article_id)
-    )
+    result = await db.execute(select(Article).where(Article.id == article_id))
     article = result.scalar_one_or_none()
 
     if not article:
@@ -270,7 +270,7 @@ async def get_similar_articles(
     stmt = (
         select(Article)
         .where(
-            Article.is_published == True,
+            Article.is_published,
             Article.id != article_id,
             Article.category_id == article.category_id,
         )
@@ -285,9 +285,7 @@ async def get_similar_articles(
     result = await db.execute(stmt)
     similar = result.scalars().all()
 
-    return ArticleSimilarResponse(
-        articles=[ArticleResponse.model_validate(a) for a in similar]
-    )
+    return ArticleSimilarResponse(articles=[ArticleResponse.model_validate(a) for a in similar])
 
 
 @router.get("/{article_id}/download")
@@ -300,9 +298,7 @@ async def download_article_pdf(
 
     from fastapi.responses import FileResponse
 
-    result = await db.execute(
-        select(Article).where(Article.id == article_id)
-    )
+    result = await db.execute(select(Article).where(Article.id == article_id))
     article = result.scalar_one_or_none()
 
     if not article:

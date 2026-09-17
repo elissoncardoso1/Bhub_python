@@ -3,7 +3,7 @@ Schemas comuns e utilitários.
 """
 
 from datetime import datetime
-from typing import Generic, TypeVar
+from typing import TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -38,7 +38,7 @@ class PaginationParams(BaseModel):
         return (self.page - 1) * self.page_size
 
 
-class PaginatedResponse(BaseSchema, Generic[T]):
+class PaginatedResponse[T](BaseSchema):
     """Resposta paginada genérica."""
 
     items: list[T]

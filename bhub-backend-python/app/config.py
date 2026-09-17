@@ -31,15 +31,16 @@ class Settings(BaseSettings):
     host: str = "0.0.0.0"
     port: int = 8000
     allowed_origins_str: str = Field(
-        default="http://localhost:3000,http://localhost:8000",
-        alias="allowed_origins"
+        default="http://localhost:3000,http://localhost:8000", alias="allowed_origins"
     )
 
     @computed_field
     @property
     def allowed_origins(self) -> list[str]:
         """Parse origins from comma-separated string."""
-        origins = [origin.strip() for origin in self.allowed_origins_str.split(",") if origin.strip()]
+        origins = [
+            origin.strip() for origin in self.allowed_origins_str.split(",") if origin.strip()
+        ]
 
         if self.environment == "production":
             for origin in origins:

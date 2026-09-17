@@ -26,7 +26,7 @@ async def get_banners_by_position(
         select(Banner)
         .where(
             Banner.position == position,
-            Banner.is_active == True,
+            Banner.is_active,
             or_(Banner.start_date.is_(None), Banner.start_date <= now),
             or_(Banner.end_date.is_(None), Banner.end_date >= now),
         )
@@ -40,9 +40,7 @@ async def get_banners_by_position(
         banner.view_count += 1
     await db.commit()
 
-    return BannerListResponse(
-        banners=[BannerResponse.model_validate(b) for b in banners]
-    )
+    return BannerListResponse(banners=[BannerResponse.model_validate(b) for b in banners])
 
 
 @router.post("/click")
@@ -51,9 +49,7 @@ async def track_banner_click(
     request: BannerClickRequest,
 ):
     """Registra clique em um banner."""
-    result = await db.execute(
-        select(Banner).where(Banner.id == request.banner_id)
-    )
+    result = await db.execute(select(Banner).where(Banner.id == request.banner_id))
     banner = result.scalar_one_or_none()
 
     if not banner:

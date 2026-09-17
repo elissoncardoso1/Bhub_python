@@ -30,7 +30,7 @@ async def translate_content(
     request: Request,
     translation_req: TranslationRequest,
     db: DBSession,
-    current_user: CurrentUserOptional = None,
+    _current_user: CurrentUserOptional = None,
 ):
     """
     Endpoint HTMX para traduzir conteúdo sob demanda.
@@ -48,7 +48,7 @@ async def translate_content(
             translation_req.text,
             translation_req.source_lang,
             translation_req.target_lang,
-            model_version
+            model_version,
         )
 
         # 2. Verificar cache
@@ -61,8 +61,7 @@ async def translate_content(
             # 3. Se não tiver no cache, chamar IA
             ai_manager = get_ai_manager()
             translated_text, provider = await ai_manager.translate(
-                translation_req.text,
-                translation_req.target_lang
+                translation_req.text, translation_req.target_lang
             )
 
             # 4. Salvar no cache
@@ -74,7 +73,7 @@ async def translate_content(
                 translation_req.source_lang,
                 translation_req.target_lang,
                 model_version,
-                provider.value if provider else "unknown"
+                provider.value if provider else "unknown",
             )
             is_cached = False
 
@@ -105,6 +104,7 @@ async def translate_content(
         )
     except Exception as e:
         import logging
+
         logging.error(f"Erro na tradução: {e}")
         return templates.TemplateResponse(
             "partials/translation_result.html",

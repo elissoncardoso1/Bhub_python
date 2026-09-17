@@ -36,13 +36,13 @@ class Category(BaseModel):
     embedding: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Relacionamentos
-    articles: Mapped[list["Article"]] = relationship(
+    articles: Mapped[list[Article]] = relationship(
         "Article",
         primaryjoin="Category.id == Article.category_id",
         back_populates="category",
         lazy="selectin",
     )
-    articles_many: Mapped[list["Article"]] = relationship(
+    articles_many: Mapped[list[Article]] = relationship(
         "Article",
         secondary="article_categories",
         back_populates="categories",

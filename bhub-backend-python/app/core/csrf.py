@@ -78,7 +78,9 @@ class CSRFProtection:
         # Se não há token no cookie, não há sessão CSRF válida
         if not cookie_token:
             if require_token:
-                log.warning(f"CSRF: Token ausente no cookie para {request.method} {request.url.path}")
+                log.warning(
+                    f"CSRF: Token ausente no cookie para {request.method} {request.url.path}"
+                )
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="Token CSRF ausente. Faça login novamente.",
@@ -150,7 +152,9 @@ async def validate_csrf_token(
             form = await request.form()  # Starlette cacheia; Form(...) das rotas segue funcionando
             value = form.get("csrf_token")
             fallback = value if isinstance(value, str) else None
-    return csrf_protection.validate_csrf(request, require_token=require_token, fallback_token=fallback)
+    return csrf_protection.validate_csrf(
+        request, require_token=require_token, fallback_token=fallback
+    )
 
 
 # Variante permissiva: valida apenas se houver cookie CSRF

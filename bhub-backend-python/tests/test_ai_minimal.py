@@ -26,9 +26,9 @@ def test_model_manager_unsupported_model(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_local_llm_classify_with_dummy_llm(monkeypatch):
-    dummy_llm = lambda *args, **kwargs: {
-        "choices": [{"text": json.dumps({"category": "clinica", "confidence": 0.9})}]
-    }
+    def dummy_llm(*args, **kwargs):
+        return {"choices": [{"text": json.dumps({"category": "clinica", "confidence": 0.9})}]}
+
     monkeypatch.setattr(LocalLLMService, "_get_llm", lambda self: dummy_llm)
 
     service = LocalLLMService()
@@ -39,15 +39,13 @@ async def test_local_llm_classify_with_dummy_llm(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_local_llm_classify_multiple_with_dummy_llm(monkeypatch):
-    dummy_llm = lambda *args, **kwargs: {
-        "choices": [
-            {
-                "text": json.dumps(
-                    {"categories": [{"slug": "educacao", "confidence": 0.8}]}
-                )
-            }
-        ]
-    }
+    def dummy_llm(*args, **kwargs):
+        return {
+            "choices": [
+                {"text": json.dumps({"categories": [{"slug": "educacao", "confidence": 0.8}]})}
+            ]
+        }
+
     monkeypatch.setattr(LocalLLMService, "_get_llm", lambda self: dummy_llm)
 
     service = LocalLLMService()

@@ -154,9 +154,7 @@ async def test_inline_queue_executa_pdf_inline(monkeypatch):
     async def fake_process(self, article_id, pdf_url=None, db=None):
         executed.append((article_id, pdf_url))
 
-    monkeypatch.setattr(
-        "app.services.pdf_service.PDFService.process_article_pdf", fake_process
-    )
+    monkeypatch.setattr("app.services.pdf_service.PDFService.process_article_pdf", fake_process)
 
     queue = InlineTaskQueue()
     job_id = await queue.dispatch_pdf(article_id=5, pdf_url="https://x/y.pdf")
@@ -300,9 +298,7 @@ async def test_dispatch_pdf_sem_arq_usa_inline(arq_disabled, monkeypatch):
     async def fake_process(self, article_id, pdf_url=None, db=None):
         executed.append((article_id, pdf_url))
 
-    monkeypatch.setattr(
-        "app.services.pdf_service.PDFService.process_article_pdf", fake_process
-    )
+    monkeypatch.setattr("app.services.pdf_service.PDFService.process_article_pdf", fake_process)
 
     job_id = await dispatch_download_pdf(3, "https://x/z.pdf")
     await dispatcher.close_task_queue()
@@ -340,9 +336,7 @@ async def test_log_estruturado_em_falha_de_enfileiramento(arq_enabled, monkeypat
     captured: list[dict[str, Any]] = []
 
     def sink(message) -> None:
-        captured.append(
-            {"level": message.record["level"].name, "text": str(message)}
-        )
+        captured.append({"level": message.record["level"].name, "text": str(message)})
 
     handler_id = loguru_logger.add(sink, level="DEBUG")
     try:

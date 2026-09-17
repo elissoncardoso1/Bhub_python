@@ -58,7 +58,11 @@ async def submit_cookie_consent(
     elif action == "reject_all":
         preferences = dict.fromkeys(OPTIONAL_CATEGORIES, False)
     else:  # save — checkbox marcada envia "on"; ausente = False
-        submitted = {"analytics": analytics, "external_media": external_media, "marketing": marketing}
+        submitted = {
+            "analytics": analytics,
+            "external_media": external_media,
+            "marketing": marketing,
+        }
         preferences = {cat: submitted[cat] is not None for cat in OPTIONAL_CATEGORIES}
 
     set_consent_cookie(response, preferences)
