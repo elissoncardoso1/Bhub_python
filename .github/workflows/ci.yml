@@ -14,6 +14,11 @@ jobs:
   test:
     name: Lint & Test (Python 3.12)
     runs-on: ubuntu-latest
+    # Teto do JOB (rodada de correção 1). O default do GitHub é 360 min: um HANG de
+    # rede em qualquer step penduraria o job por horas. Os steps de instalação/teste
+    # duram minutos, e o build da imagem tem teto próprio de 40 min logo abaixo
+    # (duas tentativas de um build frio, medido em 307 s na máquina do implementador).
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 
@@ -58,14 +63,19 @@ jobs:
       # abaixo barra `ignore_errors` ATIVO (valor `true`) nestas grafias: chave sem
       # aspas, com aspas duplas ou com aspas simples, em linha própria (indentada ou
       # não) e dentro de tabela inline (`{ module = [...], ignore_errors = true }`).
-      # NÃO barra duas grafias fora dessas — a chave depois de um `#` dentro de string
-      # (o `sed 's/#.*//'` corta a linha antes dela) e a chave com escape unicode
-      # (`"\u0069gnore_errors"`, que o `tomllib` decodifica para o nome real): no
-      # cenário 28 do harness o mypy HONRA a chave e o total cai de 127 para 109; com
-      # o escape unicode o guard não casa (medido nesta rodada) — nem outras
-      # relaxações (`disable_error_code`, `follow_imports`) que baixam o total sem
-      # serem pegas: ver "LIMITE INERENTE do desenho por contagem" em
-      # docs/quality/BASELINE.md §6.8 (conserto estrutural: follow-up, não feito).
+      # A enumeração é do que o guard casa — NÃO é exaustiva. Ficam FORA dela, por
+      # exemplo, (a) a chave depois de um `#` dentro de string (o `sed 's/#.*//'` corta
+      # a linha antes dela) e (b) a chave com escape unicode (`"\u0069gnore_errors"`,
+      # que o `tomllib` decodifica para o nome real; idem `"\U00000069gnore_errors"`):
+      # o guard não casa nenhuma das duas E o mypy as HONRA — medido nesta rodada, a
+      # chave escapada em `app.web.routes` (127 − 18, a contagem do §6.3) dá
+      # `Found 109 errors in 27 files (checked 105 source files)`, o MESMO efeito do
+      # cenário 28 do harness. ATENÇÃO: o cenário 28 é grafia COBERTA (o harness espera
+      # FAIL e o guard casa) e é citado ali só como MEDIDA DO EFEITO (127 → 109), nunca
+      # como exemplo de grafia fora da enumeração. Nem outras relaxações
+      # (`disable_error_code`, `follow_imports`) que baixam o total sem serem pegas:
+      # ver "LIMITE INERENTE do desenho por contagem" em docs/quality/BASELINE.md §6.8
+      # (conserto estrutural: follow-up, não feito).
       # Não corrige nenhum erro legado: o legado medido É o orçamento abaixo.
       # O mypy SAI COM rc=1 nesta config (é o esperado: há 127 erros), então o rc
       # não decide nada por si: o que decide é o resumo extraído. Por isso o step é
@@ -279,5 +289,24 @@ jobs:
       # árvore de trabalho (no CI, os caches de ruff/mypy/pytest e o `coverage.xml`;
       # numa máquina de dev, o `.venv`): follow-up nomeado, não feito aqui.
       # Não use `continue-on-error` aqui: build quebrado tem de deixar o PR VERMELHO.
+      # MITIGAÇÃO DE INFRA (rodada de correção 1 / Important I1): o build depende de
+      # QUATRO serviços externos — repos Debian (apt), PyPI, o índice CPU do PyTorch e o
+      # download do modelo no HuggingFace (este último sem `||` de fallback) —, então
+      # instabilidade de infra deixa o PR vermelho por motivo alheio ao código, e nada
+      # limitava a espera (o default do GitHub, 360 min, penduraria um HANG de download).
+      # Por isso: (a) `timeout-minutes` no step (40) E no job (60 — ver o topo do job) e
+      # (b) UM retry do MESMO comando, com `::warning::` no log. Um erro REAL de build
+      # falha nas duas tentativas: isto não mascara defeito de código, só a classe
+      # "infra". Se o step ficar vermelho, RE-RODE antes de culpar o código (o retry já
+      # rodou uma vez; o `::warning::` deixa isso no log). Um timeout, se disparar, NÃO
+      # é retentado — quem mata o step é o runner.
+      # Dimensionamento: o build frio mediu 307 s (5 min) na máquina do implementador;
+      # o runner, sem cache de camada, precisa de folga para as DUAS tentativas — 40 min
+      # cobre isso com margem e ainda limita o HANG.
       - name: Build da imagem Docker (Dockerfile do deploy)
-        run: docker build -f Dockerfile .
+        timeout-minutes: 40
+        run: |
+          docker build -f Dockerfile . || {
+            echo "::warning::build falhou; 1 retry (apt/PyPI/PyTorch/HuggingFace são externos) — se falhar de novo, é o PR."
+            docker build -f Dockerfile .
+          }
