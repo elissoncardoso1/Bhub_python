@@ -484,8 +484,12 @@ arquivos que o `mypy app` não olha, a cobertura equivalente é hoje a do shadow
   bloco de `ignore_errors` e falha se o total de erros crescer além de 127: um erro **novo**
   em qualquer dos 28 arquivos (inclusive `app/web/routes.py`) passa a falhar o CI, sem
   corrigir um único legado. **Ressalva (rodada de correção 5):** o invariante vale enquanto a
-  config do ratchet não for **afrouxada** — o guard da §6.8 barra `ignore_errors = true` em
-  qualquer grafia TOML da chave, mas outra relaxação (`disable_error_code`, `follow_imports`)
+  config do ratchet não for **afrouxada** — o guard da §6.8 barra a chave `ignore_errors`
+  ativa (valor `true`) nas grafias que enumera: sem aspas, com aspas duplas ou com aspas
+  simples, em linha própria (indentada ou não) ou em tabela inline. Duas grafias ficam
+  FORA da enumeração (chave depois de um `#` dentro de string, que o `sed` corta, e chave
+  com escape unicode — `"\u0069gnore_errors"`, que o `tomllib` decodifica para o nome
+  real); e outra relaxação (`disable_error_code`, `follow_imports`)
   baixa o total sem ser pega; é o "LIMITE INERENTE do desenho por contagem" documentado no
   fim da §6.8, com o conserto estrutural registrado lá como follow-up. O ratchet pós-release —
   corrigir os 127 e encolher as duas listas — continua sendo a task nova já registrada no
@@ -535,7 +539,7 @@ diz "nunca olhe"; o ratchet por contagem diz "olhe sempre, não piore".
 | Peça | O que é |
 |---|---|
 | `bhub-backend-python/pyproject.ratchet.toml` | Cópia fiel da config de mypy do `pyproject.toml` (`python_version`, `ignore_missing_imports`, `strict = true` e o MESMO bloco de relaxamento dos 56 módulos) **sem** o bloco `[[tool.mypy.overrides]]` que aplica `ignore_errors`. Autossuficiente de propósito: `--config-file` **ignora** o `pyproject.toml`. A lista de módulos é **duplicada à mão**: qualquer patch nela tem de ser aplicado nos DOIS arquivos (`pyproject.toml` avisa). |
-| Step `Type check ratchet (mypy shadow, budget 127)` | Roda `mypy app --config-file "$RATCHET_CONFIG"`, extrai o resumo e **falha se total > 127**; e falha FECHADO (exit 1) em entrada inválida — de FORMA (`127,`, vazio, `abc`) **e de MAGNITUDE** (mais de 9 dígitos), escopo degradado, parsing duvidoso ou `ignore_errors` **ativo** na config do ratchet (valor `true`, em qualquer grafia TOML da chave — inclusive citada; `= false` é inerte e **passa**). |
+| Step `Type check ratchet (mypy shadow, budget 127)` | Roda `mypy app --config-file "$RATCHET_CONFIG"`, extrai o resumo e **falha se total > 127**; e falha FECHADO (exit 1) em entrada inválida — de FORMA (`127,`, vazio, `abc`) **e de MAGNITUDE** (mais de 9 dígitos), escopo degradado, parsing duvidoso ou `ignore_errors` **ativo** na config do ratchet (valor `true`, nas grafias enumeradas: chave sem aspas, citada com `"` ou `'`, em linha própria, indentada ou em tabela inline; `= false` é inerte e **passa** — §6.8 traz as grafias cobertas e as duas não cobertas). |
 | `RATCHET_BUDGET=127` + `EXPECTED_SOURCE_FILES=105` + `RATCHET_CONFIG=pyproject.ratchet.toml` (no `ci.yml`) | Orçamento do legado, escopo esperado e caminho da config, numa fonte única — cada um em LINHA PRÓPRIA também para o harness poder substituí-la (é o único ponto do bloco que o harness muta). **BAIXE** o orçamento ao corrigir erros legados; nunca suba sem registrar a dívida nova no mesmo PR. Atualize o escopo se um arquivo entrar/sair de `app/`. Os dois números são validados como inteiro de **até 9 dígitos** (ver C1b) antes de qualquer comparação. |
 | `bhub-backend-python/tests/ci/ratchet_step_harness.sh` | Harness determinístico: extrai o bloco `run:` **real** do `ci.yml` (verbatim, dedent), põe um **stub de `mypy`** no PATH e executa o step com `bash -e` e cwd = `bhub-backend-python/`. 33 cenários do ratchet + 2 de cobertura (opt-in `RATCHET_HARNESS_COVERAGE=1`). É o que impede o retorno dos falsos verdes de C1/C1b/C2/C3/C4 — e **o CI o executa** no step `Run ratchet step harness` (rodada de correção 4); sem isso ele só rodava à mão. |
 
@@ -641,6 +645,23 @@ com `OK: linha do legado intacta (127 <= 127) e escopo intacto (105 source files
 O ratchet custa uma segunda passada do mypy (~10 s), o mesmo custo que o step de cobertura já
 aceitava por legibilidade do log, e é determinístico porque o `mypy` está pinado (§6.7).
 
+**Grafias da chave que o guard cobre — e as duas que não cobre (Task 11).** A enumeração
+abaixo é o que o guard de fato barra; "qualquer grafia TOML" era over-claim. Cobertas:
+`ignore_errors = true` (sem aspas, em linha própria, indentada ou não), `"ignore_errors" =
+true`, `'ignore_errors' = true` e as mesmas dentro de tabela inline (`overrides = [{ module =
+[...], "ignore_errors" = true }]`) — cenários 23, 25, 27, 29 e 31 do harness —, sempre exigindo
+o valor literal `true` (cenários 30-31: `= false` é o default do mypy, é inerte e PASSA). NÃO
+cobertas: (a) a chave na MESMA linha de um `#` dentro de string — o `sed 's/#.*//'` corta dali
+para o fim e o texto da chave não chega ao `grep` (verificado: a linha `overrides = [{ module =
+["app.web.routes", "#"], "ignore_errors" = true }]` vira `overrides = [{ module =
+["app.web.routes", "` antes do `grep`, e o guard não casa); e (b) a chave com **escape
+unicode** — `"\u0069gnore_errors" = true`, que o `tomllib` decodifica para `ignore_errors` e o
+mypy **honra**: medido nesta rodada com o mypy real do venv (2.3.1), a config do ratchet com
+essa chave em `app.web.routes` mede `Found 109 errors in 27 files (checked 105 source files)`
+— o total caiu de 127 para 109 enquanto o guard da (b) não casa a linha. As duas são o mesmo
+limite de desenho do "LIMITE INERENTE" abaixo, e o conserto estrutural é o follow-up nomeado
+no fim da seção.
+
 **LIMITE INERENTE do desenho por contagem (rodada de correção 5 — documentado, NÃO corrigido).**
 O step decide por **contagem de erros** de uma config que vive no próprio repositório, e o guard
 do C4 cobre **uma** chave dessa config. Qualquer OUTRA relaxação de `[tool.mypy]` baixa o total,
@@ -656,7 +677,8 @@ intocada):
 
 Um ratchet que conta erros **não consegue distinguir** "menos erros porque o código melhorou" de
 "menos erros porque a config foi afrouxada": o guard de `ignore_errors` é um conserto
-DIRECIONADO (uma chave, em todas as grafias TOML, e só com o valor `true`), não estrutural. Isso
+DIRECIONADO (uma chave, nas grafias TOML que a §6.8 enumera — não em todas elas —, e só com
+o valor `true`), não estrutural. Isso
 **não é regressão desta rodada** — a rodada 3 tinha o mesmo buraco — e não há vetor de acidente
 equivalente ao `ignore_errors` (que existe no `pyproject.toml`, pronto para ser copiado); mas o
 invariante vendido acima ("erro novo em QUALQUER arquivo passa a falhar") só vale enquanto nada

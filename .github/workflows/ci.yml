@@ -55,9 +55,16 @@ jobs:
       # e devolve os 105 arquivos à verificação — erro novo em QUALQUER arquivo,
       # inclusive nos 28 fora do gate principal, passa a falhar. A ressalva: o
       # invariante só vale enquanto a config do ratchet não for AFROUXADA. O guard
-      # abaixo barra `ignore_errors = true` em qualquer grafia TOML da chave; outras
-      # relaxações (`disable_error_code`, `follow_imports`) baixam o total e não são
-      # pegas — ver "LIMITE INERENTE do desenho por contagem" em
+      # abaixo barra `ignore_errors` ATIVO (valor `true`) nestas grafias: chave sem
+      # aspas, com aspas duplas ou com aspas simples, em linha própria (indentada ou
+      # não) e dentro de tabela inline (`{ module = [...], ignore_errors = true }`).
+      # NÃO barra duas grafias fora dessas — a chave depois de um `#` dentro de string
+      # (o `sed 's/#.*//'` corta a linha antes dela) e a chave com escape unicode
+      # (`"\u0069gnore_errors"`, que o `tomllib` decodifica para o nome real): no
+      # cenário 28 do harness o mypy HONRA a chave e o total cai de 127 para 109; com
+      # o escape unicode o guard não casa (medido nesta rodada) — nem outras
+      # relaxações (`disable_error_code`, `follow_imports`) que baixam o total sem
+      # serem pegas: ver "LIMITE INERENTE do desenho por contagem" em
       # docs/quality/BASELINE.md §6.8 (conserto estrutural: follow-up, não feito).
       # Não corrige nenhum erro legado: o legado medido É o orçamento abaixo.
       # O mypy SAI COM rc=1 nesta config (é o esperado: há 127 erros), então o rc
