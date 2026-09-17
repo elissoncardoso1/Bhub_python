@@ -15,7 +15,7 @@ router = APIRouter(prefix="/og", tags=["Open Graph"])
 @router.get("/articles/{article_id}/meta")
 async def get_article_og_meta(
     request: Request,
-    _db: DBSession,  # noqa: ARG001
+    _db: DBSession,  # dependência do FastAPI: sessão não usada neste handler
     article_id: int,
     og_service: OpenGraphDep,
 ):
@@ -118,7 +118,7 @@ async def get_default_og_image(
 @router.get("/articles/{article_id}/json")
 async def get_article_og_json(
     request: Request,
-    _db: DBSession,  # noqa: ARG001
+    _db: DBSession,  # dependência do FastAPI: sessão não usada neste handler
     article_id: int,
     og_service: OpenGraphDep,
 ):

@@ -43,9 +43,7 @@ class OpenGraphService:
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.db = db
 
-    # `font_name` integra a assinatura do resolvedor de fontes (chamável por keyword)
-    # e é mantido por compatibilidade; a busca usa `common_paths`.
-    def _get_font_path(self, font_name: str = "arial.ttf") -> str | None:  # noqa: ARG002
+    def _get_font_path(self) -> str | None:
         """Retorna caminho da fonte ou None para usar padrão."""
         # Tentar encontrar fontes comuns
         common_paths = [

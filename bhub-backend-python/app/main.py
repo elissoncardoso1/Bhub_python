@@ -137,6 +137,8 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SecurityHeadersMiddleware)
 
 # CSRF Middleware (gera tokens CSRF automaticamente)
+# Import tardio proposital: fica junto do ponto onde o middleware é instalado
+# (`app.add_middleware`, logo abaixo), preservando a ordem de leitura do módulo.
 from app.core.csrf_middleware import CSRFMiddleware  # noqa: E402
 
 app.add_middleware(CSRFMiddleware, auto_validate=False)  # Validação manual via dependência
@@ -318,6 +320,8 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 
 
 # Incluir routers
+# Import tardio proposital: fica junto do bloco que monta as rotas/estáticos,
+# preservando a ordem de leitura (middlewares -> routers -> /static).
 from app.web.router import router as web_router  # noqa: E402
 
 app.mount(

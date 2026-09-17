@@ -25,7 +25,7 @@ router = APIRouter(prefix="/analytics", tags=["Admin - Analytics"])
 @router.get("/overview", response_model=AnalyticsOverviewResponse)
 async def get_analytics_overview(
     db: DBSession,
-    _admin: CurrentAdmin,  # noqa: ARG001  # dependência de autorização
+    _admin: CurrentAdmin,  # dependência de autorização
     days: int = Query(default=30, ge=1, le=365, description="Período em dias"),
 ):
     """Retorna visão geral de analytics."""
@@ -48,7 +48,7 @@ async def get_analytics_overview(
 @router.get("/traffic", response_model=TrafficStatsResponse)
 async def get_traffic_stats(
     db: DBSession,
-    _admin: CurrentAdmin,  # noqa: ARG001  # dependência de autorização
+    _admin: CurrentAdmin,  # dependência de autorização
     days: int = Query(default=30, ge=1, le=365),
 ):
     """Retorna estatísticas de tráfego."""
@@ -59,7 +59,7 @@ async def get_traffic_stats(
 @router.get("/content", response_model=ContentStatsResponse)
 async def get_content_stats(
     db: DBSession,
-    _admin: CurrentAdmin,  # noqa: ARG001  # dependência de autorização
+    _admin: CurrentAdmin,  # dependência de autorização
     days: int = Query(default=30, ge=1, le=365),
 ):
     """Retorna estatísticas de conteúdo."""
@@ -70,7 +70,7 @@ async def get_content_stats(
 @router.get("/events", response_model=EventsStatsResponse)
 async def get_events_stats(
     db: DBSession,
-    _admin: CurrentAdmin,  # noqa: ARG001  # dependência de autorização
+    _admin: CurrentAdmin,  # dependência de autorização
     start_date: datetime | None = Query(default=None),
     end_date: datetime | None = Query(default=None),
     event_type: EventType | None = Query(default=None),
@@ -85,7 +85,7 @@ async def get_events_stats(
 @router.get("/time-series", response_model=list[TimeSeriesDataPoint])
 async def get_time_series_data(
     db: DBSession,
-    _admin: CurrentAdmin,  # noqa: ARG001  # dependência de autorização
+    _admin: CurrentAdmin,  # dependência de autorização
     days: int = Query(default=30, ge=1, le=365),
     period: str = Query(default="day", pattern="^(hour|day|week|month)$"),
 ):
@@ -97,7 +97,7 @@ async def get_time_series_data(
 @router.get("/top-pages", response_model=list[TopPageResponse])
 async def get_top_pages(
     db: DBSession,
-    _admin: CurrentAdmin,  # noqa: ARG001  # dependência de autorização
+    _admin: CurrentAdmin,  # dependência de autorização
     days: int = Query(default=30, ge=1, le=365),
     limit: int = Query(default=10, ge=1, le=50),
 ):

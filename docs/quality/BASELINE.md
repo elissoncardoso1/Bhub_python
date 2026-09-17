@@ -13,10 +13,10 @@ HEAD de referência do baseline: `c9d578a` (`docs(di): document global singleton
 | Verificação | Comando exato | Baseline (`c9d578a`) | Depois (T3.2) |
 |---|---|---|---|
 | Lint | `ruff check app tests` | **178 erros** | **0 erros** (`All checks passed!`) |
-| Formatter | `ruff format --check .` | **99 seriam reformatados**, 82 já formatados | **0 pendentes** (181 já formatados) |
+| Formatter | `ruff format --check .` | **99 seriam reformatados**, 82 já formatados | **0 pendentes** (179 já formatados) |
 | Tipagem | `mypy app` | **369 erros em 61 arquivos** (105 arquivos analisados) | *fora do escopo desta task* (Task 10 / T3.3) |
 | Testes | `pytest tests/ -q` | **256 passed**, 0 failed | **256 passed**, 0 failed |
-| Cobertura | `pytest tests/ -q --cov=app --cov-report=term` | **59%** (6359 statements, 2609 missing) | **59%** (6339 statements, 2586 missing) |
+| Cobertura | `pytest tests/ -q --cov=app --cov-report=term-missing` | **59%** (6359 statements, 2609 missing) | **59%** (6339 statements, 2586 missing) |
 
 Notas de leitura:
 
@@ -29,6 +29,11 @@ Notas de leitura:
   porcentagem = menos linhas descobertas em termos absolutos (2609 → 2586).
 - `mypy` continua intencionalmente fora do escopo: os 369 erros são a dívida tratada na
   Task 10 (T3.3, "mypy strict check"). Nenhum `continue-on-error` de mypy foi alterado aqui.
+- Sobre o formatter: os números de baseline **99 reformatados + 82 já formatados = 181**
+  contavam com dois scripts auxiliares não rastreados (`fix_arg.py`, `fix_manual.py`) que
+  foram **apagados** nesta task. Por isso o estado final medido é **179 já formatados**
+  (181 − 2), e não 181. A versão anterior deste documento registrava 181 no estado "depois"
+  — era um número medido antes da remoção dos scripts; corrigido na rodada de correção 1.
 
 ### Amplitude do `ruff check`
 
@@ -61,12 +66,16 @@ conhecida, não como sucesso.
    82 inalterados.
 3. **`per-file-ignores` justificado** em `pyproject.toml` para `tests/**` (ver seção 3).
 4. **`# noqa` cirúrgico** apenas onde o nome do parâmetro é contrato externo (ver seção 4).
+   Na **rodada de correção 1**, foram removidas as 27 linhas de `# noqa` que estavam em
+   parâmetros **já `_`-prefixados** — o Ruff ignora esses nomes por padrão
+   (`dummy-variable-rgx = "^_"`), então essas linhas não suprimiam nada; e o parâmetro morto
+   de `_get_font_path` foi apagado. Inventário completo em §4.
 
 ## 3. `per-file-ignores` adicionados (`pyproject.toml`)
 
 ```toml
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["ARG001", "ARG002", "ARG004", "ARG005"]
+"tests/**" = ["ARG001", "ARG002", "ARG005"]
 ```
 
 **Justificativa:** em `tests/`, argumentos não usados não são dívida — são obrigações de
@@ -81,23 +90,58 @@ assinatura:
 
 Espalhar dezenas de `# noqa` por arquivos de teste seria ruído sem ganho de qualidade; o
 `per-file-ignores` documenta a decisão uma única vez. **Este é o único `per-file-ignores`
-do projeto.** `ARG004` está listado por completude da família ARG nos testes (hoje sem
-ocorrências nesse diretório).
+do projeto.** `ARG004` foi **removido** desta lista na rodada de correção 1: não há nenhuma
+ocorrência dele em `tests/` e ignore sem ocorrência é superfície morta. `ARG004` continua
+sendo reportado de verdade em `app/` (2 sítios, com `# noqa` justificado — ver §4.1).
 
-## 4. `# noqa` adicionados em `app/` (com justificativa)
+## 4. Inventário completo de `# noqa` (reescrito na rodada de correção 1)
 
-Nenhum outro `# noqa` foi introduzido. Cada um abaixo cobre um argumento cujo **nome faz
-parte de um contrato** e que, portanto, não pode virar `_nome`:
+O inventário original desta seção estava **incompleto e errado**: listava 9 sítios e
+afirmava "Nenhum outro `# noqa` foi introduzido", quando o diff continha **42** linhas
+`# noqa` adicionadas em `app/`. Das 42, **27 eram inócuas** (parâmetros já prefixados com
+`_`, que o Ruff ignora por padrão via `dummy-variable-rgx = "^_"`), 1 mascarava um parâmetro
+morto e 2 foram eliminadas movendo imports. Todo o inventário abaixo foi recontado com
+`grep -rn noqa` no HEAD desta rodada e validado com o `ruff 0.16.7` (a versão do pin).
 
-| Arquivo | Código | Quantos | Justificativa |
-|---|---|---|---|
-| `app/ai/manager.py` | `ARG002` | 3 | `target_lang` implementa a interface de tradução (`BaseAIProvider.translate`) e é chamável por keyword; a assinatura é contrato entre providers. |
-| `app/api/v1/ai.py` | `ARG001` | 1 | `request` é exigido pelo `slowapi` (valor padrão de `key_func` do limiter). |
-| `app/api/v1/articles.py` | `ARG001` | 1 | idem: `request` exigido pelo `slowapi`. |
-| `app/core/security.py` | `ARG002` | 1 | `token` é imposto pela assinatura de `BaseUserManager.on_after_forgot_password` do fastapi-users (método sobrescrito). |
-| `app/services/analytics_service.py` | `ARG004` | 1 | `ip_address` é passado **por keyword** pelos chamadores (ex.: `app/core/analytics_middleware.py`). |
-| `app/services/classification_service.py` | `ARG004` | 2 | `auto_created` e `db` são documentados na docstring e fazem parte da assinatura pública (chamáveis por keyword). |
-| `app/services/opengraph_service.py` | `ARG002` | 2 | `bold` é passado por keyword internamente (`_load_font(48, bold=True)`); `font_name` integra a assinatura do resolvedor de fontes. |
+### 4.1 `# noqa` introduzidos por esta task e ainda presentes em `app/` — **12 linhas**
+
+Cada um cobre um argumento cujo **nome faz parte de um contrato** e que, portanto, não pode
+virar `_nome` (ou um import deliberadamente tardio):
+
+| Arquivo:linha | Código | Justificativa |
+|---|---|---|
+| `app/ai/manager.py:286,373,449` | `ARG002` ×3 | `target_lang` implementa a interface de tradução (`BaseAIProvider.translate`, `app/interfaces/services.py`) e é chamável por keyword; a assinatura é contrato entre providers. |
+| `app/api/v1/ai.py:63` | `ARG001` | `request` é exigido pelo **slowapi** por nome literal (`slowapi/extension.py`: procura um parâmetro chamado `request`); aqui ele é um `starlette.requests.Request` de verdade e é lido pelo wrapper do limiter. |
+| `app/api/v1/articles.py:28` | `ARG001` | idem: `request` exigido pelo slowapi por nome literal. |
+| `app/core/security.py:51` | `ARG002` | `token` é imposto pela assinatura de `BaseUserManager.on_after_forgot_password` do fastapi-users (método sobrescrito). |
+| `app/services/analytics_service.py:85` | `ARG004` | `ip_address` é passado **por keyword** pelos chamadores (`app/core/analytics_middleware.py:171,184`, `app/api/v1/analytics.py:56,69,107,121`, `app/services/analytics_service.py:53`). |
+| `app/services/classification_service.py:108` | `ARG004` | `auto_created` é documentado na docstring e chamado por keyword (`classification_service.py:225`: `db, slug, auto_created=True`). |
+| `app/services/classification_service.py:153` | `ARG004` | `db` é documentado na docstring e chamado por keyword (`classification_service.py:73`, `background_tasks.py:48,78`). |
+| `app/services/opengraph_service.py:65` | `ARG002` | `bold` é passado por keyword internamente (`_load_font(48, bold=True)` em `:167`, `_load_font(64, bold=True)` em `:371`). |
+| `app/main.py:142` | `E402` | import tardio proposital do `CSRFMiddleware`, junto do ponto em que ele é instalado; comentário de justificativa na linha acima. |
+| `app/main.py:325` | `E402` | import tardio proposital de `app.web.router`, junto do bloco que monta rotas/estáticos; comentário de justificativa na linha acima. |
+
+Removidos nesta rodada: **27** linhas em parâmetros `_`-prefixados
+(`app/api/v1/admin/{feeds,stats,articles,analytics}.py` — 23× `_admin`;
+`app/api/v1/opengraph.py` — 2× `_db`; `app/api/v1/ai.py` — `_http_request`;
+`app/api/v1/contact.py` — `_csrf_valid`), **1** em `app/services/opengraph_service.py`
+(parâmetro morto `font_name`, que foi apagado) e **2** em `app/database.py` /
+`app/web/router.py` (imports movidos para o topo). Prova de que eram inócuas: com as 27
+linhas apagadas, `ruff check app tests` continua `All checks passed!` (rc=0) com o ruff
+0.16.7 do pin — nenhuma supressão foi perdida.
+
+### 4.2 `# noqa` **pré-existentes** em `app/` (não introduzidos por esta task) — 5 linhas
+
+| Arquivo:linha | Código | Nota |
+|---|---|---|
+| `app/models/article.py:181,182,183,184` | `E402, F811` | imports no fim do módulo para `model_rebuild()` dos relacionamentos; já existiam em `c9d578a` (não aparecem no diff desta task). |
+| `app/models/pdf_metadata.py:75` | `E402, F811` | idem. |
+
+### 4.3 `tests/`
+
+**25** linhas `# noqa` em `tests/` em `c9d578a` e **25** no HEAD — **nenhuma adicionada**,
+nenhuma removida. A decisão para `tests/` foi `per-file-ignores` (§3), não `# noqa`
+espalhado.
 
 ## 5. CI
 
@@ -115,6 +159,9 @@ removido e agora há **dois steps bloqueantes**, ambos rodando em `bhub-backend-
 
 `requirements-dev.txt` fixa `ruff==0.16.7`, a versão em que o repositório foi validado: um
 `ruff format --check` bloqueante só é determinístico se a versão do formatter for fixa.
+Na rodada de correção 1, o extra `dev` de `pyproject.toml` foi **alinhado ao mesmo pin**
+(`ruff==0.16.7`, antes `ruff>=0.8.0`), eliminando a segunda fonte de verdade: antes,
+`pip install -e ".[dev]"` podia instalar uma versão diferente da validada.
 
 ### Ainda fora do escopo (tasks seguintes do Épico 3)
 

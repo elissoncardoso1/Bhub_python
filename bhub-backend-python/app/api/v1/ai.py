@@ -106,7 +106,12 @@ async def classify_text(
 @limiter.limit(settings.ai_rate_limit_daily, key_func=get_user_id_for_rate_limit)
 @limiter.limit("10/minute", key_func=get_user_id_for_rate_limit)
 async def translate_text(
-    _http_request: Request,  # noqa: ARG001  # slowapi resolve `request` abaixo
+    # `_http_request` NÃO é o `request` exigido pelo slowapi: o slowapi procura um
+    # parâmetro literalmente chamado `request` (slowapi/extension.py) e, neste endpoint,
+    # esse nome é o corpo Pydantic abaixo (`TranslateRequest`), que não é um
+    # `starlette.requests.Request`. Ninguém consome `_http_request` — bug pré-existente
+    # sinalizado na rodada de correção 1 (`task-9-report.md`).
+    _http_request: Request,
     request: TranslateRequest,
     session: AsyncSession = Depends(get_async_session),
 ):

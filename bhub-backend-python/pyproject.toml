@@ -98,7 +98,7 @@ dev = [
     "pytest-asyncio>=0.24.0",
     "pytest-cov>=6.0.0",
     "httpx>=0.28.0",
-    "ruff>=0.8.0",
+    "ruff==0.16.7",
     "mypy>=1.13.0",
     "pre-commit>=4.0.0",
 ]
@@ -140,7 +140,7 @@ known-first-party = ["app"]
 # para `_x` quebra a injeção; fakes e lambdas precisam manter a aridade da
 # assinatura real (ex.: `FakeDB.execute(self, stmt)`, `lambda *args, **kwargs`).
 # Ignorar ARG aqui é a decisão correta, não dívida.
-"tests/**" = ["ARG001", "ARG002", "ARG004", "ARG005"]
+"tests/**" = ["ARG001", "ARG002", "ARG005"]
 
 [tool.mypy]
 python_version = "3.12"

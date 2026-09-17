@@ -35,7 +35,7 @@ router = APIRouter(prefix="/articles", tags=["Admin - Articles"])
 @router.get("", response_model=ArticleListResponse)
 async def admin_list_articles(
     db: DBSession,
-    _admin: CurrentAdmin,  # noqa: ARG001  # dependência de autorização
+    _admin: CurrentAdmin,  # dependência de autorização
     pagination: Pagination,
     category_id: int | None = None,
     feed_id: int | None = None,
@@ -81,7 +81,7 @@ async def admin_list_articles(
 @router.post("", response_model=ArticleResponse)
 async def admin_create_article(
     db: DBSession,
-    _admin: CurrentAdmin,  # noqa: ARG001  # dependência de autorização
+    _admin: CurrentAdmin,  # dependência de autorização
     data: ArticleCreate,
 ):
     """Cria um novo artigo manualmente."""
@@ -130,7 +130,7 @@ async def admin_create_article(
 @router.put("/{article_id}", response_model=ArticleResponse)
 async def admin_update_article(
     db: DBSession,
-    _admin: CurrentAdmin,  # noqa: ARG001  # dependência de autorização
+    _admin: CurrentAdmin,  # dependência de autorização
     article_id: int,
     data: ArticleUpdate,
 ):
@@ -163,7 +163,7 @@ async def admin_update_article(
 async def admin_delete_article(
     db: DBSession,
     pdf_service: PDFDep,
-    _admin: CurrentAdmin,  # noqa: ARG001  # dependência de autorização
+    _admin: CurrentAdmin,  # dependência de autorização
     article_id: int,
 ):
     """Remove um artigo."""
@@ -189,7 +189,7 @@ async def admin_delete_article(
 @router.patch("/{article_id}/highlight", response_model=ArticleResponse)
 async def admin_toggle_highlight(
     db: DBSession,
-    _admin: CurrentAdmin,  # noqa: ARG001  # dependência de autorização
+    _admin: CurrentAdmin,  # dependência de autorização
     article_id: int,
     data: ArticleHighlightRequest,
 ):
@@ -218,7 +218,7 @@ async def admin_toggle_highlight(
 async def admin_upload_pdf(
     db: DBSession,
     pdf_service: PDFDep,
-    _admin: CurrentAdmin,  # noqa: ARG001  # dependência de autorização
+    _admin: CurrentAdmin,  # dependência de autorização
     file: UploadFile = File(...),
     category_id: int | None = None,
 ):
@@ -320,7 +320,7 @@ async def admin_upload_pdf(
 @router.post("/scrape", response_model=ScrapeResponse)
 async def admin_scrape_url(
     db: DBSession,
-    _admin: CurrentAdmin,  # noqa: ARG001  # dependência de autorização
+    _admin: CurrentAdmin,  # dependência de autorização
     data: ScrapeRequest,
 ):
     """Faz scraping de URL para criar artigo."""

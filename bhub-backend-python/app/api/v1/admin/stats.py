@@ -18,7 +18,7 @@ router = APIRouter(prefix="/stats", tags=["Admin - Stats"])
 @router.get("", response_model=StatsResponse)
 async def get_admin_stats(
     db: DBSession,
-    _admin: CurrentAdmin,  # noqa: ARG001  # dependência de autorização
+    _admin: CurrentAdmin,  # dependência de autorização
 ):
     """Retorna estatísticas gerais do sistema."""
     now = datetime.utcnow()
@@ -84,7 +84,7 @@ async def get_admin_stats(
 @router.get("/detailed")
 async def get_detailed_stats(
     db: DBSession,
-    _admin: CurrentAdmin,  # noqa: ARG001  # dependência de autorização
+    _admin: CurrentAdmin,  # dependência de autorização
 ):
     """Retorna estatísticas detalhadas."""
     # Artigos por categoria

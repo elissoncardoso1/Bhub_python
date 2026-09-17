@@ -5,7 +5,7 @@ Configuração do banco de dados SQLAlchemy com suporte async.
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
-from sqlalchemy import text
+from sqlalchemy import event, text
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
@@ -45,8 +45,6 @@ engine = create_async_engine(
     echo=settings.debug,
     **_create_engine_kwargs(),
 )
-
-from sqlalchemy import event  # noqa: E402
 
 # Habilitar WAL mode para SQLite
 if "sqlite" in settings.database_url:

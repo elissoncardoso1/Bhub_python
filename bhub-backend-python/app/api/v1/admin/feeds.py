@@ -25,7 +25,7 @@ router = APIRouter(prefix="/feeds", tags=["Admin - Feeds"])
 @router.get("", response_model=FeedListResponse)
 async def admin_list_feeds(
     db: DBSession,
-    _admin: CurrentAdmin,  # noqa: ARG001  # dependência de autorização
+    _admin: CurrentAdmin,  # dependência de autorização
     pagination: Pagination,
     is_active: bool | None = None,
 ):
@@ -54,7 +54,7 @@ async def admin_list_feeds(
 @router.post("", response_model=FeedResponse)
 async def admin_create_feed(
     db: DBSession,
-    _admin: CurrentAdmin,  # noqa: ARG001  # dependência de autorização
+    _admin: CurrentAdmin,  # dependência de autorização
     data: FeedCreate,
 ):
     """Cria um novo feed."""
@@ -77,7 +77,7 @@ async def admin_create_feed(
 @router.get("/{feed_id}", response_model=FeedResponse)
 async def admin_get_feed(
     db: DBSession,
-    _admin: CurrentAdmin,  # noqa: ARG001  # dependência de autorização
+    _admin: CurrentAdmin,  # dependência de autorização
     feed_id: int,
 ):
     """Retorna detalhes de um feed."""
@@ -96,7 +96,7 @@ async def admin_get_feed(
 @router.put("/{feed_id}", response_model=FeedResponse)
 async def admin_update_feed(
     db: DBSession,
-    _admin: CurrentAdmin,  # noqa: ARG001  # dependência de autorização
+    _admin: CurrentAdmin,  # dependência de autorização
     feed_id: int,
     data: FeedUpdate,
 ):
@@ -123,7 +123,7 @@ async def admin_update_feed(
 @router.delete("/{feed_id}", response_model=MessageResponse)
 async def admin_delete_feed(
     db: DBSession,
-    _admin: CurrentAdmin,  # noqa: ARG001  # dependência de autorização
+    _admin: CurrentAdmin,  # dependência de autorização
     feed_id: int,
 ):
     """Remove um feed."""
@@ -144,7 +144,7 @@ async def admin_delete_feed(
 
 @router.post("/test", response_model=FeedTestResult)
 async def admin_test_feed(
-    _admin: CurrentAdmin,  # noqa: ARG001  # dependência de autorização
+    _admin: CurrentAdmin,  # dependência de autorização
     feed_url: str,
     service: FeedAggDep,
 ):
@@ -157,7 +157,7 @@ async def admin_test_feed(
 @router.post("/{feed_id}/sync", response_model=FeedSyncResult)
 async def admin_sync_feed(
     db: DBSession,
-    _admin: CurrentAdmin,  # noqa: ARG001  # dependência de autorização
+    _admin: CurrentAdmin,  # dependência de autorização
     feed_id: int,
     service: FeedAggDep,
 ):
@@ -179,7 +179,7 @@ async def admin_sync_feed(
 
 @router.post("/sync-all", response_model=FeedSyncAllResult)
 async def admin_sync_all_feeds(
-    _admin: CurrentAdmin,  # noqa: ARG001  # dependência de autorização
+    _admin: CurrentAdmin,  # dependência de autorização
     service: FeedAggDep,
 ):
     """Sincroniza todos os feeds ativos."""
