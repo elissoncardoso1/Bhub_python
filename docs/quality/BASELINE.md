@@ -238,14 +238,20 @@ mais o de testes — **nenhum** deles usa `continue-on-error`:
       --cov-fail-under=59.19
 
 - name: Build da imagem Docker (Dockerfile do deploy)   # Task 11 / T3.5
-  run: docker build -f Dockerfile .
+  timeout-minutes: 40                                    # rodada de correção 1 / I1
+  run: |
+    docker build -f Dockerfile . || {
+      echo "::warning::build falhou; 1 retry (apt/PyPI/PyTorch/HuggingFace são externos) — se falhar de novo, é o PR."
+      docker build -f Dockerfile .
+    }
 ```
 
 **O step de build da imagem (Task 11 / T3.5).** Bloqueante, sem `continue-on-error`, rodando
 no fim — a ordem do job é barato→caro, e é ele o passo caro. O que ele constrói não é
 escolha livre: o **caminho real de deploy** é `docker-compose.prod.yml` do próprio
-`bhub-backend-python/` (o único com Traefik + Postgres + Redis + `arq-worker`, mantido em
-`chore(deploy)`), e ele aponta para `Dockerfile` (não `Dockerfile.prod`). A cadeia:
+`bhub-backend-python/` (o único com Postgres + Redis + `arq-worker` — e que assume um
+Traefik **externo**, só citado em comentário, `:18`/`:22` —, mantido em `chore(deploy)`), e
+ele aponta para `Dockerfile` (não `Dockerfile.prod`). A cadeia:
 `upload-to-vps.sh` sobe `bhub-backend-python/` para `/var/www/bhub/backend/`;
 `docs/deploy/VPS_DEPLOY.md` manda rodar `bash scripts/vps/deploy.sh` **de dentro** desse
 diretório; e `bhub-backend-python/scripts/vps/deploy.sh` executa
@@ -260,6 +266,18 @@ runner, ao custo de minutos. Não há `.dockerignore` em `bhub-backend-python/`,
 `COPY . .` do `Dockerfile` carrega o que estiver na árvore de trabalho (no CI, os caches de
 ruff/mypy/pytest e o `coverage.xml`; numa máquina de dev, o `.venv`) — follow-up nomeado,
 não feito aqui.
+
+**Mitigação de infraestrutura do step (rodada de correção 1 / Important I1 da review).** O
+build consome quatro serviços externos (apt Debian, PyPI, índice CPU do PyTorch e o download
+do modelo no HuggingFace, este último sem `||` de fallback), então falha por infra não é
+hipótese: o próprio build do implementador sofreu um flake de DNS no índice do PyTorch, que o
+`pip` absorveu sozinho. A mitigação tem de ser 100% do lado do CI — mexer no `Dockerfile`
+seria mexer no artefato de deploy (fora do escopo) e faria o CI validar um caminho de build
+que o deploy não percorre. O step ganhou: `timeout-minutes: 40` no step e
+`timeout-minutes: 60` no job (o default de 360 min deixaria um HANG pendurado por horas) e
+**UM** retry do mesmo comando, com `::warning::` no log. Um erro REAL de build falha nas duas
+tentativas: o retry não mascara defeito de código, só a classe "infra" — e quem ficar vermelho
+deve re-rodar antes de culpar o PR. Um timeout não é retentado (quem mata o step é o runner).
 
 **Rótulo dos critérios de aceite do CI** (aplicado nesta rodada de correção 2 no ledger do
 plano e no brief da task, porque a redação antiga prometia mais do que o gate entrega):
@@ -342,9 +360,10 @@ desativado. O ajuste é por módulo, visível um a um em `[[tool.mypy.overrides]
 2. **28 módulos** ficam com `ignore_errors = true` (§6.3) — são os que ainda têm os erros
    reais de tipo, listados **individualmente com a contagem ao lado**. Nada de glob
    (`app/**`, `app/services/*`) aqui: o ratchet tem de ser visível arquivo a arquivo.
-3. Os 126 erros **não foram corrigidos** nesta task: T3.3 é uma task de CI, não de tipagem
+3. Os 127 erros (126 a strictness default pura + o 1 de reexport de terceiro explicado logo
+   abaixo) **não foram corrigidos** nesta task: T3.3 é uma task de CI, não de tipagem
    do codebase. Não foi usado `# type: ignore`, não foi usado `cast()`, e nenhuma lógica de
-   produção foi alterada para agradar o mypy. A correção dos 126 erros é a task nova de
+   produção foi alterada para agradar o mypy. A correção dos 127 erros é a task nova de
    ratchet pós-release já registrada no ledger pelo controller.
 
 Com o bloco 1 ativo e o bloco 2 ausente, o `mypy` acusa **127 erros nos mesmos 28 arquivos**
@@ -573,7 +592,7 @@ que acrescentou as grafias citadas da chave e o controle de valor):
 | **C1b — operandos (magnitude)** — rodada 4 | `RATCHET_BUDGET=99999999999999999999` (20 dígitos: passa no `^[0-9]+$`) + `Found 999 errors in 28 files (checked 105 source files)`: a comparação estoura o int64, o `test` devolve erro e, dentro de `if` sob `bash -e`, isso é condição falsa → `OK: linha do legado intacta (999 <= 99999999999999999999)` e **rc=0**. Mesmo mecanismo no gate de escopo: `EXPECTED_SOURCE_FILES=99999999999999999999` faz a asserção `checked == 105` ser **pulada em silêncio** (`Found 0 errors in 3 files (checked 3 source files)` → rc=0). Limite do int64: `9223372036854775808` (2^63) já dispara. | Teto de **9 dígitos** no regex dos quatro números validados (`RATCHET_BUDGET`, `EXPECTED_SOURCE_FILES` e `total`/`checked` vindos do mypy): `^[0-9]{1,9}$` (até 999.999.999, folgado para orçamento/escopo e imune ao overflow). Acima disso é entrada inválida → `::error::` + `exit 1`. |
 | **C2 — escopo** | `Found 0 errors in 3 source files`: o step só olhava o total, então uma config degradada (`exclude`/`files` mais estreitos, ou arquivo novo/removido em `app/`) virava um no-op verde. | Exige `(checked N source files)` e `N == 105`. Vale para os dois formatos de resumo (`Found ...` e `Success ...`). **Limite desta asserção:** ela detecta redução de ESCOPO, não de estritudez — `ignore_errors` **não** muda `checked` (segue 105) e **não** é pego aqui; esse caso é o C4. |
 | **C3 — parsing** | `head -n 1` ficava com a **primeira** linha `Found`: `Found 3 errors in 1 file` antes de `Found 200 errors in 28 files` → `OK` com 3 ≤ 127. | A ÚLTIMA linha de resumo é a única usada (`tail -n 1`), e os dois números saem dela; sem resumo reconhecível ou com número não numérico → `exit 1`. |
-| **C4 — `ignore_errors` reativado** — rodadas 4 e 5 | Chave `ignore_errors` de volta em `pyproject.ratchet.toml`: o mypy continua checando os **105** arquivos (o gate de escopo PASSA) mas para de reportar os 127 legados → `Success: no issues found in 105 source files`, rc=0, com o shadow ratchet **anulado** (medido com o mypy real do venv, config copiada para `/tmp`, árvore intocada). Este é o caso que os textos da rodada 3 diziam estar coberto pela asserção de escopo — não estava. A rodada 5 mediu duas variantes que o guard da rodada 4 deixava passar: a chave **citada** (`"ignore_errors" = true` / `'ignore_errors' = true`, que o mypy honra: 127 → **60** erros com 5 módulos, `(checked 105 source files)` intacto — 60 = 127 − 67, a soma do §6.3 para esses 5) e a **tabela inline com a chave citada**, as duas saindo **rc=0** com o ratchet anulado; e mediu o caso espelho, `ignore_errors = false`, rejeitado com a mensagem FALSA de "isso ANULA o ratchet" quando ele mede **exatamente os mesmos 127 / 28 / checked 105** (a chave é o default do mypy, é inerte). | Checagem dedicada da CHAVE **e do VALOR**, antes do parsing: `sed 's/#.*//' "$RATCHET_CONFIG" \| grep -qE "(^\|[[:space:],{])("\|')?ignore_errors("\|')?[[:space:]]*=[[:space:]]*true"` → `::error::` + `exit 1`. Ignora as menções em **comentário** (o arquivo real tem várias) e pega a chave ativa em linha própria, indentada ou em tabela inline, **inclusive citada** com `"` ou `'`. O valor tem de ser o literal `true`, o único que anula o ratchet: `ignore_errors = false` **passa** (controle negativo do cenário 30 — a rodada 5 fechou os dois defeitos nesta mesma linha). **Limite desta checagem:** ela cobre ESTA chave; outra relaxação da config (`disable_error_code`, `follow_imports`) baixa o total sem ser pega — ver "LIMITE INERENTE do desenho por contagem" abaixo. |
+| **C4 — `ignore_errors` reativado** — rodadas 4 e 5 | Chave `ignore_errors` de volta em `pyproject.ratchet.toml`: o mypy continua checando os **105** arquivos (o gate de escopo PASSA) mas para de reportar os 127 legados → `Success: no issues found in 105 source files`, rc=0, com o shadow ratchet **anulado** (medido com o mypy real do venv, config copiada para `/tmp`, árvore intocada). Este é o caso que os textos da rodada 3 diziam estar coberto pela asserção de escopo — não estava. A rodada 5 mediu duas variantes que o guard da rodada 4 deixava passar: a chave **citada** (`"ignore_errors" = true` / `'ignore_errors' = true`, que o mypy honra: 127 → **60** erros com 5 módulos, `(checked 105 source files)` intacto — 60 = 127 − 67, e esse 67 é a soma dos 5 módulos que a rodada 5 escolheu (36+18+11+1+1), **não** o top-5 do §6.3, que soma 80 (36+18+11+8+7) e daria 47 — a composição não está enumerada lá) e a **tabela inline com a chave citada** (ressalva: dela só a asserção do GUARD se reproduz — a config injetada duplica a tabela `[tool.mypy]`; ver o "Caveat dos cenários de TABELA INLINE", no fim desta seção), as duas saindo **rc=0** com o ratchet anulado; e mediu o caso espelho, `ignore_errors = false`, rejeitado com a mensagem FALSA de "isso ANULA o ratchet" quando ele mede **exatamente os mesmos 127 / 28 / checked 105** (a chave é o default do mypy, é inerte). | Checagem dedicada da CHAVE **e do VALOR**, antes do parsing: `sed 's/#.*//' "$RATCHET_CONFIG" \| grep -qE "(^\|[[:space:],{])("\|')?ignore_errors("\|')?[[:space:]]*=[[:space:]]*true"` → `::error::` + `exit 1`. Ignora as menções em **comentário** (o arquivo real tem várias) e pega a chave ativa em linha própria, indentada ou em tabela inline, **inclusive citada** com `"` ou `'`. O valor tem de ser o literal `true`, o único que anula o ratchet: `ignore_errors = false` **passa** (controle negativo do cenário 30 — a rodada 5 fechou os dois defeitos nesta mesma linha). **Limite desta checagem:** ela cobre ESTA chave; outra relaxação da config (`disable_error_code`, `follow_imports`) baixa o total sem ser pega — ver "LIMITE INERENTE do desenho por contagem" abaixo. |
 
 **Comportamento verificado — cenários do harness** (`bash
 bhub-backend-python/tests/ci/ratchet_step_harness.sh`; **35/35 ok** com
@@ -628,7 +647,7 @@ deles fora do macOS ficaria por conta do primeiro run do step no runner.
 | 24 | config REAL do ratchet (cita `ignore_errors` só em comentários), `Found 127 …` | PASS | rc=0 — controle do guard |
 | 25 | `ignore_errors` em TOML de tabela inline (uma linha), `Success … 105` | FAIL | rc=1 — o guard não depende de a chave começar a linha |
 | 26 | config com módulo/valor que só CONTÉM o texto `ignore_errors` | PASS | rc=0 — controle negativo: o guard não reprova por substring |
-| 27 | `"ignore_errors" = true` (chave CITADA, aspas duplas) em linha própria | FAIL | rc=1 — `tem a chave ATIVA 'ignore_errors' (valor 'true')` (antes: **rc=0** com o ratchet anulado; o mypy real mediu **109** erros com a chave no módulo que o cenário injeta, `module = ["app.web.routes"]`, `checked 105` — o **60** do comentário do harness é a medição da chave citada nos 5 módulos de maior contagem, não a deste cenário) |
+| 27 | `"ignore_errors" = true` (chave CITADA, aspas duplas) em linha própria | FAIL | rc=1 — `tem a chave ATIVA 'ignore_errors' (valor 'true')` (antes: **rc=0** com o ratchet anulado; o mypy real mediu **109** erros com a chave no módulo que o cenário injeta, `module = ["app.web.routes"]`, `checked 105` — o **60** do comentário do harness é a medição da chave citada com os **5 módulos que a rodada 5 escolheu** (36+18+11+1+1 = 67 → 127 − 67 = 60), composição que **não** é o top-5 do §6.3 — esse soma 80 (36+18+11+8+7) e daria 47 — e que não está enumerada lá (reproduzido na rodada de correção 1: `Found 60 errors in 23 files (checked 105 source files)`); não é a medição deste cenário) |
 | 28 | `'ignore_errors' = true` (chave CITADA, aspas simples) | FAIL | rc=1 — idem (antes: **rc=0**; o mypy real mediu **109** erros com a chave no módulo que o cenário injeta, `module = ['app.web.routes']` — 127 − **18**, a contagem de `app/web/routes.py` no §6.3; medido nesta rodada: `Found 109 errors in 27 files (checked 105 source files)`) |
 | 29 | `overrides = [{ module = [...], "ignore_errors" = true }]` (tabela inline com a chave citada) | FAIL | rc=1 — idem (antes: **rc=0**) |
 | 30 | `ignore_errors = false` (chave presente, valor default/inertes) | PASS | rc=0 — `OK: … (127 <= 127) e escopo intacto (105 source files)` (antes: **rc=1** com a mensagem FALSA de que a chave "ANULA o ratchet"; o mypy real mede os mesmos 127/28/checked 105) |
@@ -652,7 +671,7 @@ aceitava por legibilidade do log, e é determinístico porque o `mypy` está pin
 abaixo é o que o guard de fato barra; "qualquer grafia TOML" era over-claim. Cobertas:
 `ignore_errors = true` (sem aspas, em linha própria, indentada ou não), `"ignore_errors" =
 true`, `'ignore_errors' = true` e as mesmas dentro de tabela inline (`overrides = [{ module =
-[...], "ignore_errors" = true }]`) — cenários 23, 25, 27, 29 e 31 do harness —, sempre exigindo
+[...], "ignore_errors" = true }]`) — cenários 23, 25, 27, 29 e 31 do harness; nos três de tabela inline (25, 29 e 31) o que se reproduz é só a asserção do GUARD — ver o caveat no fim da seção —, sempre exigindo
 o valor literal `true` (cenários 30-31: `= false` é o default do mypy, é inerte e PASSA). NÃO
 cobertas: (a) a chave na MESMA linha de um `#` dentro de string — o `sed 's/#.*//'` corta dali
 para o fim e o texto da chave não chega ao `grep` (verificado: a linha `overrides = [{ module =
@@ -664,6 +683,22 @@ essa chave em `app.web.routes` mede `Found 109 errors in 27 files (checked 105 s
 — o total caiu de 127 para 109 enquanto o guard da (b) não casa a linha. As duas são o mesmo
 limite de desenho do "LIMITE INERENTE" abaixo, e o conserto estrutural é o follow-up nomeado
 no fim da seção.
+
+**Caveat dos cenários de TABELA INLINE (25, 29 e 31) — o que eles exercitam é o GUARD, não a
+medição de mypy (rodada de correção 1 / O1 da review).** Os três injetam a chave anexando um
+SEGUNDO cabeçalho `[tool.mypy]` a um arquivo que **já tem** um (`pyproject.ratchet.toml:33`),
+e a config resultante é TOML **inválido**: `tomllib` levanta `Cannot declare ('tool','mypy')
+twice` e o mypy 2.3.1, em vez de medir o efeito "chave ativa em tabela inline", reporta o erro
+de config e mede `Found 135 errors in 29 files (checked 105 source files)`, rc=1 — medido nesta
+rodada (e idêntico ao número da review). Ou seja: o que esses cenários congelam é a asserção do
+**GUARD** (quem decide o rc é o `stub`, não o mypy), e a medição de mypy que a rodada 5 lhes
+atribuía **não se reproduz**. Conserto ingênuo por `sed` "para dentro" da `[tool.mypy]`
+existente **também não resolve**: o `tomllib` acusa `Cannot mutate immutable namespace
+('tool','mypy','overrides')` (medido nesta rodada), porque a chave `overrides` em tabela inline
+colide com o array-of-tables `[[tool.mypy.overrides]]` do mesmo arquivo. Tornar esses cenários
+mensuráveis exigiria converter o bloco de `[[tool.mypy.overrides]]` (56 módulos) para a forma
+inline — não é um `sed` pequeno e seguro, então fica como **melhoria nomeada** (não feita nesta
+rodada); enquanto ela não existir, vale só a asserção do guard.
 
 **LIMITE INERENTE do desenho por contagem (rodada de correção 5 — documentado, NÃO corrigido).**
 O step decide por **contagem de erros** de uma config que vive no próprio repositório, e o guard
