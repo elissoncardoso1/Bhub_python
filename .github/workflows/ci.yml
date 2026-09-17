@@ -271,6 +271,30 @@ jobs:
             --cov-precision=2 \
             --cov-fail-under=59.19
 
+      # SUÍTE DE INTEGRAÇÃO com infraestrutura REAL (Épico 4 / T4.1).
+      # Existe porque nenhum teste unitário prova que a cadeia de migrações roda num
+      # PostgreSQL de verdade, nem que o `search_vector` da 008 é um `tsvector` real:
+      # a suíte roda `alembic upgrade head` num banco VAZIO, como o deploy faz
+      # (`scripts/vps/deploy.sh`), e inspeciona o catálogo do Postgres.
+      # As fixtures (`bhub-backend-python/tests/integration/conftest.py`) sobem os
+      # próprios containers com a CLI `docker` — `postgres:16-alpine` e
+      # `redis:7-alpine`, as MESMAS imagens do `docker-compose.yml` do repo, com
+      # banco de nome único por execução. Por isso NÃO há bloco `services:`: um
+      # caminho só, igual em CI e na máquina de quem desenvolve, e o que o
+      # mantenedor verifica localmente é exatamente o que roda aqui.
+      # Isso consome rede (o runner baixa as duas imagens do Docker Hub) e por isso
+      # roda depois dos steps baratos e antes do build da imagem, que é o mais caro.
+      # Docker ausente é FALHA, nunca `skip`: a fixture levanta erro com mensagem
+      # clara, porque um verde falso aqui esconderia uma migração quebrada.
+      # A suíte é DESMARCADA por padrão (`-m 'not integration'` no `addopts`), então
+      # os steps "Run tests" e "Coverage floor" seguem rodando só os testes unitários
+      # numa máquina sem Docker; aqui o `-m integration` da linha de comando
+      # sobrepõe o do `addopts`.
+      # Não use `continue-on-error` aqui.
+      - name: Testes de integração (PostgreSQL e Redis reais)
+        timeout-minutes: 15
+        run: pytest tests/integration -m integration -v
+
       # Build da imagem Docker BLOQUEANTE (Épico 3 / T3.5). Existe para pegar cedo
       # dependência ausente, pacote de sistema incompatível, erro de build e arquivo não
       # copiado — as quatro classes que os `RUN`/`COPY` do Dockerfile cobrem e que nenhum
