@@ -148,27 +148,34 @@ jobs:
       - name: Run tests
         run: pytest tests/ -v
 
-      # Piso de cobertura BLOQUEANTE (Épico 3 / T3.4). Baseline medido:
-      # 3752/6338 statements = 59,2%. O piso é 59,2 COM `--cov-precision=1`: o
-      # coverage compara `round(total, 1) < fail_under` (coverage/results.py:503),
-      # então um total que arredonda para 59,2 passa e um que arredonda para
-      # 59,1 falha. Piso efetivo: >= 59,15% (3749 statements cobertos) — contra
-      # os 58,50% (3708) que o antigo `--cov-fail-under=59` com a precisão
-      # default 0 permitia. Suba o número conforme o ratchet avançar — nunca
-      # desça.
-      # Nota: o resumo final do pytest-cov 7.1.0 compara o total CRU
-      # (~59,198%) com o fail_under SEM aplicar a precisão
-      # (pytest_cov/plugin.py:413) e por isso imprime "FAIL Required test
-      # coverage of 59.2% not reached" mesmo com o step VERDE. A checagem que
-      # decide o rc é a do coverage (arredondada) e ela passa. Não "conserte"
-      # isso baixando o piso: o rc é a fonte da verdade.
+      # Piso de cobertura BLOQUEANTE (Épico 3 / T3.4). Baseline medido no HEAD
+      # atual: 3752/6338 statements = 59,1985% (cru). O piso é 59,19 COM
+      # `--cov-precision=2`: o coverage decide por
+      # `round(total, precision) < fail_under` (coverage/results.py:503), então
+      # 3752 cobertos (59,1985% → 59,20) passa e 3751 (59,1827% → 59,18) falha.
+      # Piso efetivo: >= 3752 statements cobertos (= 59,19%), isto é,
+      # "nenhum statement coberto no baseline pode ser perdido" — contra os
+      # 58,50% (3708 statements) que o antigo `--cov-fail-under=59` com a
+      # precisão default 0 permitia: 44 statements de folga.
+      # Suba o número conforme o ratchet avançar — nunca desça.
+      # (A rodada de correção 2 usou `--cov-precision=1 --cov-fail-under=59.2`,
+      # mesmo valor em p.p. e piso efetivo mais alto em statements. Além disso a
+      # precisão 2 remove uma mensagem enganosa: o resumo do pytest-cov 7.1.0
+      # compara o total CRU com o fail_under SEM aplicar a precisão
+      # (pytest_cov/plugin.py:413), então com o 59.2 nominal ele imprimia
+      # "FAIL Required test coverage of 59.2% not reached" em TODA execução
+      # verde — o cru é 59,1985, abaixo do 59,2 nominal. Com 59.19 as duas
+      # checagens (crua e arredondada) concordam em todo inteiro alcançável:
+      # 3752 → verde e log limpo; 3751 → vermelho nas duas.)
+      # Não "conserte" um log de cobertura baixando o piso: o rc é a fonte da
+      # verdade.
       # A suíte roda de novo aqui (~10 s) para que a regressão de cobertura
       # apareça como step próprio no log do CI, e não escondida no step de testes.
-      - name: Coverage floor (fail under 59.2%, precision 1)
+      - name: Coverage floor (fail under 59.19%, precision 2, >= 3752 statements)
         run: |
           pytest tests/ \
             --cov=app \
             --cov-report=term-missing \
             --cov-report=xml \
-            --cov-precision=1 \
-            --cov-fail-under=59.2
+            --cov-precision=2 \
+            --cov-fail-under=59.19
