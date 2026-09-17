@@ -98,25 +98,35 @@ jobs:
             echo "::error::EXPECTED_SOURCE_FILES inválido: '$EXPECTED_SOURCE_FILES' — esperado inteiro não negativo. O gate falha fechado."
             exit 1
           fi
-          total=$(sed -nE 's/^Found ([0-9]+) errors? in .*/\1/p' /tmp/mypy-ratchet.txt | head -n 1 || true)
-          checked=$(sed -nE 's/^Found [0-9]+ errors? in .*\(checked ([0-9]+) source files\).*/\1/p' /tmp/mypy-ratchet.txt | head -n 1 || true)
-          if [ -z "$total" ]; then
-            if grep -q '^Success: no issues found' /tmp/mypy-ratchet.txt; then
+          # FAIL CLOSED #2 — parsing do resumo (rodada de correção 3 / C3). O resumo
+          # relevante é a ÚLTIMA linha de resultado do mypy: um `head -n 1` fica com
+          # a PRIMEIRA ocorrência, e um resumo intermediário mascararia o final
+          # (ex.: 'Found 3 errors in 1 file' antes de 'Found 200 errors in 28
+          # files'). Os DOIS números são extraídos da MESMA linha, para não casar o
+          # total de uma com o escopo de outra. Uso `sed` (e não `grep`) para não
+          # depender de `set -o pipefail` nem abortar sob `bash -e` quando não há
+          # match — quem decide é a validação explícita abaixo, não o rc do pipe.
+          summary=$(sed -nE '/^Found [0-9]+ errors? in |^Success: no issues found/p' /tmp/mypy-ratchet.txt | tail -n 1)
+          total=""
+          checked=""
+          case "$summary" in
+            Found\ *)
+              total=$(printf '%s\n' "$summary" | sed -nE 's/^Found ([0-9]+) errors? in .*/\1/p')
+              checked=$(printf '%s\n' "$summary" | sed -nE 's/^.*\(checked ([0-9]+) source files\).*$/\1/p')
+              ;;
+            Success:\ *)
               total=0
-              checked=$(sed -nE 's/^Success: no issues found in ([0-9]+) source files.*/\1/p' /tmp/mypy-ratchet.txt | head -n 1 || true)
-            else
-              echo "::error::não foi possível extrair o total de erros do ratchet — falha de parsing NÃO pode passar como aprovação."
-              exit 1
-            fi
-          fi
-          # FAIL CLOSED #2 — a contagem de arquivos checados precisa existir e ser
-          # numérica (rodada de correção 3 / C2).
-          if [ -z "$checked" ]; then
-            echo "::error::não foi possível extrair a contagem de source files checados ('(checked N source files)') do resumo do ratchet — falha de parsing NÃO pode passar como aprovação."
+              checked=$(printf '%s\n' "$summary" | sed -nE 's/^Success: no issues found in ([0-9]+) source files.*$/\1/p')
+              ;;
+          esac
+          # Sem resumo reconhecido, ou com número não numérico, o step FALHA: parsing
+          # duvidoso não pode passar como aprovação.
+          if [ -z "$summary" ] || [ -z "$total" ] || ! [[ "$total" =~ ^[0-9]+$ ]]; then
+            echo "::error::não foi possível extrair de forma confiável o total de erros do resumo do ratchet (última linha de resultado: '$summary') — falha de parsing NÃO pode passar como aprovação."
             exit 1
           fi
-          if ! [[ "$checked" =~ ^[0-9]+$ ]]; then
-            echo "::error::contagem de source files não numérica no resumo do ratchet: '$checked'."
+          if [ -z "$checked" ] || ! [[ "$checked" =~ ^[0-9]+$ ]]; then
+            echo "::error::não foi possível extrair de forma confiável a contagem de source files checados ('(checked N source files)') do resumo do ratchet (última linha de resultado: '$summary') — falha de parsing NÃO pode passar como aprovação."
             exit 1
           fi
           echo "Shadow ratchet: $total erro(s) medido(s); orçamento: $RATCHET_BUDGET; escopo checado: $checked source file(s); escopo esperado: $EXPECTED_SOURCE_FILES."
