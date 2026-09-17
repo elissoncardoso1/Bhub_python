@@ -53,8 +53,13 @@ jobs:
       # SHADOW RATCHET (rodada de correção 2; endurecido nas rodadas 3 e 4):
       # roda a MESMA config sem o bloco de `ignore_errors` (pyproject.ratchet.toml)
       # e devolve os 105 arquivos à verificação — erro novo em QUALQUER arquivo,
-      # inclusive nos 28 fora do gate principal, passa a falhar. Não corrige nenhum
-      # erro legado: o legado medido É o orçamento abaixo.
+      # inclusive nos 28 fora do gate principal, passa a falhar. A ressalva: o
+      # invariante só vale enquanto a config do ratchet não for AFROUXADA. O guard
+      # abaixo barra `ignore_errors = true` em qualquer grafia TOML da chave; outras
+      # relaxações (`disable_error_code`, `follow_imports`) baixam o total e não são
+      # pegas — ver "LIMITE INERENTE do desenho por contagem" em
+      # docs/quality/BASELINE.md §6.8 (conserto estrutural: follow-up, não feito).
+      # Não corrige nenhum erro legado: o legado medido É o orçamento abaixo.
       # O mypy SAI COM rc=1 nesta config (é o esperado: há 127 erros), então o rc
       # não decide nada por si: o que decide é o resumo extraído. Por isso o step é
       # FAIL CLOSED — falha (exit 1) em entrada inválida (forma OU magnitude),
@@ -98,12 +103,23 @@ jobs:
           # files`, rc=0, com o bloco aplicado aos 28 módulos). Quem protege contra
           # isso é ESTA checagem, e não a asserção de escopo.
           # A busca ignora COMENTÁRIOS (o `sed` corta do `#` até o fim da linha) e
-          # reconhece a chave em qualquer forma de TOML — `ignore_errors = true` em
-          # linha própria, indentado, ou dentro de tabela inline
-          # (`{ module = [...], ignore_errors = true }`): o que vale é a CHAVE ativa,
-          # não a menção em comentário. O prefixo `(^|[[:space:],{])` exige que o
-          # token comece ali, para não casar nome de módulo/valor que contenha o
-          # texto (`"app.x.ignore_errors"`).
+          # reconhece a CHAVE em linha própria, indentada ou dentro de tabela inline
+          # (`{ module = [...], ignore_errors = true }`), INCLUSIVE CITADA —
+          # `"ignore_errors"` (aspas duplas) e `'ignore_errors'` (aspas simples) são o
+          # MESMO nome em TOML e o mypy as HONRA: sem o `("|')?` o step saía verde com
+          # o ratchet parcialmente anulado (medido com o mypy real: o bloco citado em
+          # 5 módulos derruba 127 → 60, mantendo `(checked 105 source files)`).
+          # Não basta a PRESENÇA da chave: o valor tem de ser o literal `true`, o único
+          # que anula o ratchet. `ignore_errors = false` é o DEFAULT do mypy, é inerte
+          # (medido: 127 erros / 28 arquivos / checked 105) e o step o ACEITA — a
+          # rodada de correção 5 corrigiu o falso vermelho que ele gerava.
+          # O prefixo `(^|[[:space:],{])` exige que o token comece ali, para não casar
+          # nome de módulo/valor que contenha o texto (`"app.x.ignore_errors"`).
+          # LIMITE DECLARADO: isto cobre ESTA chave, com os valores acima. Outra
+          # relaxação da config do ratchet (`disable_error_code`, `follow_imports`)
+          # baixa o total do mesmo jeito e NÃO é pega aqui — é o "LIMITE INERENTE do
+          # desenho por contagem" documentado em docs/quality/BASELINE.md §6.8, com o
+          # conserto estrutural registrado lá como follow-up (não implementado).
           if [ ! -f "$RATCHET_CONFIG" ]; then
             echo "::error::config do ratchet não encontrada em '$RATCHET_CONFIG' — sem config não há verificação (e o guard de ignore_errors não teria o que inspecionar): o gate falha fechado."
             exit 1

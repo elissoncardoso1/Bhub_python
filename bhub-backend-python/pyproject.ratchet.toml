@@ -17,8 +17,14 @@
 # suba. Se o número medido aqui mudar sem que o orçamento mude, o step falha:
 # é exatamente para isso que ele existe.
 #
-# NÃO adicione `ignore_errors` a este arquivo — isso anularia o ratchet e o
-# step voltaria a medir 0 erros.
+# NÃO adicione `ignore_errors = true` a este arquivo — e se adicionar, o step NÃO
+# volta a medir 0 em silêncio: ele FALHA. A chave ativa anula o ratchet (o total
+# medido cai: 127 → 60 com a chave em 5 módulos, → 0 com os 28) e o step
+# "Type check ratchet" do CI tem uma checagem dedicada que detecta a chave em
+# qualquer grafia TOML (`ignore_errors`, com aspas duplas ou simples, em linha
+# própria, indentada ou em tabela inline) desde que o valor seja `true` — e sai
+# com `::error::` + exit 1. `ignore_errors = false` é o default do mypy: é inerte
+# (medido: 127 erros / 28 arquivos / checked 105) e o step o aceita.
 #
 # (Lido com `--config-file`, que IGNORA o pyproject.toml: por isso esta config é
 # autossuficiente — repete `strict = true`, `ignore_missing_imports` e o bloco

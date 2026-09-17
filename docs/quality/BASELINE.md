@@ -441,8 +441,13 @@ arquivos que o `mypy app` não olha, a cobertura equivalente é hoje a do shadow
 - **A lacuna de regressão foi fechada (§6.8).** O shadow ratchet roda a mesma config sem o
   bloco de `ignore_errors` e falha se o total de erros crescer além de 127: um erro **novo**
   em qualquer dos 28 arquivos (inclusive `app/web/routes.py`) passa a falhar o CI, sem
-  corrigir um único legado. O ratchet pós-release — corrigir os 127 e encolher as duas
-  listas — continua sendo a task nova já registrada no ledger.
+  corrigir um único legado. **Ressalva (rodada de correção 5):** o invariante vale enquanto a
+  config do ratchet não for **afrouxada** — o guard da §6.8 barra `ignore_errors = true` em
+  qualquer grafia TOML da chave, mas outra relaxação (`disable_error_code`, `follow_imports`)
+  baixa o total sem ser pega; é o "LIMITE INERENTE do desenho por contagem" documentado no
+  fim da §6.8, com o conserto estrutural registrado lá como follow-up. O ratchet pós-release —
+  corrigir os 127 e encolher as duas listas — continua sendo a task nova já registrada no
+  ledger.
 - **Pré-condição do shadow ratchet, agora verificada (rodada de correção 4).** O parágrafo
   acima só vale enquanto `pyproject.ratchet.toml` **não** reativar `ignore_errors`: com a
   chave ativa, o mypy volta a não reportar nada **sem reduzir** `(checked 105 source
@@ -488,9 +493,9 @@ diz "nunca olhe"; o ratchet por contagem diz "olhe sempre, não piore".
 | Peça | O que é |
 |---|---|
 | `bhub-backend-python/pyproject.ratchet.toml` | Cópia fiel da config de mypy do `pyproject.toml` (`python_version`, `ignore_missing_imports`, `strict = true` e o MESMO bloco de relaxamento dos 56 módulos) **sem** o bloco `[[tool.mypy.overrides]]` que aplica `ignore_errors`. Autossuficiente de propósito: `--config-file` **ignora** o `pyproject.toml`. A lista de módulos é **duplicada à mão**: qualquer patch nela tem de ser aplicado nos DOIS arquivos (`pyproject.toml` avisa). |
-| Step `Type check ratchet (mypy shadow, budget 127)` | Roda `mypy app --config-file "$RATCHET_CONFIG"`, extrai o resumo e **falha se total > 127**; e falha FECHADO (exit 1) em entrada inválida — de FORMA (`127,`, vazio, `abc`) **e de MAGNITUDE** (mais de 9 dígitos), escopo degradado, parsing duvidoso ou `ignore_errors` **ativo** na config do ratchet. |
+| Step `Type check ratchet (mypy shadow, budget 127)` | Roda `mypy app --config-file "$RATCHET_CONFIG"`, extrai o resumo e **falha se total > 127**; e falha FECHADO (exit 1) em entrada inválida — de FORMA (`127,`, vazio, `abc`) **e de MAGNITUDE** (mais de 9 dígitos), escopo degradado, parsing duvidoso ou `ignore_errors` **ativo** na config do ratchet (valor `true`, em qualquer grafia TOML da chave — inclusive citada; `= false` é inerte e **passa**). |
 | `RATCHET_BUDGET=127` + `EXPECTED_SOURCE_FILES=105` + `RATCHET_CONFIG=pyproject.ratchet.toml` (no `ci.yml`) | Orçamento do legado, escopo esperado e caminho da config, numa fonte única — cada um em LINHA PRÓPRIA também para o harness poder substituí-la (é o único ponto do bloco que o harness muta). **BAIXE** o orçamento ao corrigir erros legados; nunca suba sem registrar a dívida nova no mesmo PR. Atualize o escopo se um arquivo entrar/sair de `app/`. Os dois números são validados como inteiro de **até 9 dígitos** (ver C1b) antes de qualquer comparação. |
-| `bhub-backend-python/tests/ci/ratchet_step_harness.sh` | Harness determinístico: extrai o bloco `run:` **real** do `ci.yml` (verbatim, dedent), põe um **stub de `mypy`** no PATH e executa o step com `bash -e` e cwd = `bhub-backend-python/`. 28 cenários do ratchet + 2 de cobertura (opt-in `RATCHET_HARNESS_COVERAGE=1`). É o que impede o retorno dos falsos verdes de C1/C1b/C2/C3/C4 — e **o CI o executa** no step `Run ratchet step harness` (rodada de correção 4); sem isso ele só rodava à mão. |
+| `bhub-backend-python/tests/ci/ratchet_step_harness.sh` | Harness determinístico: extrai o bloco `run:` **real** do `ci.yml` (verbatim, dedent), põe um **stub de `mypy`** no PATH e executa o step com `bash -e` e cwd = `bhub-backend-python/`. 33 cenários do ratchet + 2 de cobertura (opt-in `RATCHET_HARNESS_COVERAGE=1`). É o que impede o retorno dos falsos verdes de C1/C1b/C2/C3/C4 — e **o CI o executa** no step `Run ratchet step harness` (rodada de correção 4); sem isso ele só rodava à mão. |
 
 **Medição** (mypy 2.3.1, o pin): `Found 127 errors in 28 files (checked 105 source files)`,
 rc=1 — os mesmos 28 arquivos do §6.3, e as **28 contagens comentadas conferem uma a uma**
@@ -510,10 +515,11 @@ as duas medições (11 aqui, 10 a strictness default).
 erros), então o rc não pode decidir o step: um step que falhasse no rc seria vermelho para
 sempre, e um step que o ignorasse sem checar o total seria verde para sempre. O que decide é
 o resumo extraído — e um gate que decide por texto extraído precisa falhar fechado. Foi
-exatamente aí que a rodada 2 passou a perna em três classes de falso verde — duas outras
-foram abertas depois e fechadas nas rodadas 3 e 4 —, todas reproduzidas pelo harness antes
+exatamente aí que a rodada 2 passou a perna em três classes de falso verde — outras duas
+foram abertas depois e fechadas nas rodadas 3, 4 e 5 —, todas reproduzidas pelo harness antes
 da correção (**10 das 18 linhas divergiam**: 8 falsos verdes + 2 desempates errados de
-parsing; o harness passou a ter 28 cenários do ratchet na rodada 4):
+parsing; o harness passou a ter 28 cenários do ratchet na rodada 4 e 33 ao fim da rodada 5,
+que acrescentou as grafias citadas da chave e o controle de valor):
 
 | Classe | Falso verde (rodada em que apareceu) | Correção |
 |---|---|---|
@@ -521,24 +527,27 @@ parsing; o harness passou a ter 28 cenários do ratchet na rodada 4):
 | **C1b — operandos (magnitude)** — rodada 4 | `RATCHET_BUDGET=99999999999999999999` (20 dígitos: passa no `^[0-9]+$`) + `Found 999 errors in 28 files (checked 105 source files)`: a comparação estoura o int64, o `test` devolve erro e, dentro de `if` sob `bash -e`, isso é condição falsa → `OK: linha do legado intacta (999 <= 99999999999999999999)` e **rc=0**. Mesmo mecanismo no gate de escopo: `EXPECTED_SOURCE_FILES=99999999999999999999` faz a asserção `checked == 105` ser **pulada em silêncio** (`Found 0 errors in 3 files (checked 3 source files)` → rc=0). Limite do int64: `9223372036854775808` (2^63) já dispara. | Teto de **9 dígitos** no regex dos quatro números validados (`RATCHET_BUDGET`, `EXPECTED_SOURCE_FILES` e `total`/`checked` vindos do mypy): `^[0-9]{1,9}$` (até 999.999.999, folgado para orçamento/escopo e imune ao overflow). Acima disso é entrada inválida → `::error::` + `exit 1`. |
 | **C2 — escopo** | `Found 0 errors in 3 source files`: o step só olhava o total, então uma config degradada (`exclude`/`files` mais estreitos, ou arquivo novo/removido em `app/`) virava um no-op verde. | Exige `(checked N source files)` e `N == 105`. Vale para os dois formatos de resumo (`Found ...` e `Success ...`). **Limite desta asserção:** ela detecta redução de ESCOPO, não de estritudez — `ignore_errors` **não** muda `checked` (segue 105) e **não** é pego aqui; esse caso é o C4. |
 | **C3 — parsing** | `head -n 1` ficava com a **primeira** linha `Found`: `Found 3 errors in 1 file` antes de `Found 200 errors in 28 files` → `OK` com 3 ≤ 127. | A ÚLTIMA linha de resumo é a única usada (`tail -n 1`), e os dois números saem dela; sem resumo reconhecível ou com número não numérico → `exit 1`. |
-| **C4 — `ignore_errors` reativado** — rodada 4 | Chave `ignore_errors` de volta em `pyproject.ratchet.toml`: o mypy continua checando os **105** arquivos (o gate de escopo PASSA) mas para de reportar os 127 legados → `Success: no issues found in 105 source files`, rc=0, com o shadow ratchet **anulado** (medido com o mypy real do venv, config copiada para `/tmp`, árvore intocada). Este é o caso que os textos da rodada 3 diziam estar coberto pela asserção de escopo — não estava. | Checagem dedicada da CHAVE, antes do parsing: `sed 's/#.*//' "$RATCHET_CONFIG" \| grep -qE '(^\|[[:space:],{])ignore_errors[[:space:]]*='` → `::error::` + `exit 1`. Ignora as menções em **comentário** (o arquivo real tem várias) e pega a chave ativa em linha própria, indentada ou em tabela inline. |
+| **C4 — `ignore_errors` reativado** — rodadas 4 e 5 | Chave `ignore_errors` de volta em `pyproject.ratchet.toml`: o mypy continua checando os **105** arquivos (o gate de escopo PASSA) mas para de reportar os 127 legados → `Success: no issues found in 105 source files`, rc=0, com o shadow ratchet **anulado** (medido com o mypy real do venv, config copiada para `/tmp`, árvore intocada). Este é o caso que os textos da rodada 3 diziam estar coberto pela asserção de escopo — não estava. A rodada 5 mediu duas variantes que o guard da rodada 4 deixava passar: a chave **citada** (`"ignore_errors" = true` / `'ignore_errors' = true`, que o mypy honra: 127 → **60** erros com 5 módulos, `(checked 105 source files)` intacto — 60 = 127 − 67, a soma do §6.3 para esses 5) e a **tabela inline com a chave citada**, as duas saindo **rc=0** com o ratchet anulado; e mediu o caso espelho, `ignore_errors = false`, rejeitado com a mensagem FALSA de "isso ANULA o ratchet" quando ele mede **exatamente os mesmos 127 / 28 / checked 105** (a chave é o default do mypy, é inerte). | Checagem dedicada da CHAVE **e do VALOR**, antes do parsing: `sed 's/#.*//' "$RATCHET_CONFIG" \| grep -qE "(^\|[[:space:],{])("\|')?ignore_errors("\|')?[[:space:]]*=[[:space:]]*true"` → `::error::` + `exit 1`. Ignora as menções em **comentário** (o arquivo real tem várias) e pega a chave ativa em linha própria, indentada ou em tabela inline, **inclusive citada** com `"` ou `'`. O valor tem de ser o literal `true`, o único que anula o ratchet: `ignore_errors = false` **passa** (controle negativo do cenário 30 — a rodada 5 fechou os dois defeitos nesta mesma linha). **Limite desta checagem:** ela cobre ESTA chave; outra relaxação da config (`disable_error_code`, `follow_imports`) baixa o total sem ser pega — ver "LIMITE INERENTE do desenho por contagem" abaixo. |
 
 **Comportamento verificado — cenários do harness** (`bash
-bhub-backend-python/tests/ci/ratchet_step_harness.sh`; **30/30 ok** com
-`RATCHET_HARNESS_COVERAGE=1`, rc do harness = 0 — 28 do ratchet + 2 de cobertura). Coluna
+bhub-backend-python/tests/ci/ratchet_step_harness.sh`; **35/35 ok** com
+`RATCHET_HARNESS_COVERAGE=1`, rc do harness = 0 — 33 do ratchet + 2 de cobertura). Coluna
 "stub" = saída sintética do mypy / rc sintético; orçamento 127 salvo onde indicado:
 
 O harness separa o que EXISTE do que RODOU no resumo final
-(`30 cenário(s) disponíveis, 28 executado(s) — 28 ok, 0 divergência(s), 2 pulado(s)`): uma
+(`35 cenário(s) disponíveis, 33 executado(s) — 33 ok, 0 divergência(s), 2 pulado(s)`): uma
 corrida sem `RATCHET_HARNESS_COVERAGE=1` deixa explícito que os 2 cenários de cobertura real
 ficaram de fora — antes o resumo dizia só "16 ok" e a linha de skip passava batido.
 
 Roda também **no CI** (step `Run ratchet step harness`, rodada de correção 4), sem
-`RATCHET_HARNESS_COVERAGE=1` — ou seja, no CI os 28 do ratchet são executados e os 2 de
+`RATCHET_HARNESS_COVERAGE=1` — ou seja, no CI os 33 do ratchet são executados e os 2 de
 cobertura ficam para o step `Coverage floor`, que roda a suíte real logo em seguida. Os 28
-foram executados também em **ubuntu 24.04 / bash 5.2 / GNU sed 4.9 / mawk 1.3.4 e gawk**,
-além do bash 3.2 do macOS, e o resultado foi o mesmo (rc=0 do harness) — é o que autoriza o
-step no CI.
+cenários que existiam na rodada 4 foram executados também em **ubuntu 24.04 / bash 5.2 /
+GNU sed 4.9 / mawk 1.3.4 e gawk**, além do bash 3.2 do macOS, com o mesmo resultado (rc=0 do
+harness) — é o que autoriza o step no CI. Os **5 cenários novos da rodada 5** (27-31) foram
+executados até agora no **bash 3.2 + BSD grep do macOS** (33 ok, 2 pulados, rc=0); eles não
+usam nada além de `cp`/`cat`/`printf` e da mesma linha de guard, e o primeiro run do step no
+ubuntu será a segunda testemunha — não há medição própria em ubuntu para eles nesta rodada.
 
 | # | Entrada (stub) | Esperado | Medido |
 |---|---|---|---|
@@ -570,6 +579,11 @@ step no CI.
 | 24 | config REAL do ratchet (cita `ignore_errors` só em comentários), `Found 127 …` | PASS | rc=0 — controle do guard |
 | 25 | `ignore_errors` em TOML de tabela inline (uma linha), `Success … 105` | FAIL | rc=1 — o guard não depende de a chave começar a linha |
 | 26 | config com módulo/valor que só CONTÉM o texto `ignore_errors` | PASS | rc=0 — controle negativo: o guard não reprova por substring |
+| 27 | `"ignore_errors" = true` (chave CITADA, aspas duplas) em linha própria | FAIL | rc=1 — `tem a chave ATIVA 'ignore_errors' (valor 'true')` (antes: **rc=0** com o ratchet anulado; o mypy real mediu **60** erros em vez de 127, `checked 105`) |
+| 28 | `'ignore_errors' = true` (chave CITADA, aspas simples) | FAIL | rc=1 — idem (antes: **rc=0**; o mypy real mediu 126 erros com a chave em 1 módulo) |
+| 29 | `overrides = [{ module = [...], "ignore_errors" = true }]` (tabela inline com a chave citada) | FAIL | rc=1 — idem (antes: **rc=0**) |
+| 30 | `ignore_errors = false` (chave presente, valor default/inertes) | PASS | rc=0 — `OK: … (127 <= 127) e escopo intacto (105 source files)` (antes: **rc=1** com a mensagem FALSA de que a chave "ANULA o ratchet"; o mypy real mede os mesmos 127/28/checked 105) |
+| 31 | `"ignore_errors" = false` em tabela inline (citada + inerte) | PASS | rc=0 — controle negativo das duas checagens juntas (citar a chave e exigir o valor são independentes) |
 | 10 | cobertura real, piso do `ci.yml` (`RATCHET_HARNESS_COVERAGE=1`) | PASS | rc=0 — o step roda a suíte real, 256 passed, `Required test coverage of 59.19% reached. Total coverage: 59.20%` |
 | 11 | cobertura real com piso temporário 60 | FAIL | rc=1 — `FAIL Required test coverage of 60% not reached. Total coverage: 59.20%` (mensagem do `pytest-cov` 7.1.0, medida nesta rodada) |
 
@@ -584,6 +598,33 @@ com `OK: linha do legado intacta (127 <= 127) e escopo intacto (105 source files
 
 O ratchet custa uma segunda passada do mypy (~10 s), o mesmo custo que o step de cobertura já
 aceitava por legibilidade do log, e é determinístico porque o `mypy` está pinado (§6.7).
+
+**LIMITE INERENTE do desenho por contagem (rodada de correção 5 — documentado, NÃO corrigido).**
+O step decide por **contagem de erros** de uma config que vive no próprio repositório, e o guard
+do C4 cobre **uma** chave dessa config. Qualquer OUTRA relaxação de `[tool.mypy]` baixa o total,
+mantém `(checked 105 source files)` intacto e o step sai **verde**. Medido nesta rodada com o
+**mypy real do venv** (2.3.1), o bloco `run:` do `ci.yml` e configs derivadas em `/tmp` (árvore
+intocada):
+
+| Relaxação injetada em `pyproject.ratchet.toml` | Total medido | Step |
+|---|---|---|
+| `disable_error_code = ["assignment"]` | `Found 97 errors in 21 files (checked 105 source files)` | **rc=0** (verde) |
+| `follow_imports = "skip"` | `Found 58 errors in 27 files (checked 105 source files)` | **rc=0** (verde — **69** erros de folga silenciosa contra o orçamento 127) |
+| `follow_imports = "silent"` | `Found 127 errors in 28 files (checked 105 source files)` | rc=0 (sem efeito) |
+
+Um ratchet que conta erros **não consegue distinguir** "menos erros porque o código melhorou" de
+"menos erros porque a config foi afrouxada": o guard de `ignore_errors` é um conserto
+DIRECIONADO (uma chave, em todas as grafias TOML, e só com o valor `true`), não estrutural. Isso
+**não é regressão desta rodada** — a rodada 3 tinha o mesmo buraco — e não há vetor de acidente
+equivalente ao `ignore_errors` (que existe no `pyproject.toml`, pronto para ser copiado); mas o
+invariante vendido acima ("erro novo em QUALQUER arquivo passa a falhar") só vale enquanto nada
+mais da config do ratchet for relaxado — é isso, e só isso, que o gate entrega hoje.
+
+**Follow-up nomeado (não implementado nesta rodada, fora de escopo):** comparar o `[tool.mypy]`
+do `pyproject.ratchet.toml` com o do `pyproject.toml` de forma **estrutural**, tolerando apenas o
+bloco `[[tool.mypy.overrides]]` que aplica `ignore_errors` — exatamente a "cópia fiel" que este
+§6.8 já descreve como invariante do desenho. Enquanto ele não existir, o gate é **contagem +
+guard de uma chave**, e a cobertura de estritudez depende da disciplina do PR.
 
 **O que ele NÃO faz:** não valida cada comentário `# N` individualmente (só o total), não
 corrige nenhum dos 127 erros legados e não substitui o ratchet pós-release — ele apenas
