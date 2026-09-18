@@ -267,11 +267,18 @@ class ClassificationService:
             except IntegrityError:
                 # Perdedor da corrida: o vínculo já existe, então o comportamento
                 # é o mesmo do ``continue`` acima (nenhum erro, nenhuma duplicata).
-                # Um ``IntegrityError`` neste INSERT só pode ser o vínculo
-                # duplicado: ``uq_article_category`` é a única constraint única da
-                # tabela e as duas FKs apontam para linhas já resolvidas
-                # (``category.id`` foi lido/criado aqui em cima e ``article_id``
-                # veio de uma linha existente no caminho de produção).
+                # Este ``except`` é LARGO de propósito, e engole QUALQUER
+                # violação de integridade neste INSERT — não só a duplicata do
+                # vínculo. A outra alcançável é a FK
+                # ``article_categories.article_id -> articles.id``, que exige a
+                # linha do artigo ser apagada entre o ``SELECT`` de
+                # ``classify_article`` e este INSERT; nesse caso o desfecho
+                # visível coincide com a semântica que o job já tem para artigo
+                # ausente (``success=True`` sem vínculo), mas o sinal se perde.
+                # Um guard estrito (``if "unique" not in str(exc).lower():
+                # raise``) foi MEDIDO no review do 14.F (finding F5) e NÃO cabe
+                # no piso de cobertura: 6345 statements / 2590 misses = 59,18% <
+                # 59,19 → rc=1. Ver o finding F4/F5 no ledger da Task 14.
                 continue
 
             assigned_categories.append(category)

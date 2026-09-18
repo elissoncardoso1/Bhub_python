@@ -1,9 +1,12 @@
 """Worker ARQ REAL contra Redis e PostgreSQL reais (Task 14 / T4.3).
 
 Os 23 testes de integração anteriores provavam migração e busca, mas NENHUM
-tocava ARQ: os 40 testes unitários de fila/dispatcher usam um ``FakeArqPool``
-(``tests/unit/test_task_dispatcher.py``) sobre SQLite em memória
-(``tests/conftest.py:19``). O critério do épico é "ARQ é validado além de
+tocava ARQ: os 40 testes unitários de fila/dispatcher/jobs rodam sobre SQLite em
+memória (``tests/conftest.py:19``) e só 16 deles — ``tests/unit/test_task_dispatcher.py``
+— usam um ``FakeArqPool``; os outros 24 chamam os jobs diretamente
+(``tests/unit/test_arq_job_idempotency.py``, 5, com ``{"db": session}``) ou
+exercitam a observabilidade com dublês de telemetria
+(``tests/unit/test_arq_job_observability.py``, 19). O critério do épico é "ARQ é validado além de
 mocks", então aqui o caminho exercitado é o de PRODUÇÃO ponta a ponta:
 
     dispatcher real (``app/services/task_dispatcher.py``)
@@ -48,9 +51,14 @@ pool são o 14.D):
 Isolamento: cada teste insere e limpa as SUAS próprias linhas controladas
 (``external_id`` com o prefixo ``t14-``) e apaga as chaves ARQ que criou, então
 a ordem em relação a ``test_migrations.py`` — que roda ``alembic downgrade
-base`` + ``upgrade head`` — não importa. Zero rede externa: sem chaves de API o
-``AIManager`` não tem provedor e a classificação cai no MiniLM local, que é
-carregado uma única vez por sessão.
+base`` + ``upgrade head`` — não importa. Nenhuma chamada a LLM/API externa: sem
+chaves de API o ``AIManager`` não tem provedor e a classificação cai no MiniLM
+local, carregado uma única vez por sessão, com resultado determinístico (o mesmo
+peso em todos os runs). O único tráfego de rede observado é o ping ao Hugging
+Face Hub feito pelo próprio ``SentenceTransformer`` no startup do worker (~12 s;
+achado RED-5 da discovery) — custo de inicialização, não dependência dos testes.
+A frase anterior a esta correção afirmava "zero rede externa" e era FALSA
+(finding F1 do review do 14.F, medido).
 """
 
 from __future__ import annotations
@@ -165,9 +173,13 @@ async def _links_of(session: AsyncSession, article_id: int) -> list[Any]:
 
     É um ``SELECT`` sobre a tabela de associação (não sobre entidades do ORM),
     então cada chamada devolve o estado COMMITADO no momento da leitura — não há
-    cache de identidade para invalidar. Precisa porém de uma transação nova: o
-    chamador não pode ter um ``SELECT`` anterior em aberto, senão o snapshot
-    ficaria antes do ``commit`` do job.
+    cache de identidade para invalidar. O engine é criado sem ``isolation_level``
+    (``conftest.py``), ou seja ``READ COMMITTED``: cada statement pega um snapshot
+    novo, então esta leitura vê o ``commit`` do job mesmo que o chamador tenha um
+    ``SELECT`` anterior em aberto (medido no review do 14.F, finding F3: com um
+    ``SELECT`` aberto antes do worker, ``links == 1``). A observação anterior a
+    esta correção dizia que o snapshot ficaria ANTES do commit do job e era FALSA
+    fora de ``REPEATABLE READ``.
     """
     result = await session.execute(
         select(article_categories).where(article_categories.c.article_id == article_id)
