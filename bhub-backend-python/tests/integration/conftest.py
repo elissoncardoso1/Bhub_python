@@ -16,12 +16,23 @@ imagem do Docker Hub em silêncio e faria a suíte depender de internet externa.
 
 from __future__ import annotations
 
+import os
 import subprocess
+import sys
 import time
 import uuid
-from collections.abc import Iterator
+from collections.abc import AsyncGenerator, Iterator
+from pathlib import Path
 
 import pytest
+import pytest_asyncio
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
+from sqlalchemy.pool import NullPool
 
 POSTGRES_IMAGE = "postgres:16-alpine"
 REDIS_IMAGE = "redis:7-alpine"
@@ -32,6 +43,14 @@ POSTGRES_PASSWORD = "bhub"
 
 READINESS_TIMEOUT_SECONDS = 60
 DOCKER_TIMEOUT_SECONDS = 120
+
+# tests/integration/conftest.py -> tests/integration -> tests -> bhub-backend-python/
+BACKEND_DIR = Path(__file__).resolve().parents[2]
+
+# Última revisão da cadeia hoje: prova que o upgrade caminhou do zero até o head.
+HEAD_REVISION = "009_feed_http_cache"
+
+ALEMBIC_TIMEOUT_SECONDS = 300
 
 
 def _run(*args: str) -> str:
@@ -201,3 +220,90 @@ def redis_url() -> Iterator[str]:
         yield f"redis://127.0.0.1:{port}/0"
     finally:
         _force_remove(name)
+
+
+# --- Cadeia de migrações + sessão ORM ---------------------------------------
+#
+# Estes nomes nasceram em ``test_migrations.py`` (Task 12) e foram PROMOVIDOS para
+# cá na Task 13: ``test_postgres_search.py`` precisa do mesmo banco migrado, e uma
+# segunda cópia do caminho ``alembic upgrade head`` divergiria em silêncio. O
+# comportamento é o mesmo que estava no módulo de origem.
+
+
+def _asyncpg_dsn(sqlalchemy_url: str) -> str:
+    """O asyncpg puro não aceita o sufixo de dialeto do SQLAlchemy."""
+    return sqlalchemy_url.replace("+asyncpg", "")
+
+
+def _alembic_env(postgres_url: str) -> dict[str, str]:
+    """Ambiente mínimo para um subprocesso alembic: só ``DATABASE_URL`` importa.
+
+    O ambiente do operador pode exportar ``DEBUG=release``, o que faz
+    ``app.config.Settings`` levantar ValidationError; ``ENVIRONMENT`` pode forçar
+    caminhos de produção. Uma execução de migração depende só de ``DATABASE_URL``,
+    então as duas são removidas.
+    """
+    env = {**os.environ, "DATABASE_URL": postgres_url}
+    env.pop("DEBUG", None)
+    env.pop("ENVIRONMENT", None)
+    return env
+
+
+def _run_alembic_upgrade(postgres_url: str) -> subprocess.CompletedProcess[str]:
+    """Roda ``alembic upgrade head`` no subprocesso, exatamente como o deploy roda."""
+    return subprocess.run(
+        [sys.executable, "-m", "alembic", "upgrade", "head"],
+        cwd=BACKEND_DIR,
+        env=_alembic_env(postgres_url),
+        capture_output=True,
+        text=True,
+        timeout=ALEMBIC_TIMEOUT_SECONDS,
+    )
+
+
+def _run_alembic_downgrade_base(postgres_url: str) -> subprocess.CompletedProcess[str]:
+    """Roda ``alembic downgrade base`` no subprocesso, como um rollback de deploy."""
+    return subprocess.run(
+        [sys.executable, "-m", "alembic", "downgrade", "base"],
+        cwd=BACKEND_DIR,
+        env=_alembic_env(postgres_url),
+        capture_output=True,
+        text=True,
+        timeout=ALEMBIC_TIMEOUT_SECONDS,
+    )
+
+
+@pytest.fixture(scope="session")
+def migrated_database(postgres_url: str) -> str:
+    """Aplica a cadeia inteira no banco vazio uma única vez por sessão."""
+    result = _run_alembic_upgrade(postgres_url)
+    assert result.returncode == 0, (
+        f"'alembic upgrade head' falhou (rc={result.returncode})\n"
+        f"--- stdout ---\n{result.stdout}\n--- stderr ---\n{result.stderr}"
+    )
+    return postgres_url
+
+
+@pytest_asyncio.fixture
+async def pg_engine(migrated_database: str) -> AsyncGenerator[AsyncEngine, None]:
+    """Engine async apontando para o banco migrado, descartada ao fim do teste.
+
+    Escopo de função de propósito: o event loop padrão dos fixtures é por função
+    (``asyncio_default_fixture_loop_scope = "function"``), e um engine criado em
+    outro loop quebra com "attached to a different loop". ``NullPool`` garante que
+    nenhuma conexão sobreviva ao teste (o vizinho ``test_migrations.py`` pode
+    derrubar e recriar o schema entre um teste e outro).
+    """
+    engine = create_async_engine(migrated_database, poolclass=NullPool)
+    try:
+        yield engine
+    finally:
+        await engine.dispose()
+
+
+@pytest_asyncio.fixture
+async def pg_session(pg_engine: AsyncEngine) -> AsyncGenerator[AsyncSession, None]:
+    """Sessão ORM contra o PostgreSQL real migrado."""
+    factory = async_sessionmaker(pg_engine, class_=AsyncSession, expire_on_commit=False)
+    async with factory() as session:
+        yield session

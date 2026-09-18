@@ -3,81 +3,27 @@
 Este é o teste que o plano chama de "zero -> head": um banco Postgres vazio
 recebe ``alembic upgrade head`` como o deploy faz (subprocesso real) e o esquema
 resultante é inspecionado no catálogo do Postgres, não por comparação de strings.
+
+O caminho de migração (``_run_alembic_upgrade``, ``migrated_database``) foi
+promovido para ``tests/integration/conftest.py`` na Task 13, quando
+``test_postgres_search.py`` passou a precisar do mesmo banco migrado. O
+comportamento observado por este módulo é o mesmo de antes da promoção.
 """
 
 from __future__ import annotations
-
-import os
-import subprocess
-import sys
-from pathlib import Path
 
 import asyncpg
 import pytest
 import redis
 
+from tests.integration.conftest import (
+    HEAD_REVISION,
+    _asyncpg_dsn,
+    _run_alembic_downgrade_base,
+    _run_alembic_upgrade,
+)
+
 pytestmark = pytest.mark.integration
-
-# tests/integration/test_migrations.py -> tests/integration -> tests -> bhub-backend-python/
-BACKEND_DIR = Path(__file__).resolve().parents[2]
-
-# Última revisão da cadeia hoje: prova que o upgrade caminhou do zero até o head.
-HEAD_REVISION = "009_feed_http_cache"
-
-ALEMBIC_TIMEOUT_SECONDS = 300
-
-
-def _asyncpg_dsn(sqlalchemy_url: str) -> str:
-    """O asyncpg puro não aceita o sufixo de dialeto do SQLAlchemy."""
-    return sqlalchemy_url.replace("+asyncpg", "")
-
-
-def _run_alembic_upgrade(postgres_url: str) -> subprocess.CompletedProcess[str]:
-    """Roda ``alembic upgrade head`` no subprocesso, exatamente como o deploy roda."""
-    env = {**os.environ, "DATABASE_URL": postgres_url}
-    # O ambiente exporta DEBUG=release, o que faz app.config.Settings levantar
-    # ValidationError; ENVIRONMENT pode forçar caminhos de produção. Uma execução
-    # de migração depende só de DATABASE_URL, então as duas são removidas.
-    env.pop("DEBUG", None)
-    env.pop("ENVIRONMENT", None)
-    return subprocess.run(
-        [sys.executable, "-m", "alembic", "upgrade", "head"],
-        cwd=BACKEND_DIR,
-        env=env,
-        capture_output=True,
-        text=True,
-        timeout=ALEMBIC_TIMEOUT_SECONDS,
-    )
-
-
-def _run_alembic_downgrade_base(postgres_url: str) -> subprocess.CompletedProcess[str]:
-    """Roda ``alembic downgrade base`` no subprocesso, como um rollback de deploy.
-
-    Mesmo tratamento de ambiente do upgrade: a execução depende só de
-    ``DATABASE_URL``, então ``DEBUG``/``ENVIRONMENT`` são removidas antes.
-    """
-    env = {**os.environ, "DATABASE_URL": postgres_url}
-    env.pop("DEBUG", None)
-    env.pop("ENVIRONMENT", None)
-    return subprocess.run(
-        [sys.executable, "-m", "alembic", "downgrade", "base"],
-        cwd=BACKEND_DIR,
-        env=env,
-        capture_output=True,
-        text=True,
-        timeout=ALEMBIC_TIMEOUT_SECONDS,
-    )
-
-
-@pytest.fixture(scope="session")
-def migrated_database(postgres_url: str) -> str:
-    """Aplica a cadeia inteira no banco vazio uma única vez por sessão."""
-    result = _run_alembic_upgrade(postgres_url)
-    assert result.returncode == 0, (
-        f"'alembic upgrade head' falhou (rc={result.returncode})\n"
-        f"--- stdout ---\n{result.stdout}\n--- stderr ---\n{result.stderr}"
-    )
-    return postgres_url
 
 
 async def test_articles_table_exists(migrated_database: str) -> None:
