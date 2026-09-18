@@ -87,12 +87,18 @@ RANK_WEAK_DATE = datetime(2026, 1, 1, tzinfo=UTC)
 # dentro de uma frase longa (similaridade baixa). A ordem esperada vem daí.
 #
 # O título MENOS similar começa com "A" de propósito (Task 13.E, achado F1 da
-# revisão independente): sem ``ORDER BY`` o ``SELECT DISTINCT`` do PostgreSQL já
-# devolve as linhas ordenadas por título — o plano é ``Unique -> Sort`` com
-# ``Sort Key: title`` —, então a ordem alfabética destes dois títulos
-# ["Acompanhamento…", "Cerrado"] é o CONTRÁRIO da ordem por similaridade. Se o
-# ``ORDER BY similarity(...) DESC`` do serviço sumir, a asserção de ordem falha
-# em vez de passar por coincidência com a ordem alfabética.
+# revisão independente): sob o plano default o ``SELECT DISTINCT`` do PostgreSQL
+# já devolve as linhas ordenadas por título — o plano é ``Unique -> Sort`` com
+# ``Sort Key: title`` (medido) —, então a ordem alfabética destes dois títulos
+# ["Acompanhamento…", "Cerrado"] é o CONTRÁRIO da ordem por similaridade. O que
+# a inversão garante é exatamente isso: a ordem POR TÍTULO contradiz a ordem de
+# similaridade. A garantia NÃO independe do plano (Task 13.F, achado N1 da
+# re-revisão): com ``HashAggregate`` (por exemplo ``enable_sort=off``) a ordem
+# sem ``ORDER BY`` volta a ser arbitrária e pode coincidir com a esperada, logo
+# o mutante é pego no plano default em que a suíte roda (``Unique -> Sort``,
+# medido) — não em qualquer plano. Se o ``ORDER BY similarity(...) DESC`` do
+# serviço sumir, a asserção de ordem falha sob o plano default em vez de passar
+# por coincidência com a ordem alfabética.
 SIMILAR_EXACT_EXTERNAL_ID = f"{CONTROLLED_PREFIX}similar-exact"
 SIMILAR_EXACT_TITLE = "Cerrado"
 SIMILAR_LONG_EXTERNAL_ID = f"{CONTROLLED_PREFIX}similar-long"
