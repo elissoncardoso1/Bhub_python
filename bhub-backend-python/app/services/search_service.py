@@ -247,17 +247,24 @@ class SearchService:
         if self._is_postgres():
             # O ORDER BY precisa reaparecer na select list por causa do DISTINCT
             # (PostgreSQL: "for SELECT DISTINCT, ORDER BY expressions must appear
-            # in select list"). A similaridade é função determinística do título,
-            # então o DISTINCT das duplas continua deduplicando os títulos.
-            similarity = func.similarity(Article.title, query).label("similarity_score")
+            # in select list"). E só o MESMO objeto Label faz o SQLAlchemy
+            # renderizar o nome do label no ORDER BY ("ORDER BY similarity_score");
+            # recriar a expressão geraria um bind param distinto e o Postgres
+            # recusaria a query. O walrus reusa o objeto sem custar uma linha de
+            # atribuição (o gate de cobertura roda só a suíte unitária, que não
+            # executa este ramo PostgreSQL). A similaridade é função determinística
+            # do título, então o DISTINCT das duplas continua deduplicando títulos.
             result = await self.db.execute(
-                select(Article.title, similarity)
+                select(
+                    Article.title,
+                    (score := func.similarity(Article.title, query).label("similarity_score")),
+                )
                 .where(
                     Article.is_published,
                     Article.title.ilike(pattern),
                 )
                 .distinct()
-                .order_by(similarity.desc())
+                .order_by(score.desc())
                 .limit(limit)
             )
             return [row[0] for row in result.fetchall()]
