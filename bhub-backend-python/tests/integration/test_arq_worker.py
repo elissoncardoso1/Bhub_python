@@ -80,8 +80,9 @@ from arq.constants import (
 )
 from arq.jobs import Job, deserialize_job
 from arq.worker import Retry
-from sqlalchemy import delete, select
-from sqlalchemy.exc import DBAPIError
+from sqlalchemy import delete, insert, select
+from sqlalchemy.dialects.postgresql import insert as postgresql_insert
+from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -666,3 +667,127 @@ async def test_despacho_com_arq_habilitado_sem_pool_recusa_explicitamente(
     # …e o Redis real não mudou: o despacho recusado não enfileirou nada.
     assert sorted(await arq_pool.keys(f"{job_key_prefix}*")) == keys_before
     assert await arq_pool.zcard(default_queue_name) == queued_before
+
+
+# --- 9. mecanismo do guard ESTREITO: ON CONFLICT DO NOTHING (14.G) --------------
+
+#: SQLSTATEs do PostgreSQL usados pelas asserções abaixo. Números, não texto.
+UNIQUE_VIOLATION = "23505"
+FOREIGN_KEY_VIOLATION = "23503"
+
+
+def _sqlstate(exc: IntegrityError) -> Any:
+    """SQLSTATE de um ``IntegrityError``, lido do atributo ESTRUTURADO do driver."""
+    return getattr(exc.orig, "sqlstate", None)
+
+
+def _asyncpg_cause(exc: IntegrityError) -> Any:
+    """A exceção REAL do asyncpg por trás do shim de DBAPI do SQLAlchemy.
+
+    Medido no A4 do 14.G (PG 16 + asyncpg 0.31 + SQLAlchemy 2.0.53):
+    ``exc.orig`` é ``AsyncAdapt_asyncpg_dbapi.IntegrityError`` e carrega SÓ
+    ``sqlstate``/``pgcode``; o nome da constraint vive em ``exc.orig.__cause__``.
+    """
+    return getattr(exc.orig, "__cause__", None)
+
+
+async def test_on_conflict_absorve_a_colisao_alvo_e_nao_engole_a_fk(
+    arq_redis: AsyncSession,
+) -> None:
+    """O mecanismo do 14.G classificado no stack REAL, sem SQLite e sem texto.
+
+    Três medições na MESMA sessão PostgreSQL 16, com o asyncpg de produção:
+
+    1. SEM ``ON CONFLICT``, a colisão ALVO é de fato uma ``UniqueViolationError``
+       do asyncpg (SQLSTATE 23505) na constraint ``uq_article_category`` — dentro
+       de um savepoint, para a transação sobreviver à medição;
+    2. COM o INSERT de PRODUÇÃO (``ON CONFLICT (article_id, category_id) DO
+       NOTHING``) a MESMA colisão não levanta nada e reporta ``rowcount == 0``;
+       é isso que torna a corrida recuperável SEM ``except`` nenhum;
+    3. a violação de FK (``article_categories.article_id -> articles.id``), a
+       outra alcançável em produção, NÃO é engolida: ela sobe do serviço como
+       ``IntegrityError`` (SQLSTATE 23503) — exatamente o que o ``except`` largo
+       do 14.C escondia (finding F4 do review do 14.F).
+    """
+    article = await _insert_article(arq_redis)
+    article_id = article.id
+    default = DEFAULT_CATEGORIES[0]
+    category = await ClassificationService.get_or_create_category(
+        arq_redis, slug=default["slug"], name=default["name"]
+    )
+    await arq_redis.commit()
+    category_id = category.id
+
+    def _vinculo(article_id_: int):  # noqa: ANN202 - helper local de teste
+        return insert(article_categories).values(
+            article_id=article_id_,
+            category_id=category_id,
+            confidence=0.9,
+            is_primary=False,
+            auto_created=False,
+        )
+
+    # O vínculo existe de verdade (é o estado que o outro job comitou).
+    await arq_redis.execute(_vinculo(article_id))
+    await arq_redis.commit()
+
+    # (1) a colisão ALVO é uma UniqueViolationError REAL do asyncpg.
+    try:
+        async with arq_redis.begin_nested():
+            await arq_redis.execute(_vinculo(article_id))
+    except IntegrityError as exc:
+        colisao_alvo = exc
+    else:
+        pytest.fail("sem ON CONFLICT o INSERT do vínculo deveria violar uq_article_category")
+
+    assert _sqlstate(colisao_alvo) == UNIQUE_VIOLATION, (
+        f"SQLSTATE da colisão alvo veio {_sqlstate(colisao_alvo)!r}"
+    )
+    causa = _asyncpg_cause(colisao_alvo)
+    assert type(causa).__name__ == "UniqueViolationError", (
+        f"a causa real do asyncpg veio {type(causa).__name__!r}"
+    )
+    assert getattr(causa, "constraint_name", None) == "uq_article_category", (
+        f"constraint_name da causa veio {getattr(causa, 'constraint_name', None)!r}"
+    )
+    assert getattr(causa, "table_name", None) == "article_categories"
+
+    # (2) o INSERT de PRODUÇÃO absorve a MESMA colisão: nada sobe, rowcount 0.
+    producao = postgresql_insert(article_categories).values(
+        article_id=article_id,
+        category_id=category_id,
+        confidence=0.9,
+        is_primary=False,
+        auto_created=False,
+    )
+    resultado = await arq_redis.execute(
+        producao.on_conflict_do_nothing(index_elements=["article_id", "category_id"])
+    )
+    linhas_afetadas = getattr(resultado, "rowcount", None)
+    assert linhas_afetadas == 0, (
+        f"ON CONFLICT DO NOTHING deveria não inserir nada, rowcount={linhas_afetadas}"
+    )
+    vinculos = await _links_of(arq_redis, article_id)
+    assert len(vinculos) == 1, f"o vínculo foi duplicado: {vinculos}"
+
+    # (3) a FK NÃO é engolida: sobe do SERVIÇO como IntegrityError (23503).
+    artigo_inexistente = article_id + 10**8
+    try:
+        with pytest.raises(IntegrityError) as erro_fk:
+            await ClassificationService.assign_categories_to_article(
+                db=arq_redis,
+                article_id=artigo_inexistente,
+                category_slugs_with_confidence=[(default["slug"], 0.9)],
+                auto_create=True,
+            )
+    finally:
+        # A transação ficou abortada pela FK: o rollback é parte do contrato de
+        # um erro que PROPAGA (o 14.C o escondia e a transação seguia viva).
+        await arq_redis.rollback()
+
+    assert _sqlstate(erro_fk.value) == FOREIGN_KEY_VIOLATION, (
+        f"SQLSTATE da FK veio {_sqlstate(erro_fk.value)!r}"
+    )
+    causa_fk = _asyncpg_cause(erro_fk.value)
+    assert getattr(causa_fk, "constraint_name", None) == "article_categories_article_id_fkey"
+    assert getattr(causa_fk, "table_name", None) == "article_categories"

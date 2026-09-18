@@ -5,16 +5,30 @@ e criação automática de categorias quando necessário.
 
 import re
 import unicodedata
+from typing import Any
 
 from sqlalchemy import select
-from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.dialects.postgresql import insert as postgresql_insert
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logging import log
 from app.interfaces.services import IAIManager
 from app.models import Article, Category, article_categories
 from app.models.category import DEFAULT_CATEGORIES
+
+# ``ON CONFLICT (<alvo>) DO NOTHING`` é compilada igual pelos DOIS dialetos que
+# este serviço atende (PostgreSQL em produção, SQLite na suíte de testes), mas o
+# construtor ``insert`` que a expõe é o do dialeto de DESTINO — verificado no
+# milestone 14.G contra a tabela real nos dois. Um dialeto novo (não suportado
+# hoje) falha aqui com ``KeyError`` em vez de compilar SQL errado em silêncio.
+# O valor é ``Any`` porque as duas classes ``Insert`` são de módulos diferentes e
+# o tipo comum das duas (``sqlalchemy.sql.dml.Insert``) não declara
+# ``on_conflict_do_nothing`` — só as subclasses de dialeto declaram.
+_ON_CONFLICT_INSERT_BY_DIALECT: dict[str, Any] = {
+    "postgresql": postgresql_insert,
+    "sqlite": sqlite_insert,
+}
 
 
 class ClassificationService:
@@ -248,37 +262,36 @@ class ClassificationService:
             default_category_names = [cat["name"] for cat in DEFAULT_CATEGORIES]
             auto_created_flag = category.name not in default_category_names
 
-            stmt = insert(article_categories).values(
-                article_id=article_id,
-                category_id=category.id,
-                confidence=confidence,
-                is_primary=is_primary,
-                auto_created=auto_created_flag,
+            # Conflito ALVO declarado no próprio INSERT: a corrida entre dois
+            # dispatches do MESMO artigo (o ARQ não deduplica) é resolvida
+            # DENTRO do statement, sem exceção nenhuma para classificar. Só o
+            # par (article_id, category_id) — a ``uq_article_category`` — é
+            # absorvido; FK, NOT NULL e qualquer outra violação de integridade
+            # continuam PROPAGANDO (medido no 14.G em PG 16 + asyncpg e em
+            # SQLite: os sqlstates 23503/23502 sobem nos dois). O savepoint do
+            # 14.C saiu junto com o ``except IntegrityError`` LARGO (finding F4
+            # do review do 14.F): ele só existia para tornar a UniqueViolation
+            # recuperável, e um erro que propaga derruba a transação do job de
+            # qualquer forma. Nenhum matching — de texto ou de SQLSTATE — é
+            # usado aqui, porque o SQLSTATE 23505 é o MESMO para qualquer unique
+            # e o SQLite não carrega o NOME da constraint.
+            insert_stmt = _ON_CONFLICT_INSERT_BY_DIALECT[db.get_bind().dialect.name]
+            result = await db.execute(
+                insert_stmt(article_categories)
+                .values(
+                    article_id=article_id,
+                    category_id=category.id,
+                    confidence=confidence,
+                    is_primary=is_primary,
+                    auto_created=auto_created_flag,
+                )
+                .on_conflict_do_nothing(index_elements=["article_id", "category_id"])
             )
-            try:
-                # Savepoint obrigatório: o SELECT acima e este INSERT não são
-                # atômicos entre dois dispatches do MESMO artigo (o ARQ não
-                # deduplica). Se o outro job inseriu o vínculo nesse intervalo, o
-                # PostgreSQL levanta UniqueViolationError em ``uq_article_category``;
-                # sem o savepoint a transação do job inteiro ficaria abortada,
-                # com ele só este INSERT é desfeito.
-                async with db.begin_nested():
-                    await db.execute(stmt)
-            except IntegrityError:
-                # Perdedor da corrida: o vínculo já existe, então o comportamento
-                # é o mesmo do ``continue`` acima (nenhum erro, nenhuma duplicata).
-                # Este ``except`` é LARGO de propósito, e engole QUALQUER
-                # violação de integridade neste INSERT — não só a duplicata do
-                # vínculo. A outra alcançável é a FK
-                # ``article_categories.article_id -> articles.id``, que exige a
-                # linha do artigo ser apagada entre o ``SELECT`` de
-                # ``classify_article`` e este INSERT; nesse caso o desfecho
-                # visível coincide com a semântica que o job já tem para artigo
-                # ausente (``success=True`` sem vínculo), mas o sinal se perde.
-                # Um guard estrito (``if "unique" not in str(exc).lower():
-                # raise``) foi MEDIDO no review do 14.F (finding F5) e NÃO cabe
-                # no piso de cobertura: 6345 statements / 2590 misses = 59,18% <
-                # 59,19 → rc=1. Ver o finding F4/F5 no ledger da Task 14.
+            if result.rowcount == 0:
+                # Perdedor da corrida: o outro job commitou o vínculo nesta
+                # janela de check-then-act. Mesmo desfecho do ``continue``
+                # acima — nenhum erro, nenhuma duplicata, e o vínculo já
+                # existente NÃO é reportado como novo.
                 continue
 
             assigned_categories.append(category)
