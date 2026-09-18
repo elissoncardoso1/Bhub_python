@@ -8,6 +8,10 @@ Estes fixtures NUNCA fazem ``pytest.skip``. Se o Docker estiver indisponível a
 suíte falha ruidosamente, porque um verde falso aqui esconderia uma migração
 quebrada. Os testes são desmarcados por padrão (``-m 'not integration'`` em
 ``addopts``) e rodam explicitamente com ``pytest tests/integration -m integration``.
+
+Estes fixtures também NUNCA baixam imagem: antes de cada ``docker run`` o preflight
+``_require_local_image`` confere o store local, porque um ``docker run`` baixaria a
+imagem do Docker Hub em silêncio e faria a suíte depender de internet externa.
 """
 
 from __future__ import annotations
@@ -60,6 +64,40 @@ def _run(*args: str) -> str:
     return result.stdout.strip()
 
 
+def _require_local_image(image: str) -> None:
+    """Falha ANTES de criar qualquer container quando a imagem não está no store local.
+
+    ``docker run`` baixa a imagem do Docker Hub em silêncio quando ela falta, o que
+    faria a suíte depender de internet externa — justamente o que os critérios de
+    aceitação da Task 12 proíbem. Este preflight consulta o store local e, quando a
+    imagem falta, levanta erro citando a imagem e o comando exato de
+    pré-provisionamento.
+
+    O teste NUNCA roda ``docker pull``: quem provisiona é o operador (ou o step de CI,
+    explicitamente). Aqui só se verifica o que já existe.
+    """
+    try:
+        result = subprocess.run(
+            ["docker", "image", "inspect", image],
+            capture_output=True,
+            text=True,
+            timeout=DOCKER_TIMEOUT_SECONDS,
+            check=False,
+        )
+    except FileNotFoundError as exc:  # pragma: no cover - exercitado só sem Docker
+        raise RuntimeError(
+            "Docker não encontrado no PATH; a suíte de integração exige Docker"
+        ) from exc
+
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"imagem '{image}' não está no store local do Docker: a suíte de integração "
+            "não baixa nada pela rede.\n"
+            f"Pré-provisione antes de rodar: docker pull {image}\n"
+            f"--- docker image inspect {image} ---\n{result.stderr.strip()}"
+        )
+
+
 def _force_remove(name: str) -> None:
     """Remove o container no teardown; nunca mascara o erro do corpo do teste."""
     try:
@@ -107,6 +145,7 @@ def postgres_url() -> Iterator[str]:
     """
     name = f"bhub-t12-pg-{uuid.uuid4().hex[:8]}"
     database = f"bhub_it_{uuid.uuid4().hex[:8]}"
+    _require_local_image(POSTGRES_IMAGE)
     _run(
         "run",
         "-d",
@@ -145,6 +184,7 @@ def redis_url() -> Iterator[str]:
     fixture chega na Task 14.
     """
     name = f"bhub-t12-redis-{uuid.uuid4().hex[:8]}"
+    _require_local_image(REDIS_IMAGE)
     _run(
         "run",
         "-d",

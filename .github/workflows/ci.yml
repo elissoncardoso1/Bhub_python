@@ -282,8 +282,11 @@ jobs:
       # banco de nome único por execução. Por isso NÃO há bloco `services:`: um
       # caminho só, igual em CI e na máquina de quem desenvolve, e o que o
       # mantenedor verifica localmente é exatamente o que roda aqui.
-      # Isso consome rede (o runner baixa as duas imagens do Docker Hub) e por isso
-      # roda depois dos steps baratos e antes do build da imagem, que é o mais caro.
+      # Isso consome rede UMA vez, de forma explícita: as duas imagens são baixadas
+      # pelos `docker pull` do próprio step abaixo (e não por um download implícito
+      # do `docker run`), porque a suíte faz preflight no store local e falha rápido
+      # citando a imagem e o comando de pré-provisionamento quando falta alguma.
+      # Por isso roda depois dos steps baratos e antes do build da imagem, o mais caro.
       # Docker ausente é FALHA, nunca `skip`: a fixture levanta erro com mensagem
       # clara, porque um verde falso aqui esconderia uma migração quebrada.
       # A suíte é DESMARCADA por padrão (`-m 'not integration'` no `addopts`), então
@@ -293,7 +296,13 @@ jobs:
       # Não use `continue-on-error` aqui.
       - name: Testes de integração (PostgreSQL e Redis reais)
         timeout-minutes: 15
-        run: pytest tests/integration -m integration -v
+        run: |
+          # Pré-provisionamento EXPLÍCITO das imagens que o conftest exige no store
+          # local. O teste nunca roda `docker pull`: se alguma faltar, ele falha
+          # rápido nomeando a imagem e este comando.
+          docker pull postgres:16-alpine
+          docker pull redis:7-alpine
+          pytest tests/integration -m integration -v
 
       # Build da imagem Docker BLOQUEANTE (Épico 3 / T3.5). Existe para pegar cedo
       # dependência ausente, pacote de sistema incompatível, erro de build e arquivo não
