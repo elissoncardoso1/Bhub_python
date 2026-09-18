@@ -345,8 +345,9 @@ async def pg_session(pg_engine: AsyncEngine) -> AsyncGenerator[AsyncSession, Non
 ARQ_BURST_TIMEOUT_SECONDS = 240.0
 
 #: Assinatura do callable devolvido pelo fixture ``run_arq_worker``: recebe
-#: ``functions`` (para um WorkerSettings local ao teste) e ``timeout``, devolve o
-#: ``Worker`` já parado com as estatísticas reais.
+#: ``functions`` (para um WorkerSettings local ao teste), ``settings`` (um
+#: WorkerSettings local, que substitui o de produção nos limites/hooks) e
+#: ``timeout``, devolve o ``Worker`` já parado com as estatísticas reais.
 RunArqWorker = Callable[..., Awaitable[Worker]]
 
 
@@ -406,36 +407,47 @@ async def run_arq_worker(
 
     O callable devolve o ``Worker`` parado, com as estatísticas reais
     (``jobs_complete``/``jobs_failed``/``jobs_retried``) para as asserções.
+
+    ``settings`` permite um ``WorkerSettings`` LOCAL ao teste (caso ``retry`` do
+    milestone 14.D: o repo não tem job que levante ``Retry``). Quando ele é
+    passado, TODOS os limites/hooks do worker vêm dele — o que continua vindo
+    desta fixture é só o que é preciso costurar por causa do container:
+    ``redis_settings`` (o DSN do Redis do fixture, sempre) e o
+    ``ctx["session_factory"]`` injetado depois do ``on_startup`` das settings.
+    O ``on_startup`` das settings é chamado pelo wrapper, então settings locais
+    precisam definir um (o de produção serve: carrega o MiniLM).
     """
 
     async def _run(
         *,
         functions: list[Any] | None = None,
+        settings: Any | None = None,
         timeout: float = ARQ_BURST_TIMEOUT_SECONDS,
     ) -> Worker:
+        ws = WorkerSettings if settings is None else settings
         session_factory = async_sessionmaker(pg_engine, class_=AsyncSession, expire_on_commit=False)
 
         async def _on_startup(ctx: dict[str, Any]) -> None:
             # Wiring de produção primeiro (MiniLM + sessão) e só então o banco
             # migrado do container, que não existia no import.
-            await WorkerSettings.on_startup(ctx)
+            await ws.on_startup(ctx)
             ctx["session_factory"] = session_factory
 
         worker = Worker(
-            functions=WorkerSettings.functions if functions is None else functions,
+            functions=ws.functions if functions is None else functions,
             redis_settings=RedisSettings.from_dsn(redis_url),
             burst=True,
             on_startup=_on_startup,
-            on_shutdown=WorkerSettings.on_shutdown,
-            on_job_start=WorkerSettings.on_job_start,
-            on_job_end=WorkerSettings.on_job_end,
+            on_shutdown=ws.on_shutdown,
+            on_job_start=ws.on_job_start,
+            on_job_end=ws.on_job_end,
             handle_signals=False,  # não sequestra os sinais do pytest
-            max_jobs=WorkerSettings.max_jobs,
-            job_timeout=WorkerSettings.job_timeout,
-            max_tries=WorkerSettings.max_tries,
-            retry_jobs=WorkerSettings.retry_jobs,
-            keep_result=WorkerSettings.keep_result,
-            health_check_interval=WorkerSettings.health_check_interval,
+            max_jobs=ws.max_jobs,
+            job_timeout=ws.job_timeout,
+            max_tries=ws.max_tries,
+            retry_jobs=ws.retry_jobs,
+            keep_result=ws.keep_result,
+            health_check_interval=ws.health_check_interval,
         )
         try:
             await asyncio.wait_for(worker.async_run(), timeout)
