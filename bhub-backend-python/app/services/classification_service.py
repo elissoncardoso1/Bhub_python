@@ -8,6 +8,7 @@ import unicodedata
 
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logging import log
@@ -254,7 +255,24 @@ class ClassificationService:
                 is_primary=is_primary,
                 auto_created=auto_created_flag,
             )
-            await db.execute(stmt)
+            try:
+                # Savepoint obrigatório: o SELECT acima e este INSERT não são
+                # atômicos entre dois dispatches do MESMO artigo (o ARQ não
+                # deduplica). Se o outro job inseriu o vínculo nesse intervalo, o
+                # PostgreSQL levanta UniqueViolationError em ``uq_article_category``;
+                # sem o savepoint a transação do job inteiro ficaria abortada,
+                # com ele só este INSERT é desfeito.
+                async with db.begin_nested():
+                    await db.execute(stmt)
+            except IntegrityError:
+                # Perdedor da corrida: o vínculo já existe, então o comportamento
+                # é o mesmo do ``continue`` acima (nenhum erro, nenhuma duplicata).
+                # Um ``IntegrityError`` neste INSERT só pode ser o vínculo
+                # duplicado: ``uq_article_category`` é a única constraint única da
+                # tabela e as duas FKs apontam para linhas já resolvidas
+                # (``category.id`` foi lido/criado aqui em cima e ``article_id``
+                # veio de uma linha existente no caminho de produção).
+                continue
 
             assigned_categories.append(category)
 
