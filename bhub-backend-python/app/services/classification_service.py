@@ -17,10 +17,12 @@ from app.interfaces.services import IAIManager
 from app.models import Article, Category, article_categories
 from app.models.category import DEFAULT_CATEGORIES
 
-# ``ON CONFLICT (<alvo>) DO NOTHING`` é compilada igual pelos DOIS dialetos que
-# este serviço atende (PostgreSQL em produção, SQLite na suíte de testes), mas o
-# construtor ``insert`` que a expõe é o do dialeto de DESTINO — verificado no
-# milestone 14.G contra a tabela real nos dois. Um dialeto novo (não suportado
+# ``ON CONFLICT (<alvo>) DO NOTHING`` é a MESMA cláusula nos DOIS dialetos que
+# este serviço atende (PostgreSQL em produção, SQLite na suíte de testes) — o SQL
+# compilado não é byte-idêntico (o PostgreSQL acrescenta ``RETURNING``, medido no
+# 14.G), mas a semântica de conflito é a mesma. O construtor ``insert`` que expõe
+# a cláusula é o do dialeto de DESTINO — verificado no milestone 14.G contra a
+# tabela real nos dois. Um dialeto novo (não suportado
 # hoje) falha aqui com ``KeyError`` em vez de compilar SQL errado em silêncio.
 # O valor é ``Any`` porque as duas classes ``Insert`` são de módulos diferentes e
 # o tipo comum das duas (``sqlalchemy.sql.dml.Insert``) não declara
@@ -267,8 +269,12 @@ class ClassificationService:
             # DENTRO do statement, sem exceção nenhuma para classificar. Só o
             # par (article_id, category_id) — a ``uq_article_category`` — é
             # absorvido; FK, NOT NULL e qualquer outra violação de integridade
-            # continuam PROPAGANDO (medido no 14.G em PG 16 + asyncpg e em
-            # SQLite: os sqlstates 23503/23502 sobem nos dois). O savepoint do
+            # continuam PROPAGANDO nos dois dialetos (medido no 14.G): em
+            # PostgreSQL sobem como ``IntegrityError`` com sqlstate 23503/23502, e
+            # em SQLite sobem como ``sqlite3.IntegrityError`` — que NÃO carrega
+            # sqlstate NEM nome de constraint, e cuja FK só sobe com
+            # ``PRAGMA foreign_keys=ON`` (o NOT NULL sobe sempre, e é o que o teste
+            # unitário usa para provar a propagação). O savepoint do
             # 14.C saiu junto com o ``except IntegrityError`` LARGO (finding F4
             # do review do 14.F): ele só existia para tornar a UniqueViolation
             # recuperável, e um erro que propaga derruba a transação do job de

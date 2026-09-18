@@ -75,6 +75,12 @@ class _SessaoComCorrida:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
         self._corrida_pendente = True
+        # Contador para o teste NÃO poder passar sem a janela: se o matcher
+        # ``_e_o_select_do_vinculo`` deixar de casar (mudança no statement, no
+        # dialeto ou no nome da tabela), o SELECT real devolveria o vínculo,
+        # o código cairia no ``continue`` sequencial e as asserções continuariam
+        # verdes sem exercitar o conflito nenhuma vez. O teste asserta > 0.
+        self.interceptacoes = 0
 
     def __getattr__(self, name: str) -> Any:
         return getattr(self._session, name)
@@ -82,6 +88,7 @@ class _SessaoComCorrida:
     async def execute(self, statement: Any, *args: Any, **kwargs: Any) -> Any:
         if self._corrida_pendente and _e_o_select_do_vinculo(statement):
             self._corrida_pendente = False
+            self.interceptacoes += 1
             return _VinculoAusente()
         return await self._session.execute(statement, *args, **kwargs)
 
@@ -149,11 +156,17 @@ async def test_corrida_do_vinculo_alvo_e_recuperada(db_session: AsyncSession) ->
     )
     await db_session.commit()
 
+    sessao_com_corrida = _SessaoComCorrida(db_session)
     atribuidas = await ClassificationService.assign_categories_to_article(
-        db=_SessaoComCorrida(db_session),
+        db=sessao_com_corrida,
         article_id=article_id,
         category_slugs_with_confidence=[(SLUG, 0.9)],
         auto_create=True,
+    )
+    assert sessao_com_corrida.interceptacoes == 1, (
+        "o SELECT do vínculo não foi interceptado: sem a janela da corrida este "
+        "teste deixaria de exercitar o caminho do conflito alvo e passaria verde "
+        f"sem provar nada (interceptações={sessao_com_corrida.interceptacoes})"
     )
 
     vinculos = (

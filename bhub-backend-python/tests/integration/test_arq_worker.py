@@ -34,11 +34,14 @@ pool são o 14.D):
    14.B**: o segundo job morria com ``IntegrityError``/``UniqueViolationError``
    na constraint ``uq_article_category``, por causa do check-then-act em
    ``app/services/classification_service.py``, protegido só pela constraint
-   única em ``app/models/article_category.py:36``. **Hoje PASSA**: o conserto é
-   o milestone 14.C, que envolve o INSERT em um savepoint
-   (``db.begin_nested()``) e trata o ``IntegrityError`` como "o vínculo já
-   existe" — o mesmo desfecho do ``continue`` do caminho sequencial. O teste
-   permanece como guarda de regressão da corrida.
+   única em ``app/models/article_category.py:36``. **Hoje PASSA**: o conserto
+   final é o hardening do 14.G (commit ``f48577a``), que declara o conflito ALVO
+   no próprio INSERT (``ON CONFLICT (article_id, category_id) DO NOTHING``) —
+   a corrida deixa de ser exceção e vira ``rowcount == 0``, o mesmo desfecho do
+   ``continue`` do caminho sequencial. (O milestone 14.C havia usado um savepoint
+   ``db.begin_nested()`` com ``except IntegrityError`` LARGO; ele saiu no 14.G
+   porque engolia qualquer violação, não só a duplicata — findings F4/F5 do
+   review.) O teste permanece como guarda de regressão da corrida.
 6. ``retry`` (14.D)  — o MECANISMO de retry do ARQ é validado contra Redis e
    worker REAIS, com função e ``WorkerSettings`` LOCAIS ao teste: o repo não tem
    job re-tentável (ver a seção 6).
@@ -81,7 +84,6 @@ from arq.constants import (
 from arq.jobs import Job, deserialize_job
 from arq.worker import Retry
 from sqlalchemy import delete, insert, select
-from sqlalchemy.dialects.postgresql import insert as postgresql_insert
 from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -90,7 +92,10 @@ from app.interfaces.task_queue import CLASSIFY_JOB_NAME, ArqTaskQueue
 from app.jobs.tasks import WorkerSettings
 from app.models import DEFAULT_CATEGORIES, Article, Category, article_categories
 from app.services import task_dispatcher
-from app.services.classification_service import ClassificationService
+from app.services.classification_service import (
+    _ON_CONFLICT_INSERT_BY_DIALECT,
+    ClassificationService,
+)
 from app.services.task_dispatcher import dispatch_classify_article
 from tests.integration.conftest import RunArqWorker
 
@@ -381,19 +386,20 @@ async def test_dois_dispatches_concorrentes_do_mesmo_artigo_nao_quebram_o_job(
 
     Os dois jobs ficam EM VOO no mesmo worker (``max_jobs=10``, o valor de
     produção) e disputam a mesma linha de ``article_categories``. O
-    ``assign_categories_to_article`` faz check-then-act (SELECT -> INSERT) sem
-    ``ON CONFLICT``, então a corrida termina em ``UniqueViolationError`` na
-    constraint ``uq_article_category`` para quem chega depois — uma exceção comum,
-    que o ARQ NÃO re-tenta (ele só re-tenta ``Retry``/``RetryJob``), logo o job
-    termina ``success=False`` e o trabalho se perde.
+    ``assign_categories_to_article`` faz check-then-act (SELECT -> INSERT): ANTES
+    do conserto, a corrida terminava em ``UniqueViolationError`` na constraint
+    ``uq_article_category`` para quem chega depois — uma exceção comum, que o ARQ
+    NÃO re-tenta (ele só re-tenta ``Retry``/``RetryJob``), logo o job terminava
+    ``success=False`` e o trabalho se perdia.
 
     Este teste FOI o RED do defeito de produção (capturado no milestone 14.B) e
-    hoje PASSA: o milestone 14.C envolveu o INSERT em um savepoint e passou a
-    tratar o ``IntegrityError`` do vínculo duplicado como "já existe" — o mesmo
-    desfecho do ``continue`` do caminho sequencial. Ele permanece como guarda de
-    regressão: um job duplicado que se perde assim é um vínculo de classificação
-    perdido em produção silenciosamente (o resultado fica 24 h no Redis como
-    único rastro).
+    hoje PASSA. O conserto final é o hardening do 14.G (commit ``f48577a``): o
+    INSERT declara o conflito ALVO (``ON CONFLICT (article_id, category_id) DO
+    NOTHING``) e o perdedor da corrida vira ``rowcount == 0``, sem exceção
+    nenhuma — o mesmo desfecho do ``continue`` do caminho sequencial. Ele
+    permanece como guarda de regressão: um job duplicado que se perde assim é um
+    vínculo de classificação perdido em produção silenciosamente (o resultado
+    fica 24 h no Redis como único rastro).
     """
     article = await _insert_article(arq_redis)
     article_id = article.id
@@ -701,9 +707,15 @@ async def test_on_conflict_absorve_a_colisao_alvo_e_nao_engole_a_fk(
     1. SEM ``ON CONFLICT``, a colisão ALVO é de fato uma ``UniqueViolationError``
        do asyncpg (SQLSTATE 23505) na constraint ``uq_article_category`` — dentro
        de um savepoint, para a transação sobreviver à medição;
-    2. COM o INSERT de PRODUÇÃO (``ON CONFLICT (article_id, category_id) DO
-       NOTHING``) a MESMA colisão não levanta nada e reporta ``rowcount == 0``;
-       é isso que torna a corrida recuperável SEM ``except`` nenhum;
+    2. COM o INSERT como a PRODUÇÃO o constrói (``ON CONFLICT (article_id,
+       category_id) DO NOTHING``, montado aqui através do MESMO registro de
+       dialeto importado do módulo de produção) a MESMA colisão não levanta nada
+       e reporta ``rowcount == 0``; é isso que torna a corrida recuperável SEM
+       ``except`` nenhum. O que ESTA medição fixa é a cláusula e o mapeamento de
+       dialeto da produção; quem fixa o CALL SITE de produção é o teste de
+       corrida — `test_corrida_do_vinculo_alvo_e_recuperada` (unitário, com a
+       janela do check-then-act) e o teste concorrente real (dois jobs no mesmo
+       worker);
     3. a violação de FK (``article_categories.article_id -> articles.id``), a
        outra alcançável em produção, NÃO é engolida: ela sobe do serviço como
        ``IntegrityError`` (SQLSTATE 23503) — exatamente o que o ``except`` largo
@@ -752,8 +764,10 @@ async def test_on_conflict_absorve_a_colisao_alvo_e_nao_engole_a_fk(
     )
     assert getattr(causa, "table_name", None) == "article_categories"
 
-    # (2) o INSERT de PRODUÇÃO absorve a MESMA colisão: nada sobe, rowcount 0.
-    producao = postgresql_insert(article_categories).values(
+    # (2) o INSERT como a PRODUÇÃO o constrói absorve a MESMA colisão: nada sobe,
+    # rowcount 0. Montado pelo MESMO registro de dialeto da produção (importado),
+    # para que mexer no mapeamento de dialeto do serviço quebre esta medição.
+    producao = _ON_CONFLICT_INSERT_BY_DIALECT["postgresql"](article_categories).values(
         article_id=article_id,
         category_id=category_id,
         confidence=0.9,
