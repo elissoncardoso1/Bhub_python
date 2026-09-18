@@ -376,7 +376,7 @@ async def test_reexecucao_sequencial_do_mesmo_artigo_nao_duplica_a_associacao(
     assert len(categories) == 1, "reexecução duplicou a categoria"
 
 
-# --- 5. idempotência CONCORRENTE (RED do 14.B; consertado no 14.C) ---------------
+# --- 5. idempotência CONCORRENTE (RED do 14.B; consertado no 14.C, estreitado no 14.G) ---
 
 
 async def test_dois_dispatches_concorrentes_do_mesmo_artigo_nao_quebram_o_job(
@@ -711,11 +711,13 @@ async def test_on_conflict_absorve_a_colisao_alvo_e_nao_engole_a_fk(
        category_id) DO NOTHING``, montado aqui através do MESMO registro de
        dialeto importado do módulo de produção) a MESMA colisão não levanta nada
        e reporta ``rowcount == 0``; é isso que torna a corrida recuperável SEM
-       ``except`` nenhum. O que ESTA medição fixa é a cláusula e o mapeamento de
-       dialeto da produção; quem fixa o CALL SITE de produção é o teste de
+       ``except`` nenhum. O que ESTA medição fixa é o MAPEAMENTO de dialeto e a
+       semântica da cláusula no driver (mutar o registro de produção quebra este
+       pin — medido); a CLÁUSULA no call site de produção é fixada pelos testes de
        corrida — `test_corrida_do_vinculo_alvo_e_recuperada` (unitário, com a
        janela do check-then-act) e o teste concorrente real (dois jobs no mesmo
-       worker);
+       worker), que FALHAM se `.on_conflict_do_nothing(...)` for removido do
+       serviço (medido);
     3. a violação de FK (``article_categories.article_id -> articles.id``), a
        outra alcançável em produção, NÃO é engolida: ela sobe do serviço como
        ``IntegrityError`` (SQLSTATE 23503) — exatamente o que o ``except`` largo

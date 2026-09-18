@@ -79,7 +79,8 @@ class _SessaoComCorrida:
         # ``_e_o_select_do_vinculo`` deixar de casar (mudança no statement, no
         # dialeto ou no nome da tabela), o SELECT real devolveria o vínculo,
         # o código cairia no ``continue`` sequencial e as asserções continuariam
-        # verdes sem exercitar o conflito nenhuma vez. O teste asserta > 0.
+        # verdes sem exercitar o conflito nenhuma vez. O teste asserta == 1
+        # (o wrapper intercepta no máximo uma vez e há uma categoria ⇒ um SELECT).
         self.interceptacoes = 0
 
     def __getattr__(self, name: str) -> Any:

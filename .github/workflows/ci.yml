@@ -239,15 +239,18 @@ jobs:
         run: pytest tests/ -v
 
       # Piso de cobertura BLOQUEANTE (Épico 3 / T3.4). Medição do HEAD atual
-      # (Task 14, c6855c2): 3755/6343 statements cobertos = 59,1992% (cru). O
-      # piso é 59,19 COM `--cov-precision=2`: o coverage decide por
-      # `round(total, precision) < fail_under` (coverage/results.py:503), então
-      # 3755 cobertos (59,1992% → 59,20) passa e 3754 (59,184% → 59,18) falha.
-      # (Era 3752/6338 no HEAD da Task 12; o fix de concorrência do 14.C somou 5
-      # statements, 2 deles não cobertos pelo run unitário.)
-      # Piso efetivo: >= 3755 statements cobertos (≈ 59,19%; o valor cru é
-      # 59,1992% — por isso "≈" e não "="), hoje com UM statement de folga (3754
-      # já reprova). Isto é,
+      # (Task 14, e013ea2): 3757/6343 statements cobertos = 59,2306% (cru) →
+      # 59,23 arredondado. O piso é 59,19 COM `--cov-precision=2`: o coverage
+      # decide por `round(total, precision) < fail_under`
+      # (coverage/results.py:503), então 3755 cobertos (59,1991% → 59,20) passa e
+      # 3754 (59,183% → 59,18) falha.
+      # (Era 3752/6338 no HEAD da Task 12. O fix de concorrência do 14.C somou 5
+      # statements, 2 deles não cobertos pelo run unitário; o hardening do 14.G
+      # removeu esse `except` largo e com ele os 2 não cobertos — a folga subiu de
+      # 1 para 2 statements.)
+      # Piso efetivo: >= 3755 statements cobertos (≈ 59,19%; o valor cru do MÍNIMO
+      # é 59,1991% — por isso "≈" e não "="), hoje com DOIS statements de folga: o
+      # medido é 3757, e 3754 já reprova. Isto é,
       # "nenhum statement coberto no baseline pode ser perdido" — contra os
       # 58,50% (3708 de 6338) que o antigo `--cov-fail-under=59` com a
       # precisão default 0 permitia no baseline da Task 12: 44 statements de
