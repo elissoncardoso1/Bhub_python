@@ -27,12 +27,15 @@ pool são o 14.D):
    duplica categoria nem associação.
 5. ``idempotência`` CONCORRENTE — dois despachos do MESMO artigo em voo no
    mesmo worker (``max_jobs=10``) não podem derrubar nenhum dos dois jobs nem
-   duplicar o vínculo artigo↔categoria. **Este teste está VERMELHO hoje**: o
-   segundo job morre com ``IntegrityError``/``UniqueViolationError`` na
-   constraint ``uq_article_category``. É o RED do defeito real de produção
-   (check-then-act em ``app/services/classification_service.py:234-257``, sem
-   ``ON CONFLICT``, protegido só pela constraint única em
-   ``app/models/article_category.py:36``); o conserto é o milestone 14.C.
+   duplicar o vínculo artigo↔categoria. **Este teste FOI o RED do milestone
+   14.B**: o segundo job morria com ``IntegrityError``/``UniqueViolationError``
+   na constraint ``uq_article_category``, por causa do check-then-act em
+   ``app/services/classification_service.py``, protegido só pela constraint
+   única em ``app/models/article_category.py:36``. **Hoje PASSA**: o conserto é
+   o milestone 14.C, que envolve o INSERT em um savepoint
+   (``db.begin_nested()``) e trata o ``IntegrityError`` como "o vínculo já
+   existe" — o mesmo desfecho do ``continue`` do caminho sequencial. O teste
+   permanece como guarda de regressão da corrida.
 6. ``retry`` (14.D)  — o MECANISMO de retry do ARQ é validado contra Redis e
    worker REAIS, com função e ``WorkerSettings`` LOCAIS ao teste: o repo não tem
    job re-tentável (ver a seção 6).
@@ -355,7 +358,7 @@ async def test_reexecucao_sequencial_do_mesmo_artigo_nao_duplica_a_associacao(
     assert len(categories) == 1, "reexecução duplicou a categoria"
 
 
-# --- 5. idempotência CONCORRENTE (RED do milestone 14.C) ------------------------
+# --- 5. idempotência CONCORRENTE (RED do 14.B; consertado no 14.C) ---------------
 
 
 async def test_dois_dispatches_concorrentes_do_mesmo_artigo_nao_quebram_o_job(
@@ -371,10 +374,13 @@ async def test_dois_dispatches_concorrentes_do_mesmo_artigo_nao_quebram_o_job(
     que o ARQ NÃO re-tenta (ele só re-tenta ``Retry``/``RetryJob``), logo o job
     termina ``success=False`` e o trabalho se perde.
 
-    Hoje este teste FALHA: é o RED do defeito de produção e a evidência do
-    milestone 14.C. Um job duplicado que se perde assim é um vínculo de
-    classificação perdido em produção silenciosamente (o resultado fica 24 h no
-    Redis como único rastro).
+    Este teste FOI o RED do defeito de produção (capturado no milestone 14.B) e
+    hoje PASSA: o milestone 14.C envolveu o INSERT em um savepoint e passou a
+    tratar o ``IntegrityError`` do vínculo duplicado como "já existe" — o mesmo
+    desfecho do ``continue`` do caminho sequencial. Ele permanece como guarda de
+    regressão: um job duplicado que se perde assim é um vínculo de classificação
+    perdido em produção silenciosamente (o resultado fica 24 h no Redis como
+    único rastro).
     """
     article = await _insert_article(arq_redis)
     article_id = article.id
