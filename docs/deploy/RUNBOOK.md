@@ -346,6 +346,38 @@ docker-compose up -d --build
 curl http://localhost:8000/health
 ```
 
+### Banco que já existe e não tem `alembic_version`
+
+Um banco cujo schema foi criado pelo próprio app (`Base.metadata.create_all`) — o
+caminho que a produção percorreu até aqui — tem as tabelas mas **nenhuma** linha em
+`alembic_version`. Nesse banco o passo 4 acima falha **silenciosamente**:
+`scripts/vps/deploy.sh` e `scripts/vps/update.sh` convertem o rc≠0 do alembic em
+`warning` e o deploy segue, então um remédio errado parece aplicado enquanto o banco
+continua sem `alembic_version`.
+
+Procedimento medido contra PostgreSQL real (2026-09-17) — **uma vez**, antes do próximo
+deploy:
+
+```bash
+# 1. Confirmar que o schema existente corresponde ao head esperado.
+docker-compose run --rm backend alembic current    # esperado: vazio
+
+# 2. Marcar o banco como já migrado até o head.
+docker-compose run --rm backend alembic stamp head
+
+# 3. Confirmar: o current responde o head e o upgrade vira no-op (rc=0).
+docker-compose run --rm backend alembic current
+docker-compose run --rm backend alembic upgrade head
+```
+
+`alembic stamp 000_baseline` **não** resolve, e é importante não confundir os dois:
+esse banco já contém as tabelas de 001-009, então o `upgrade head` seguinte tenta
+recriá-las e falha com `DuplicateTableError: relation "translations_cache" already
+exists`, deixando `alembic_version` travado em `000_baseline`. A ordem de aplicação
+importa: só marque `head` **depois** de confirmar que o schema existente corresponde ao
+head esperado (o schema de `create_all` carrega drift conhecido em relação à cadeia de
+migrações).
+
 ### Limpeza de Dados
 
 ```bash
