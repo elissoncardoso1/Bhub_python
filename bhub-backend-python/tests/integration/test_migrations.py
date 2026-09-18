@@ -50,6 +50,25 @@ def _run_alembic_upgrade(postgres_url: str) -> subprocess.CompletedProcess[str]:
     )
 
 
+def _run_alembic_downgrade_base(postgres_url: str) -> subprocess.CompletedProcess[str]:
+    """Roda ``alembic downgrade base`` no subprocesso, como um rollback de deploy.
+
+    Mesmo tratamento de ambiente do upgrade: a execução depende só de
+    ``DATABASE_URL``, então ``DEBUG``/``ENVIRONMENT`` são removidas antes.
+    """
+    env = {**os.environ, "DATABASE_URL": postgres_url}
+    env.pop("DEBUG", None)
+    env.pop("ENVIRONMENT", None)
+    return subprocess.run(
+        [sys.executable, "-m", "alembic", "downgrade", "base"],
+        cwd=BACKEND_DIR,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=ALEMBIC_TIMEOUT_SECONDS,
+    )
+
+
 @pytest.fixture(scope="session")
 def migrated_database(postgres_url: str) -> str:
     """Aplica a cadeia inteira no banco vazio uma única vez por sessão."""
@@ -153,6 +172,28 @@ async def test_upgrade_head_is_idempotent(migrated_database: str) -> None:
     assert result.returncode == 0, (
         f"segundo 'alembic upgrade head' falhou (rc={result.returncode})\n"
         f"--- stdout ---\n{result.stdout}\n--- stderr ---\n{result.stderr}"
+    )
+
+
+def test_downgrade_base_then_upgrade_head_rebuilds_the_chain(migrated_database: str) -> None:
+    """A cadeia inteira pode ser derrubada e reconstruída do zero.
+
+    ``alembic downgrade base`` tem que voltar ao mesmo estado do banco vazio (nenhum
+    objeto da aplicação sobrando) e o ``upgrade head`` seguinte tem que subir de novo
+    com rc=0. Um downgrade incompleto — por exemplo, um ``op.drop_table`` que não
+    remove a enumeração criada junto — deixa lixo no catálogo e faz o upgrade
+    seguinte falhar com "type ... already exists".
+    """
+    downgrade = _run_alembic_downgrade_base(migrated_database)
+    assert downgrade.returncode == 0, (
+        f"'alembic downgrade base' falhou (rc={downgrade.returncode})\n"
+        f"--- stdout ---\n{downgrade.stdout}\n--- stderr ---\n{downgrade.stderr}"
+    )
+
+    upgrade = _run_alembic_upgrade(migrated_database)
+    assert upgrade.returncode == 0, (
+        f"'alembic upgrade head' depois do downgrade base falhou (rc={upgrade.returncode})\n"
+        f"--- stdout ---\n{upgrade.stdout}\n--- stderr ---\n{upgrade.stderr}"
     )
 
 
