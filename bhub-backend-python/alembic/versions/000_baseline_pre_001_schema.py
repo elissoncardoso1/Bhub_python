@@ -379,3 +379,6 @@ def downgrade() -> None:
     op.execute("DROP TYPE IF EXISTS bannerposition")
     op.execute("DROP TYPE IF EXISTS processingstatus")
     op.execute("DROP TYPE IF EXISTS userrole")
+    op.execute("DROP TYPE IF EXISTS messagestatus")
+    op.execute("DROP TYPE IF EXISTS feedtype")
+    op.execute("DROP TYPE IF EXISTS syncfrequency")
