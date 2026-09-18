@@ -16,16 +16,20 @@ imagem do Docker Hub em silêncio e faria a suíte depender de internet externa.
 
 from __future__ import annotations
 
+import asyncio
 import os
 import subprocess
 import sys
 import time
 import uuid
-from collections.abc import AsyncGenerator, Iterator
+from collections.abc import AsyncGenerator, Awaitable, Callable, Iterator
 from pathlib import Path
+from typing import Any
 
 import pytest
 import pytest_asyncio
+from arq.connections import ArqRedis, RedisSettings
+from arq.worker import Worker
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -33,6 +37,10 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 from sqlalchemy.pool import NullPool
+
+from app.config import settings
+from app.jobs.tasks import WorkerSettings
+from app.services import task_dispatcher
 
 POSTGRES_IMAGE = "postgres:16-alpine"
 REDIS_IMAGE = "redis:7-alpine"
@@ -307,3 +315,135 @@ async def pg_session(pg_engine: AsyncEngine) -> AsyncGenerator[AsyncSession, Non
     factory = async_sessionmaker(pg_engine, class_=AsyncSession, expire_on_commit=False)
     async with factory() as session:
         yield session
+
+
+# --- Worker ARQ real (Task 14) -----------------------------------------------
+#
+# O worker que estes fixtures montam é o de PRODUÇÃO: mesmas ``functions``,
+# mesmos hooks (``on_startup``/``on_job_start``/``on_job_end``/``on_shutdown``) e
+# os mesmos limites (``max_jobs``/``job_timeout``/``max_tries``/``retry_jobs``/
+# ``keep_result``) de ``app/jobs/tasks.py::WorkerSettings``. Nada do ARQ é
+# simulado; o que muda são só duas costuras de ambiente, ambas necessárias
+# porque o alvo é um Redis e um PostgreSQL que só existem DEPOIS que a fixture
+# sobe o container:
+#
+# 1. ``redis_settings`` explícito, apontando para o container do fixture
+#    ``redis_url``. ``WorkerSettings.redis_settings`` é calculado no IMPORT do
+#    módulo (``app/jobs/tasks.py:19``), antes de qualquer fixture existir, logo
+#    ele carrega o ``REDIS_URL`` do ambiente de quem roda a suíte.
+# 2. ``ctx["session_factory"]`` apontando para o banco migrado. O startup de
+#    produção instala ``app.database.async_session_maker``, criado no import a
+#    partir de ``settings.database_url`` (o banco local do desenvolvedor), então
+#    o job escreveria fora do banco da suíte. A injeção usa o mesmo seam que o
+#    contrato dos jobs já expõe (``ctx["pdf_service"]``, T2.2) e a sessão
+#    continua sendo um PostgreSQL real.
+#
+# O ``asyncio.wait_for`` com limite é um FAIL explícito, nunca ``skip``: um
+# fixture de integração que se cala quando o worker não termina esconderia uma
+# fila travada.
+
+ARQ_BURST_TIMEOUT_SECONDS = 240.0
+
+#: Assinatura do callable devolvido pelo fixture ``run_arq_worker``: recebe
+#: ``functions`` (para um WorkerSettings local ao teste) e ``timeout``, devolve o
+#: ``Worker`` já parado com as estatísticas reais.
+RunArqWorker = Callable[..., Awaitable[Worker]]
+
+
+@pytest_asyncio.fixture
+async def arq_pool(
+    redis_url: str, monkeypatch: pytest.MonkeyPatch
+) -> AsyncGenerator[ArqRedis, None]:
+    """Liga o dispatcher ao Redis real e devolve o pool ARQ já inicializado.
+
+    ``settings.enable_arq`` é ``False`` por default (``app/config.py:63``) e,
+    nesse estado, ``get_task_queue()`` devolve ``InlineTaskQueue``
+    SILENCIOSAMENTE (``app/services/task_dispatcher.py:73-79``): o Redis fica
+    vazio e o código exercitado passa a ser outro (``background_tasks.
+    classify_article_task`` em vez de ``ClassificationService.classify_article``)
+    — um teste que esquece esta flag fica verde provando nada sobre produção.
+    A flag é ligada aqui, junto do ``REDIS_URL`` do container, e os globais
+    ``task_dispatcher._arq_pool`` / ``_inline_queue`` são zerados antes e depois
+    para que o estado do processo não vaze entre testes (cada teste tem o seu
+    event loop e um pool criado em outro loop quebra).
+    """
+    monkeypatch.setattr(settings, "enable_arq", True)
+    monkeypatch.setattr(settings, "redis_url", redis_url)
+    task_dispatcher._arq_pool = None
+    task_dispatcher._inline_queue = None
+
+    pool = await task_dispatcher.get_arq_pool()
+    assert isinstance(pool, ArqRedis), (
+        f"get_arq_pool() deveria devolver um pool ARQ real, devolveu {type(pool)!r}"
+    )
+    try:
+        yield pool
+    finally:
+        # ``close_arq_pool`` zera o global e fecha as conexões no MESMO loop que
+        # as criou; o monkeypatch das settings é restaurado depois, pelo pytest.
+        await task_dispatcher.close_arq_pool()
+        task_dispatcher._arq_pool = None
+        task_dispatcher._inline_queue = None
+
+
+@pytest_asyncio.fixture
+async def run_arq_worker(
+    arq_pool: ArqRedis, pg_engine: AsyncEngine, redis_url: str
+) -> AsyncGenerator[RunArqWorker, None]:
+    """Devolve um callable que roda um worker ARQ REAL em modo ``burst``.
+
+    ``burst=True`` é o modo que o próprio ARQ documenta para teste
+    (``arq/worker.py::async_run`` — *"Useful when testing"*): o worker processa
+    a fila até esvaziá-la e RETORNA, em vez de dormir num laço infinito. A
+    sincronização vem de esvaziar a fila (``zcard(queue) == 0`` + ``gather`` das
+    tarefas em andamento), não de ``sleep`` arbitrário.
+
+    O worker é criado DENTRO do event loop do teste (o ``Worker`` captura o loop
+    em ``__init__``) e é função-escopado: o custo caro do startup — o MiniLM
+    carregado em ``WorkerSettings.on_startup`` — é pago uma ÚNICA vez por sessão,
+    porque ``EmbeddingClassifier.initialize()`` é idempotente e guarda o modelo no
+    estado da classe (``app/ml/embedding_classifier.py:32``).
+
+    O callable devolve o ``Worker`` parado, com as estatísticas reais
+    (``jobs_complete``/``jobs_failed``/``jobs_retried``) para as asserções.
+    """
+
+    async def _run(
+        *,
+        functions: list[Any] | None = None,
+        timeout: float = ARQ_BURST_TIMEOUT_SECONDS,
+    ) -> Worker:
+        session_factory = async_sessionmaker(pg_engine, class_=AsyncSession, expire_on_commit=False)
+
+        async def _on_startup(ctx: dict[str, Any]) -> None:
+            # Wiring de produção primeiro (MiniLM + sessão) e só então o banco
+            # migrado do container, que não existia no import.
+            await WorkerSettings.on_startup(ctx)
+            ctx["session_factory"] = session_factory
+
+        worker = Worker(
+            functions=WorkerSettings.functions if functions is None else functions,
+            redis_settings=RedisSettings.from_dsn(redis_url),
+            burst=True,
+            on_startup=_on_startup,
+            on_shutdown=WorkerSettings.on_shutdown,
+            on_job_start=WorkerSettings.on_job_start,
+            on_job_end=WorkerSettings.on_job_end,
+            handle_signals=False,  # não sequestra os sinais do pytest
+            max_jobs=WorkerSettings.max_jobs,
+            job_timeout=WorkerSettings.job_timeout,
+            max_tries=WorkerSettings.max_tries,
+            retry_jobs=WorkerSettings.retry_jobs,
+            keep_result=WorkerSettings.keep_result,
+            health_check_interval=WorkerSettings.health_check_interval,
+        )
+        try:
+            await asyncio.wait_for(worker.async_run(), timeout)
+        except TimeoutError:
+            pytest.fail(
+                f"o worker ARQ real não esvaziou a fila em {timeout:.0f}s "
+                f"(jobs_complete={worker.jobs_complete} jobs_failed={worker.jobs_failed})"
+            )
+        return worker
+
+    yield _run
