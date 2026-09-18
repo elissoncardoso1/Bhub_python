@@ -348,35 +348,150 @@ curl http://localhost:8000/health
 
 ### Banco que já existe e não tem `alembic_version`
 
-Um banco cujo schema foi criado pelo próprio app (`Base.metadata.create_all`) — o
-caminho que a produção percorreu até aqui — tem as tabelas mas **nenhuma** linha em
-`alembic_version`. Nesse banco o passo 4 acima falha **silenciosamente**:
-`scripts/vps/deploy.sh` e `scripts/vps/update.sh` convertem o rc≠0 do alembic em
-`warning` e o deploy segue, então um remédio errado parece aplicado enquanto o banco
-continua sem `alembic_version`.
+Um banco cujo schema foi criado pelo próprio app (`Base.metadata.create_all`, via
+`init_db()`) — o caminho que a produção percorreu até aqui — tem as tabelas mas **nenhuma**
+linha em `alembic_version`. Nesse banco o passo 4 de
+[Atualização de Código](#atualização-de-código) falha de duas formas diferentes, e as duas
+levam à mesma crença:
+
+- **rodado à mão**, o `alembic upgrade head` falha **ruidosamente**: rc≠0 e traceback de
+  `DuplicateTableError`/`DuplicateColumnError`;
+- **pelos scripts de deploy**, a falha é **engolida**: `scripts/vps/deploy.sh:129-133` e
+  `scripts/vps/update.sh:76-80` convertem o rc≠0 do alembic em `warning` (o `update.sh`
+  ainda manda o stderr para `/dev/null`) e o deploy segue.
+
+Por isso este procedimento existe. E por isso ele mesmo tem de provar o alvo: um
+`stamp head` no banco errado parece aplicado enquanto o banco de produção continua sem
+`alembic_version` — ou pior, ganha uma linha de versão sem ter as tabelas.
+
+**0. Fixe o alvo antes de rodar.** O caminho real de deploy é `bhub-backend-python/` na VPS
+`/var/www/bhub/backend/` (é para lá que `upload-to-vps.sh:76` sobe a pasta) e o compose é o
+**de dentro** desse diretório, `docker-compose.prod.yml` — o único com PostgreSQL. O
+`docker-compose.prod.yml` da **raiz** do repositório fixa
+`DATABASE_URL=sqlite+aiosqlite:///./bhub.db` (`:31`), então rodar o procedimento de lá
+carimba um arquivo SQLite. Rode sempre de dentro de `bhub-backend-python/` (VPS:
+`/var/www/bhub/backend/`) e com `-f docker-compose.prod.yml` explícito — o passo 4 daquela
+seção depende do diretório atual.
+
+A `DATABASE_URL` efetiva **não é determinável pelo repositório**: `alembic/env.py:40`
+sobrescreve o `sqlalchemy.url` do `alembic.ini` com `settings.database_url`, que vem da
+variável de ambiente `DATABASE_URL` do container; quem decide é o `.env` da VPS, que não é
+versionado (`upload-to-vps.sh:67` o exclui do rsync). E todo `DATABASE_URL` que o
+repositório escreve é SQLite (`config/env.production.template:29`,
+`scripts/vps/deploy.sh:96`), enquanto o default do compose — quando a variável está ausente
+— é o Postgres `postgresql+asyncpg://bhub:bhub@db:5432/bhub` (`docker-compose.prod.yml:32`).
+Não presuma: **leia a URL que o container está usando** no passo 1a.
+
+**O `alembic current` vazio não prova nada.** Medido em PostgreSQL 16: ele imprime o mesmo
+(nada) num banco com as tabelas de `create_all`, num banco divergente e num banco **vazio**.
+Num banco vazio o procedimento inteiro "passa" — `stamp head` rc=0, `current` respondendo
+`009_feed_http_cache (head)`, `upgrade head` rc=0 — e o banco termina com **zero** tabelas
+da aplicação (`alembic_version` é a única tabela que existe). É exatamente a crença que
+esta seção existe para evitar, produzida com todos os sinais de sucesso que ela prescreve.
 
 Procedimento medido contra PostgreSQL real (2026-09-17) — **uma vez**, antes do próximo
 deploy:
 
 ```bash
-# 1. Confirmar que o schema existente corresponde ao head esperado.
-docker-compose run --rm backend alembic current    # esperado: vazio
+# 0. Do diretório do backend, com o compose de produção explícito.
+cd /var/www/bhub/backend        # no repositório: bhub-backend-python/
+C="docker-compose -f docker-compose.prod.yml"
 
-# 2. Marcar o banco como já migrado até o head.
-docker-compose run --rm backend alembic stamp head
+# 1a. PROVAR O ALVO: qual banco o container usa, e ele tem as tabelas da aplicação?
+$C run --rm backend python -c "
+import asyncio
+
+from sqlalchemy import inspect
+from sqlalchemy.ext.asyncio import create_async_engine
+
+from app.config import settings
+
+
+async def main():
+    url = settings.database_url
+    print('DRIVER:', url.split('+')[0].split(':')[0], '| ALVO:', url.split('@')[-1])
+    engine = create_async_engine(url)
+    async with engine.connect() as conn:
+        names = await conn.run_sync(lambda c: inspect(c).get_table_names())
+    await engine.dispose()
+    app_tables = [n for n in names if n != 'alembic_version']
+    print('TABELAS DA APLICACAO:', len(app_tables))
+    for name in app_tables:
+        print('  -', name)
+
+
+asyncio.run(main())
+"
+# esperado: DRIVER: postgresql | ALVO: db:5432/bhub  e  TABELAS DA APLICACAO: 16
+# 0 tabelas, DRIVER: sqlite, ou host/banco que não é o de produção => PARE AQUI,
+# corrija o alvo (o .env e o -f do compose) e não carimbe nada.
+
+# 1b. Só o 1a não basta: o schema existente corresponde ao head esperado?
+$C run --rm backend alembic current    # esperado: vazio — mas isso só diz que falta a
+                                       # tabela de versão, não valida o schema
+```
+
+As 16 tabelas da aplicação no head (medidas em PostgreSQL 16) — a mesma lista que o
+`create_all` cria:
+
+`analytics_events`, `analytics_metrics`, `analytics_sessions`, `article_authors`,
+`article_categories`, `articles`, `authors`, `banners`, `categories`, `contact_messages`,
+`feeds`, `pdf_metadata`, `refresh_tokens`, `scheduler_locks`, `translations_cache`, `users`.
+
+O `current` vazio **não** é a verificação do schema. O schema de `create_all` carrega drift
+**conhecido e medido** em relação à cadeia de migrações — em PostgreSQL 16 divergem **34
+definições de coluna** e **6 objetos de índice** que existem em apenas um dos lados (mais 3
+índices que existem nos dois com unicidade diferente), em 8 tabelas:
+
+- `articles.is_open_access`, `article_categories.auto_created`, `article_categories.is_primary`
+- `analytics_events`: `created_at`, `event_type`, `timestamp`, `updated_at`
+- `analytics_metrics`: `article_downloads`, `article_views`, `created_at`, `searches`,
+  `total_page_views`, `total_sessions`, `total_visitors`, `unique_visitors`, `updated_at`
+- `analytics_sessions`: `created_at`, `events_count`, `last_activity`, `page_views`,
+  `started_at`, `status`, `updated_at`
+- `refresh_tokens`: `created_at`, `updated_at`
+- `scheduler_locks`: `acquired_at`, `created_at`, `last_heartbeat`, `updated_at`
+- `translations_cache`: `id`, `last_accessed_at`, `model`, `created_at`, `updated_at`
+- índices só no head: `analytics_sessions_session_id_key`, `refresh_tokens_token_id_key`,
+  `scheduler_locks_lock_name_key`, `translations_cache_content_hash_key`
+- índices só no `create_all`: `ix_translations_cache_content_hash`,
+  `ix_translations_cache_last_accessed_at`
+- unicidade divergente nos dois lados: `ix_analytics_sessions_session_id`,
+  `ix_refresh_tokens_token_id`, `ix_scheduler_locks_lock_name`
+
+`stamp head` aceita tudo isso sem reclamar, então o passo 1b precisa ser fechado de uma das
+duas formas — não há terceira:
+
+- **verificação mínima executável:** num banco **descartável e vazio**, rode
+  `alembic upgrade head` (`DATABASE_URL` apontando para ele) e compare o catálogo do banco
+  descartável com o do banco existente — tabelas, colunas (`information_schema.columns`) e
+  índices (`pg_indexes`). A diferença tem de ser exatamente a lista acima; qualquer item a
+  mais é drift não inventariado, e aí o `stamp` ainda não é seguro;
+- **ou aceite explícito, por escrito**, nomeando os itens acima (as 34 definições de coluna e
+  os 6 índices) como aceitáveis no banco de produção.
+
+Não use `alembic check` como aceite: medido, ele falha (rc=255, `New upgrade operations
+detected`) mesmo num banco legitimamente no head.
+
+```bash
+# 2. Marcar o banco como já migrado até o head — só DEPOIS do 1a (16 tabelas) e do 1b
+#    (drift verificado ou aceito por escrito).
+$C run --rm backend alembic stamp head
 
 # 3. Confirmar: o current responde o head e o upgrade vira no-op (rc=0).
-docker-compose run --rm backend alembic current
-docker-compose run --rm backend alembic upgrade head
+$C run --rm backend alembic current
+$C run --rm backend alembic upgrade head
+# Isto confirma a VERSÃO, não o schema nem o alvo: as duas linhas também passam num banco
+# vazio com uma linha em alembic_version (o passo 1a é a única prova do alvo).
 ```
 
 `alembic stamp 000_baseline` **não** resolve, e é importante não confundir os dois:
 esse banco já contém as tabelas de 001-009, então o `upgrade head` seguinte tenta
 recriá-las e falha com `DuplicateTableError: relation "translations_cache" already
 exists`, deixando `alembic_version` travado em `000_baseline`. A ordem de aplicação
-importa: só marque `head` **depois** de confirmar que o schema existente corresponde ao
-head esperado (o schema de `create_all` carrega drift conhecido em relação à cadeia de
-migrações).
+importa: só marque `head` **depois** do passo 1a (o banco é o alvo certo e tem as tabelas) e
+do passo 1b (o drift de `create_all` em relação à cadeia de migrações foi verificado ou
+aceito por escrito, item por item).
 
 ### Limpeza de Dados
 
