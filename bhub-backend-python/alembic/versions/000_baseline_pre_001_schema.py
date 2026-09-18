@@ -22,12 +22,21 @@ Também fora: ``articles.search_vector`` (-> 008) e ``idx_articles_title_trgm``,
 usa a operator class ``gin_trgm_ops`` — a extensão ``pg_trgm`` só é criada na 008,
 logo criar esse índice aqui falharia.
 
-NOTA DE OPERAÇÃO: um banco que já existe e cujo schema foi criado por
+NOTA DE OPERAÇÃO (para um banco que JÁ existe): um banco cujo schema foi criado por
 ``Base.metadata.create_all`` (o caminho que a produção percorre hoje, porque
 ``scripts/vps/deploy.sh`` engole o erro do alembic) tem as tabelas mas NÃO tem
-``alembic_version``. Ele precisa de ``alembic stamp 000_baseline`` antes do próximo
-``alembic upgrade head``; sem isso a 001 falha com
-``DuplicateTableError: relation "translations_cache" already exists``.
+``alembic_version``. O remédio NÃO é ``alembic stamp 000_baseline``: esse banco já
+contém as tabelas de 001-009, então o ``upgrade head`` seguinte tenta recriá-las e
+falha na 001 com ``DuplicateTableError: relation "translations_cache" already exists``,
+deixando ``alembic_version`` travado em ``000_baseline``. Sem stamp algum o
+``upgrade head`` falha antes, aqui dentro desta baseline, com
+``DuplicateTableError: relation "authors" already exists``. O comando correto é
+``alembic stamp head`` seguido de ``alembic upgrade head``, e ele só deve ser aplicado
+DEPOIS de verificar que o schema existente corresponde de fato ao head esperado — o
+schema de ``create_all`` carrega drift conhecido em relação à cadeia. Nas duas
+variantes erradas acima o erro é SILENCIOSO em produção: ``deploy.sh`` e ``update.sh``
+convertem o rc≠0 em ``warning`` e o deploy segue, então um remédio errado parece
+aplicado enquanto o banco continua sem ``alembic_version``.
 """
 
 from typing import Sequence, Union

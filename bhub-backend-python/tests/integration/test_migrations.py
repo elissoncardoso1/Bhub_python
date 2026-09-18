@@ -176,13 +176,16 @@ async def test_upgrade_head_is_idempotent(migrated_database: str) -> None:
 
 
 def test_downgrade_base_then_upgrade_head_rebuilds_the_chain(migrated_database: str) -> None:
-    """A cadeia inteira pode ser derrubada e reconstruída do zero.
+    """Prova que os dois comandos fecham rc=0 — não prova o estado do catálogo.
 
-    ``alembic downgrade base`` tem que voltar ao mesmo estado do banco vazio (nenhum
-    objeto da aplicação sobrando) e o ``upgrade head`` seguinte tem que subir de novo
-    com rc=0. Um downgrade incompleto — por exemplo, um ``op.drop_table`` que não
-    remove a enumeração criada junto — deixa lixo no catálogo e faz o upgrade
-    seguinte falhar com "type ... already exists".
+    O que é ASSERTADO aqui é só o código de saída de ``alembic downgrade base`` e do
+    ``upgrade head`` seguinte. O teste NÃO inspeciona o catálogo depois do downgrade,
+    então não prova que nada da aplicação sobrou: a extensão ``pg_trgm`` sobrevive de
+    propósito (a 008 a cria e o downgrade dela não a derruba) e o upgrade seguinte fica
+    verde em parte porque a 008 a recria com ``CREATE EXTENSION IF NOT EXISTS``. Um
+    leftover que quebrasse a reconstrução — uma enumeração que o downgrade não remove,
+    por exemplo, com "type ... already exists" — continuaria sendo pego por efeito
+    (foi o RED que originou o teste), mas por efeito, não por asserção de catálogo.
     """
     downgrade = _run_alembic_downgrade_base(migrated_database)
     assert downgrade.returncode == 0, (
