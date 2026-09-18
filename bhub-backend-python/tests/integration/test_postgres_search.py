@@ -53,6 +53,12 @@ EN_EXTERNAL_ID = f"{CONTROLLED_PREFIX}en-mt"
 EN_TITLE = "Machine translation for low resource languages"
 EN_ABSTRACT = "A deep learning approach to machine translation without parallel corpora."
 EN_QUERY = "machine translation"
+# Termo que SÓ casa pelo ``to_tsvector('english', …)`` que o trigger da 008 soma
+# ao português: o stemmer português guarda "learning" e não produz o lexema
+# ``learn`` (medido no PostgreSQL real). ``EN_QUERY`` sozinho casa também pela
+# vectorização só-portuguesa, então é este termo que prende o ingrediente
+# bilíngue (Task 13.E, achado F2 da revisão independente).
+EN_ENGLISH_VECTOR_ONLY_TERM = "learn"
 
 UNPUBLISHED_EXTERNAL_ID = f"{CONTROLLED_PREFIX}unpublished"
 UNPUBLISHED_TITLE = "Cerrado: revisão sistemática ainda não publicada"
@@ -79,10 +85,18 @@ RANK_WEAK_DATE = datetime(2026, 1, 1, tzinfo=UTC)
 #
 # Um título é EXATAMENTE o fragmento (``similarity`` = 1.0); o outro o contém
 # dentro de uma frase longa (similaridade baixa). A ordem esperada vem daí.
+#
+# O título MENOS similar começa com "A" de propósito (Task 13.E, achado F1 da
+# revisão independente): sem ``ORDER BY`` o ``SELECT DISTINCT`` do PostgreSQL já
+# devolve as linhas ordenadas por título — o plano é ``Unique -> Sort`` com
+# ``Sort Key: title`` —, então a ordem alfabética destes dois títulos
+# ["Acompanhamento…", "Cerrado"] é o CONTRÁRIO da ordem por similaridade. Se o
+# ``ORDER BY similarity(...) DESC`` do serviço sumir, a asserção de ordem falha
+# em vez de passar por coincidência com a ordem alfabética.
 SIMILAR_EXACT_EXTERNAL_ID = f"{CONTROLLED_PREFIX}similar-exact"
 SIMILAR_EXACT_TITLE = "Cerrado"
 SIMILAR_LONG_EXTERNAL_ID = f"{CONTROLLED_PREFIX}similar-long"
-SIMILAR_LONG_TITLE = "Monitoramento do cerrado por satélite"
+SIMILAR_LONG_TITLE = "Acompanhamento do cerrado por satélite"
 SIMILAR_QUERY = "cerrado"
 
 
@@ -134,7 +148,7 @@ async def article_session(pg_session: AsyncSession) -> AsyncGenerator[AsyncSessi
     try:
         await pg_session.rollback()
         await _purge_controlled_articles(pg_session)
-    except Exception as exc:  # pragma: no cover - caminho só de teardown falho
+    except Exception as exc:  # só alcançável quando o teardown falha; tests/ fora do --cov=app
         print(f"AVISO: limpeza pós-teste falhou: {exc!r}")
 
 
@@ -244,10 +258,20 @@ async def test_portuguese_query_returns_the_controlled_article(
 async def test_english_query_returns_the_controlled_article(
     canonical_articles: AsyncSession,
 ) -> None:
-    results = await SearchService(canonical_articles).search(EN_QUERY)
+    service = SearchService(canonical_articles)
+
+    results = await service.search(EN_QUERY)
 
     assert [article.title for article in results] == [EN_TITLE]
     assert results[0].language == "en"
+
+    # O ingrediente, não só o resultado: este termo NÃO existe no vetor
+    # só-português desta fixture (o português guarda ``learning``, não ``learn``),
+    # então ele só casa porque o trigger da 008 grava a vectorização ``english``
+    # junto da portuguesa. Apagar os dois ``to_tsvector('english', …)`` do trigger
+    # faz esta busca devolver vazio.
+    english_only = await service.search(EN_ENGLISH_VECTOR_ONLY_TERM)
+    assert [article.title for article in english_only] == [EN_TITLE]
 
 
 # --- 3. Ranking -----------------------------------------------------------------
