@@ -245,14 +245,19 @@ class SearchService:
         pattern = f"%{query}%"
 
         if self._is_postgres():
+            # O ORDER BY precisa reaparecer na select list por causa do DISTINCT
+            # (PostgreSQL: "for SELECT DISTINCT, ORDER BY expressions must appear
+            # in select list"). A similaridade é função determinística do título,
+            # então o DISTINCT das duplas continua deduplicando os títulos.
+            similarity = func.similarity(Article.title, query).label("similarity_score")
             result = await self.db.execute(
-                select(Article.title)
+                select(Article.title, similarity)
                 .where(
                     Article.is_published,
                     Article.title.ilike(pattern),
                 )
                 .distinct()
-                .order_by(func.similarity(Article.title, query).desc())
+                .order_by(similarity.desc())
                 .limit(limit)
             )
             return [row[0] for row in result.fetchall()]
