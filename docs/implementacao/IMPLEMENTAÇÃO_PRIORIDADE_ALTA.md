@@ -1,5 +1,12 @@
 # ✅ Implementação Prioridade ALTA - Concluída
 
+> STATUS: HISTÓRICO
+> Este documento não representa necessariamente a arquitetura atual.
+> Consulte docs/architecture/CURRENT_ARCHITECTURE.md.
+>
+> Relatório de implementação de 27/jan/2025 (fase da paleta teal/verde-água). É um registro do
+> que foi feito naquela fase, não uma descrição do presente nem uma lista de pendências.
+
 **Data:** 2025-01-27  
 **Status:** ✅ Concluída
 

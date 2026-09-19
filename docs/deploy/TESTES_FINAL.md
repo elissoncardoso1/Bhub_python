@@ -1,5 +1,13 @@
 # Resultado Final dos Testes - BHUB
 
+> STATUS: HISTÓRICO
+> Este documento não representa necessariamente a arquitetura atual.
+> Consulte docs/architecture/CURRENT_ARCHITECTURE.md.
+>
+> Snapshot de testes de janeiro de 2025 ("24/24 testes passando") de outra era do projeto. Não
+> descreve a suíte atual: hoje são 258 testes unitários + 48 de integração, com piso de cobertura
+> no CI — ver `docs/quality/BASELINE.md` e `docs/architecture/CURRENT_ARCHITECTURE.md` § 10.
+
 **Data**: Janeiro 2025  
 **Status**: ✅ **24/24 testes passando**
 

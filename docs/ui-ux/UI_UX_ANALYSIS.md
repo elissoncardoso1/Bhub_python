@@ -1,5 +1,13 @@
 # Análise UI/UX do Frontend BHUB
 
+> STATUS: HISTÓRICO
+> Este documento não representa necessariamente a arquitetura atual.
+> Consulte docs/architecture/CURRENT_ARCHITECTURE.md.
+>
+> Análise de jan/2025 que declara a paleta **teal/verde-água** como oficial (`#10908d` e
+> derivados); essa identidade foi substituída pela v3 (borgonha/sage). A fonte da verdade dos
+> tokens é o código: `app/static/css/design-tokens.css` + `docs/ui-ux/PALETA_CORES.md`.
+
 ## 🎨 Paleta de Cores Oficial
 
 A paleta de cores do BHUB é baseada em tons de **teal/verde-água**, criando uma identidade visual moderna e profissional adequada para uma plataforma científica:

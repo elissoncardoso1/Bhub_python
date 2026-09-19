@@ -1,5 +1,14 @@
 # ✅ Checklist de Implementação UI/UX
 
+> STATUS: HISTÓRICO
+> Este documento não representa necessariamente a arquitetura atual.
+> Consulte docs/architecture/CURRENT_ARCHITECTURE.md.
+>
+> Checklist do plano de UI/UX de jan/2025 (fases "Semanas 1-2" etc.), escrito sobre a paleta
+> teal/verde-água daquela fase. Os itens desmarcados **não** são backlog aberto — o trabalho
+> declarado está em `docs/architecture/ROADMAP.md` e a identidade atual é a v3
+> (`docs/ui-ux/PALETA_CORES.md`).
+
 ## 🔴 FASE 1: FUNDAÇÃO CRÍTICA (Semanas 1-2)
 
 ### 1.1. Unificar Design System e Implementar Paleta Oficial

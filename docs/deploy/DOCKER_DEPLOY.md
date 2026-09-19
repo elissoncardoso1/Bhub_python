@@ -1,5 +1,15 @@
 # 🐳 Guia de Deploy Docker - BHUB
 
+> STATUS: HISTÓRICO
+> Este documento não representa necessariamente a arquitetura atual.
+> Consulte docs/architecture/CURRENT_ARCHITECTURE.md.
+>
+> Guia do `docker-compose.prod.yml` da **raiz**, que monta backend + serviço `frontend` + Nginx
+> (`:72`, `:118-119`) e faz backup copiando `bhub.db` do container (`:230`, `:237`). O serviço
+> de frontend não existe hoje e o caminho de deploy vigente é
+> `bhub-backend-python/docker-compose.prod.yml` (PostgreSQL 16 + Redis + `arq-worker`) —
+> `docs/deploy/RUNBOOK.md`.
+
 Este guia explica como fazer o deploy completo do BHUB usando Docker em produção.
 
 ## 📋 Pré-requisitos

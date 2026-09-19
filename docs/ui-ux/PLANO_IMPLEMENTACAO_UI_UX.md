@@ -1,5 +1,13 @@
 # 📋 Plano Hierárquico de Implementação UI/UX
 
+> STATUS: HISTÓRICO
+> Este documento não representa necessariamente a arquitetura atual.
+> Consulte docs/architecture/CURRENT_ARCHITECTURE.md.
+>
+> Plano de UI/UX de jan/2025 ("tempo total estimado: 6-8 semanas"), escrito sobre a paleta
+> teal/verde-água daquela fase. Foi executado em parte; o que restou não é backlog aberto —
+> o trabalho declarado está em `docs/architecture/ROADMAP.md`.
+
 ## 🎯 Visão Geral
 
 Este plano organiza a implementação das melhorias de UI/UX do BHUB em fases hierárquicas, começando pelas necessidades críticas e progredindo para aprimoramentos avançados.

@@ -1,5 +1,14 @@
 # Prompt: Implementação de Tradução com Cache Sob Demanda (DeepSeek)
 
+> STATUS: HISTÓRICO
+> Este documento não representa necessariamente a arquitetura atual.
+> Consulte docs/architecture/CURRENT_ARCHITECTURE.md.
+>
+> Especificação escrita para a arquitetura daquela fase — "Frontend (TypeScript/Node.js) →
+> Backend (Python - API) → Cache Layer (DB + Memória)" —, anterior à migração para SSR/HTMX.
+> A implementação atual é `app/services/translation_cache_service.py` +
+> `app/models/translation_cache.py` (`docs/architecture/CURRENT_ARCHITECTURE.md` § 7).
+
 ## 🎯 Objetivo
 Desenvolver uma solução de tradução que utilize a API da DeepSeek com cache inteligente para evitar chamadas repetidas, reduzindo custos e melhorando o desempenho.
 

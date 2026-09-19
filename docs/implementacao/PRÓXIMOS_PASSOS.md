@@ -1,5 +1,12 @@
 # 🎯 Próximos Passos - Implementação UI/UX BHUB
 
+> STATUS: HISTÓRICO
+> Este documento não representa necessariamente a arquitetura atual.
+> Consulte docs/architecture/CURRENT_ARCHITECTURE.md.
+>
+> "Próximos passos" de jan/2025 do plano de UI/UX daquela fase. **Não** é a lista de trabalho
+> atual: o que está declarado hoje está em `docs/architecture/ROADMAP.md`.
+
 **Data:** 2025-01-27  
 **Status Atual:** Fase 1 (Consistência) - ✅ Concluída
 

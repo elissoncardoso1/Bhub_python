@@ -1,5 +1,14 @@
 # Stack Recomendada para BHUB - HTMX + Python
 
+> STATUS: HISTÓRICO
+> Este documento não representa necessariamente a arquitetura atual.
+> Consulte docs/architecture/CURRENT_ARCHITECTURE.md.
+>
+> Recomendação escrita para a fase de migração Next.js → Python (FastAPI 0.109+, Tailwind por
+> CDN, Prisma Python como opção de ORM). A stack efetivamente adotada é a descrita em
+> `docs/architecture/CURRENT_ARCHITECTURE.md` § 1 (Tailwind é compilado localmente para
+> `app/static/css/output.css`; o ORM é SQLAlchemy 2.0 async).
+
 ## Backend Python
 
 ### Framework Web: FastAPI

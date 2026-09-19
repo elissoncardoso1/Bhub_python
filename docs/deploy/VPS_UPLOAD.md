@@ -1,5 +1,14 @@
 # Guia de Upload para VPS - BHUB
 
+> STATUS: HISTÓRICO
+> Este documento não representa necessariamente a arquitetura atual.
+> Consulte docs/architecture/CURRENT_ARCHITECTURE.md.
+>
+> Upload da era do frontend separado: sobe um diretório `Frontend/` (`:72`, `:178`) que **não
+> existe** neste repositório e trata `bhub.db` como banco criado na VPS (`:145`). O caminho de
+> deploy atual é `bhub-backend-python/` + Traefik, documentado em `docs/deploy/RUNBOOK.md`; o
+> `upload-to-vps.sh` da raiz só envia o frontend se o diretório existir.
+
 Este guia explica as diferentes formas de fazer upload do projeto BHUB para sua VPS.
 
 ## Opção 1: Usando Git (Recomendado)

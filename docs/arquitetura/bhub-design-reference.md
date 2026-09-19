@@ -1,5 +1,13 @@
 # BHUB (Behavior Hub) - Documentação de Design
 
+> STATUS: HISTÓRICO
+> Este documento não representa necessariamente a arquitetura atual.
+> Consulte docs/architecture/CURRENT_ARCHITECTURE.md.
+>
+> Design da fase anterior à identidade v3: a paleta aqui declarada é azul/slate (`#2563eb`,
+> `#1e40af`, `#f8fafc`). A identidade atual é a v3 (quente borgonha/sage), cujos tokens vivem no
+> código — `app/static/css/design-tokens.css` e `docs/ui-ux/PALETA_CORES.md`.
+
 ## Visão Geral
 BHUB é uma plataforma moderna para agregação e análise de artigos científicos em Análise do Comportamento usando machine learning. O design prioriza usabilidade, responsividade e uma experiência visual profissional.
 

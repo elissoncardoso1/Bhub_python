@@ -1,5 +1,14 @@
 # 📊 Progresso da Implementação UI/UX
 
+> STATUS: HISTÓRICO
+> Este documento não representa necessariamente a arquitetura atual.
+> Consulte docs/architecture/CURRENT_ARCHITECTURE.md.
+>
+> Acompanhamento do plano de UI/UX de jan/2025 ("status geral: 75% completo", última atualização
+> 2025-01-19), da fase da paleta teal/verde-água. Não é o estado do projeto: para o presente use
+> `docs/architecture/CURRENT_ARCHITECTURE.md`; para o trabalho aberto,
+> `docs/architecture/ROADMAP.md`.
+
 **Última atualização:** 2025-01-19  
 **Status geral:** 🟢 75% Completo
 

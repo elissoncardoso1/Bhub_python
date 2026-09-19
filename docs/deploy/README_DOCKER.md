@@ -1,5 +1,14 @@
 # 🐳 BHUB - Deploy com Docker
 
+> STATUS: HISTÓRICO
+> Este documento não representa necessariamente a arquitetura atual.
+> Consulte docs/architecture/CURRENT_ARCHITECTURE.md.
+>
+> Descreve a estrutura com dois composes — o da **raiz** ("backend + frontend") e o standalone do
+> backend. O compose da raiz não é caminho de deploy (monta `./Frontend`, que não existe) e é ele
+> que ainda fixa SQLite (`:31`). O deploy vigente usa
+> `bhub-backend-python/docker-compose.prod.yml` com PostgreSQL 16 — `docs/deploy/RUNBOOK.md`.
+
 Este projeto está configurado para rodar completamente em containers Docker.
 
 ## 📦 Estrutura Docker

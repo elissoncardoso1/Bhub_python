@@ -1,5 +1,14 @@
 # Testes e Deploy - Quando Executar
 
+> STATUS: HISTÓRICO
+> Este documento não representa necessariamente a arquitetura atual.
+> Consulte docs/architecture/CURRENT_ARCHITECTURE.md.
+>
+> Guia de janeiro de 2025, da era SQLite: a execução de teste em container usa
+> `--db-url=sqlite+aiosqlite:///./test.db` (`:178`). O comando **não** corresponde à suíte atual —
+> hoje a suíte unitária roda em SQLite em memória (`tests/conftest.py`) e a de integração exige
+> PostgreSQL 16 real (`pytest tests/integration -m integration`).
+
 **Versão**: 1.0.0  
 **Data**: Janeiro 2025
 

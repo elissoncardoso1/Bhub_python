@@ -1,5 +1,14 @@
 # 🚀 Guia de Início Rápido - Implementação UI/UX
 
+> STATUS: HISTÓRICO
+> Este documento não representa necessariamente a arquitetura atual.
+> Consulte docs/architecture/CURRENT_ARCHITECTURE.md.
+>
+> Passos escritos para o plano de UI/UX de jan/2025 e para a paleta **teal/verde-água** daquela
+> fase (`--color-primary-400: #3fb5a3`), substituída pela identidade v3. Os tokens atuais estão em
+> `app/static/css/design-tokens.css` (`docs/ui-ux/PALETA_CORES.md`); nada aqui deve ser aplicado
+> como está.
+
 Este guia fornece os passos práticos para começar a implementação imediatamente.
 
 ---

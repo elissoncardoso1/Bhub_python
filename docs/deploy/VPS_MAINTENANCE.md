@@ -1,5 +1,14 @@
 # Guia de Manutenção - BHUB VPS
 
+> STATUS: HISTÓRICO
+> Este documento não representa necessariamente a arquitetura atual.
+> Consulte docs/architecture/CURRENT_ARCHITECTURE.md.
+>
+> Manutenção da era do frontend em PM2 e do banco em **arquivo** SQLite: a restauração de backup
+> copia `bhub_YYYYMMDD_HHMMSS.db` para `bhub.db` (`:88`) e os comandos usam `pm2`. Nada disso vale
+> para a produção atual (PostgreSQL 16 + `arq-worker`): backup e restore vigentes são
+> `pg_dump`/`pg_restore` contra o serviço `db` — ver `docs/deploy/RUNBOOK.md`.
+
 Este guia contém comandos e procedimentos comuns para manutenção do BHUB em produção.
 
 ## Comandos Úteis
@@ -77,6 +86,10 @@ ls -lh /var/backups/bhub/
 ```
 
 ### Restaurar Backup
+
+> **HISTÓRICO (era SQLite):** o procedimento abaixo restaura um **arquivo** `bhub.db` e usa `pm2`.
+> A produção atual é PostgreSQL 16 e o restore é `pg_restore` no serviço `db` — ver
+> `docs/deploy/RUNBOOK.md`. Não execute os comandos desta seção em produção.
 
 ```bash
 # Parar serviços

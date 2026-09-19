@@ -1,5 +1,12 @@
 # Resultado dos Testes - BHUB
 
+> STATUS: HISTÓRICO
+> Este documento não representa necessariamente a arquitetura atual.
+> Consulte docs/architecture/CURRENT_ARCHITECTURE.md.
+>
+> Snapshot de testes de janeiro de 2025 ("24/24 testes passaram") de outra era do projeto. Não
+> descreve a suíte atual — ver `docs/quality/BASELINE.md`.
+
 **Data**: Janeiro 2025  
 **Status**: ✅ **24 testes passaram**
 
