@@ -4,9 +4,11 @@
 > Este documento não representa necessariamente a arquitetura atual.
 > Consulte docs/architecture/CURRENT_ARCHITECTURE.md.
 >
-> Guia do `docker-compose.prod.yml` da **raiz**, que monta backend + serviço `frontend` + Nginx
-> (`:82`, `:129`) e faz backup copiando `bhub.db` do container (`:240`, `:247`). O serviço
-> de frontend não existe hoje e o caminho de deploy vigente é
+> Guia do `docker-compose.prod.yml` da **raiz**, que declara os serviços `backend` (`:7`) e
+> `frontend` (`:84`) e monta `./bhub-backend-python/bhub.db` no container (`:27`). O Nginx **não**
+> é serviço desse compose — ele roda no host (seção "Configurar Nginx" deste guia) — e o backup por
+> `docker cp` do `bhub.db` é procedimento deste guia (seção "Backup"). O serviço de frontend não
+> existe hoje e o caminho de deploy vigente é
 > `bhub-backend-python/docker-compose.prod.yml` (PostgreSQL 16 + Redis + `arq-worker`) —
 > `docs/deploy/RUNBOOK.md`.
 

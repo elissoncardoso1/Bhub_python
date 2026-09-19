@@ -181,7 +181,7 @@ Os dois primeiros débitos que este arquivo listava vinham do `BHUB_REFACTORING_
    `app/services/background_tasks.py` sobrevive apenas como corpo do executor inline de
    desenvolvimento (`ENABLE_ARQ=false`), importado por `app/interfaces/task_queue.py`.
 2. **Injeção de dependências — resolvido.** `app/api/deps.py` declara 11 dependências
-   (`Depends()`) sobre os `Protocol` de `app/interfaces/services.py` (6 declarações),
+   (`Depends()`) sobre os `Protocol` de `app/interfaces/services.py` (4 declarações),
    exercitadas em `tests/unit/test_dependencies.py`.
 3. **SQLite (dev) vs PostgreSQL (prod)** — dev usa o default `sqlite+aiosqlite:///./bhub.db` e a suíte unitária roda em `:memory:`; a migração `008_postgres_fts` cria a extensão `pg_trgm`, a coluna `TSVECTOR`, o trigger de atualização e os índices (GIN / `gin_trgm_ops`). **Produção é PostgreSQL 16** (ADR-0001) e a busca de produção é `TSVECTOR` + `pg_trgm` (ADR-0003).
 

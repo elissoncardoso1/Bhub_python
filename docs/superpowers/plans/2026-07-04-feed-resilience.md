@@ -1,5 +1,9 @@
 # Feed Resilience Implementation Plan
 
+> STATUS: HISTÓRICO
+> Este documento não representa necessariamente a arquitetura atual.
+> Consulte docs/architecture/CURRENT_ARCHITECTURE.md.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Eliminar os erros recorrentes de sync de feeds (403 anti-bot, 404/410 URL morta, transitórios matando feeds) endurecendo a camada de fetch, conforme `docs/superpowers/specs/2026-07-04-feed-resilience-design.md`.

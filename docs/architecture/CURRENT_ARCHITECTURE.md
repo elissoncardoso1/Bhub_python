@@ -486,6 +486,7 @@ documento desta seção não é backlog aberto**: o trabalho declarado vive no
 | `docs/configuracao/GUIA_INICIO_RAPIDO.md`, `docs/ui-ux/UI_UX_ANALYSIS.md`, `docs/ui-ux/PLANO_IMPLEMENTACAO_UI_UX.md` | **HISTÓRICO marcado** (T5.3): plano, início rápido e análise da fase de UI/UX de jan/2025, que declaram a paleta **teal/verde-água** como oficial. A identidade atual é a v3 (`docs/ui-ux/PALETA_CORES.md`). |
 | `docs/configuracao/prompt_tradutor.md` | **HISTÓRICO marcado** (T5.3): especificação escrita para a arquitetura Frontend (TypeScript/Node.js) + Backend Python daquela fase. A implementação atual é `app/services/translation_cache_service.py` (§ 7). |
 | `docs/implementacao/CHECKLIST_IMPLEMENTACAO.md`, `PROGRESSO_IMPLEMENTACAO.md`, `PRÓXIMOS_PASSOS.md`, `IMPLEMENTAÇÃO_PRIORIDADE_ALTA.md` | **HISTÓRICO marcado** (T5.3): plano de UI/UX de jan/2025 e o acompanhamento dele. Os checkboxes desmarcados não são backlog aberto. |
+| `docs/superpowers/plans/2026-07-04-feed-resilience.md`, `docs/superpowers/specs/2026-07-04-feed-resilience-design.md` | **HISTÓRICO marcado** (T5.3): plano e design do ciclo de resiliência de feeds (jul/2026), **executado** — o que o ciclo entregou está em [`ROADMAP.md`](ROADMAP.md) § 4. O plano tem **35 checkboxes desmarcados e 0 marcados**: não é backlog aberto. |
 | `README.md` (raiz) | **Corrigido**: `:10-11` afirmam PostgreSQL 16 na produção (busca `TSVECTOR` + `pg_trgm`); o quadro de `DATABASE_URL` documenta o default PostgreSQL dos dois composes de `bhub-backend-python/` e marca como **legado fora do caminho de deploy** o `docker-compose.prod.yml` da raiz (que fixa SQLite em `:31`) — ver N-01 no relatório da Task 18. |
 
 **Referências cruzadas que continuam válidas:** `docs/quality/BASELINE.md` (baseline de
@@ -510,3 +511,6 @@ após a rodada de correção dos achados da revisão da Task 17 (`docs/architect
 `app/api/v1/ai.py` (`:114` e `:63`); tabela de §14 atualizada). A Task 18 (T5.3/T5.4) **não**
 alterou nenhuma afirmação verificada contra o código: ela marcou os documentos históricos, criou o
 `ROADMAP.md`, corrigiu a rotação dos índices e trocou linguagem temporal por redação atemporal.
+Na rodada de correção da revisão da Task 18, o banner foi aplicado ao plano e ao design do ciclo de
+resiliência de feeds (jul/2026) e os dois entraram na tabela de § 14 — o índice passou a cobrir
+todos os documentos marcados.

@@ -1,5 +1,9 @@
 # Design: Resiliência da ingestão de feeds RSS (Opção A)
 
+> STATUS: HISTÓRICO
+> Este documento não representa necessariamente a arquitetura atual.
+> Consulte docs/architecture/CURRENT_ARCHITECTURE.md.
+
 **Data:** 2026-07-04
 **Status:** Aprovado (Opção A do brainstorming baseado em `docs/rss/rss_research.md`)
 **Escopo:** `bhub-backend-python/` — camada de fetch e política de erros do pipeline de feeds
