@@ -5,9 +5,11 @@ organizada por categoria. Para orientação operacional do dia a dia (comandos,
 arquitetura resumida, convenções de código), veja também o
 **[CLAUDE.md](../CLAUDE.md)** na raiz do repositório.
 
-## 📖 Documento Principal
+## 📖 Referência de arquitetura
 
-**[ESTADO_ATUAL_PROJETO.md](./ESTADO_ATUAL_PROJETO.md)** — visão completa do estado atual do projeto: arquitetura, funcionalidades, estrutura e próximos passos.
+**[architecture/CURRENT_ARCHITECTURE.md](./architecture/CURRENT_ARCHITECTURE.md)** — **a única referência da arquitetura atual**: componentes, limites dos módulos, banco (dev vs prod), worker, scheduler, busca, IA, ingestão, observabilidade, deploy, planejado, adiado, riscos conhecidos e o que é histórico. Decisões: [`adr/`](./adr/).
+
+É o ponto de partida. **Não** use `ESTADO_ATUAL_PROJETO.md` nem os guias em `arquitetura/` como descrição do presente: são documentos históricos (o `ESTADO_ATUAL_PROJETO.md` está marcado como tal).
 
 ---
 

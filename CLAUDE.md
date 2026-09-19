@@ -65,6 +65,10 @@ python scripts/backup_db.py
 
 ## Architecture
 
+> **Arquitetura atual — referência única:** [`docs/architecture/CURRENT_ARCHITECTURE.md`](docs/architecture/CURRENT_ARCHITECTURE.md)
+> (decisões em [`docs/adr/`](docs/adr/)). O diagrama e as tabelas abaixo são um resumo; em
+> caso de divergência, vale o documento de arquitetura e o código.
+
 ### Layer Diagram
 
 ```
@@ -98,7 +102,7 @@ SQLite (dev) / PostgreSQL (prod) + Redis (ARQ job queue)
 | `app/core/cookie_consent.py` | Cookie consent (LGPD) — single source of truth for the `bhub_consent` cookie; gates analytics via `is_granted()` |
 | `app/services/feed_aggregator.py` | RSS ingestion + deduplication |
 | `app/services/classification_service.py` | sentence-transformers classifier |
-| `app/services/search_service.py` | FTS5 + LIKE fallback |
+| `app/services/search_service.py` | PostgreSQL `TSVECTOR`/`plainto_tsquery` + `pg_trgm` (prod); FTS5 + LIKE fallback (dev) |
 | `app/ai/manager.py` | Multi-provider LLM (DeepSeek → OpenRouter → local llama.cpp) |
 | `app/ml/embedding_classifier.py` | sentence-transformers wrapper |
 | `app/jobs/scheduler.py` | APScheduler periodic jobs |
@@ -163,7 +167,7 @@ OPENROUTER_API_KEY  # fallback LLM provider
 From `BHUB_REFACTORING_PLAN.md`:
 1. **Background Tasks** — Some tasks bypass ARQ and use `BackgroundTasks` directly; migrate to `task_dispatcher.py`
 2. **Dependency Injection** — Several services are manually instantiated; the plan is to use `Depends()` + Protocol interfaces (`app/interfaces/`)
-3. **SQLite in Production** — dev uses SQLite FTS5; migration `008_postgres_fts` adds a PostgreSQL `TSVECTOR` `search_vector` (+ trigger, GIN/pg_trgm indexes) and a plain `search_vector` column on SQLite. Production search scale → PostgreSQL.
+3. **SQLite (dev) vs PostgreSQL (prod)** — dev usa SQLite FTS5; migration `008_postgres_fts` adds a PostgreSQL `TSVECTOR` `search_vector` (+ trigger, GIN/pg_trgm indexes) and a plain `search_vector` column on SQLite. Production search scale → PostgreSQL.
 
 ---
 
