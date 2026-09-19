@@ -273,8 +273,8 @@ dele e não é evidência de nada. O que é evidência é a comparação **exclu
 MÉTRICA ESTÁVEL — repositório versionado, EXCLUINDO este artefato
 
 Comando (rodado VERBATIM nos dois estados; restrito aos `.md` RASTREADOS via
-`git ls-files` para não capturar os ~130 `.md` gitignorados de `.superpowers/`,
-e excluindo este artefato, que contém os próprios termos):
+`git ls-files`, para não capturar os `.md` gitignorados que existem no diretório
+de trabalho, e excluindo este artefato, que contém os próprios termos):
 
   git ls-files -z '*.md' | tr '\0' '\n' | grep -v 'RELEASE_CHECKLIST' \
     | xargs grep -niE "sqlite[^.]{0,70}(produ[cç][aã]o|production)|(produ[cç][aã]o|production)[^.]{0,70}sqlite" | wc -l
@@ -283,12 +283,13 @@ e excluindo este artefato, que contém os próprios termos):
     | xargs grep -niI "create_task" | wc -l
 
 Cada um devolveu 29 e 42 no HEAD e 29 e 42 no baseline. Sem o filtro de
-rastreados (`grep -r … --include='*.md' .`) o mesmo regex devolve **94**, porque
-varre o filesystem inteiro — é o número que NÃO deve ser usado.
+rastreados, o mesmo regex varre também os `.md` do diretório de trabalho e
+devolve outro número (94, com o `--exclude` do artefato; 97 sem ele) — por isso o
+escopo é declarado.
 
 Escopo: 95 `.md` rastreados no HEAD (94 no baseline), menos este artefato. A
-escolha do escopo é declarada porque o número é sensível a ela; o escopo
-"rastreado, excluindo este artefato" é o único que reproduz 29 e 42.
+escolha do escopo é declarada porque o número é sensível a ela — outros escopos
+(ex.: sem o filtro de rastreamento) dão outros valores.
 
 SQLite-as-production    baseline 9091bc8: 29 linhas
                         HEAD:              29 linhas    IDÊNTICO
