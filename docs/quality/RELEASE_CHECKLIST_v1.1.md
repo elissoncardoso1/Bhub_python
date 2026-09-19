@@ -47,8 +47,10 @@ aqui é `264 passed`, `6343 2573 59.44%` e `189 files`. A diferença tem **uma �
 Task 19 adicionou **um arquivo de teste** —
 `tests/unit/test_article_parser_ojs_authors.py` (6 testes) — para fechar o item **8.4**, que
 falhava (§8.4 e §11-F2). Toda a diferença vem daí: `+6` testes, `+1` arquivo formatado e
-`−13` linhas não cobertas (o ramo do desmembramento OJS deixou de estar descoberto). **Nenhum gate
-foi relaxado:** o orçamento do ratchet segue **127**, o piso de cobertura segue
+**13 statements** a menos não cobertos (o ramo do desmembramento OJS deixou de estar descoberto).
+O revisor independente confirmou a atribuição comparando o baseline extraído com o HEAD menos o
+arquivo novo: **idênticos arquivo a arquivo** (105 arquivos, 6343 statements, 2586 missing).
+**Nenhum gate foi relaxado:** o orçamento do ratchet segue **127**, o piso de cobertura segue
 **`--cov-precision=2 --cov-fail-under=59.19`**, `strict = true` segue global, o `addopts` de
 deseleção não foi tocado e há **0** chaves `continue-on-error` no workflow. Também **nenhuma linha
 de `app/` foi alterada**: `git diff -- bhub-backend-python/app/` é vazio.
@@ -80,7 +82,7 @@ de `app/` foi alterada**: `git diff -- bhub-backend-python/app/` é vazio.
 
 | # | Item literal | Status | Evidência |
 |---|---|---|---|
-| 3.1 | PostgreSQL é o banco de produção | **PASS** | **[MEDIDO]** `docker-compose.prod.yml:32` → `DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://bhub:bhub@db:5432/bhub}`. **[LIDO]** ADR-0001 (`docs/adr/0001-postgresql-producao.md`). O compose da **raiz** fixa SQLite em `:31` e está marcado como **legado** (§11-F7). |
+| 3.1 | PostgreSQL é o banco de produção | **PASS** | **[MEDIDO]** `bhub-backend-python/docker-compose.prod.yml:32` → `DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://bhub:bhub@db:5432/bhub}`. **[LIDO]** ADR-0001 (`docs/adr/0001-postgresql-producao.md`). O compose da **raiz** fixa SQLite em `:31` e referencia um `./Frontend` inexistente (`:86`) — está **documentado como fora do caminho de deploy** (§11-F7, `README_DOCKER.md:8`); o arquivo em si **não** tem banner de legado. |
 | 3.2 | `alembic upgrade head` funciona em banco vazio | **PASS** | **[MEDIDO]** a fixture `migrated_database` (`tests/integration/conftest.py:283-295`) roda `alembic upgrade head` em **banco vazio** via subprocesso, exatamente como o deploy, e **assere `rc=0`**. `tests/integration/test_migrations.py` 9 passed. Isto não era verdade antes da Task 12 (faltava a migração baseline pré-001) — o defeito foi encontrado e corrigido lá. |
 | 3.3 | Migrações existentes são reversíveis quando aplicável | **PASS** | **[MEDIDO]** as **10** migrações de `bhub-backend-python/alembic/versions/` declaram `def downgrade` (`000_baseline_pre_001_schema` … `009_feed_http_cache`). **[MEDIDO]** `test_downgrade_base_then_upgrade_head_rebuilds_the_chain` (`test_migrations.py:124`) reconstrói a cadeia inteira `downgrade base` → `upgrade head`. |
 | 3.4 | `search_vector` é atualizado corretamente | **PASS** | **[MEDIDO]** `test_search_vector_is_populated_by_the_insert_trigger` (`test_postgres_search.py:236`) — o trigger da 008 popula o vetor sozinho; `test_search_vector_trigger_exists_on_articles` (`test_migrations.py:96`) confere `articles_search_vector_trigger` no catálogo. |
@@ -110,7 +112,7 @@ de `app/` foi alterada**: `git diff -- bhub-backend-python/app/` é vazio.
 | 5.2 | `ruff format --check` passa | **PASS** | **[MEDIDO]** `ruff format --check .` → `189 files already formatted`, rc=0 (188 no baseline + o arquivo de teste desta task). Step bloqueante (`ci.yml:42-43`). Versão pinada (`ruff==0.16.7`) para o veredito ser determinístico. |
 | 5.3 | `mypy app` passa — **sob o gate PARCIAL de `BASELINE.md` §6.6** | **PASS (literalmente qualificado)** | **[MEDIDO]** `mypy app` → `Success: no issues found in 105 source files`, rc=0. **[MEDIDO]** o gate é **PARCIAL** e isto está escrito no próprio item do plano: **28 dos 105** arquivos de `app/` estão sob `ignore_errors` e ficam fora de verificação; dos 77 restantes, 44 estão sob `strict` pleno e 33 sob o default. **[MEDIDO]** a lacuna de regressão é fechada pelo **shadow ratchet**: `Found 127 errors in 28 files (checked 105 source files)`, rc=1 — o orçamento de 127 está **intacto**. Números em `docs/quality/BASELINE.md` §6.3/§6.6/§6.8. **Não** ler esta linha como "o codebase está type-checked". |
 | 5.4 | `pytest` passa | **PASS** | **[MEDIDO]** `pytest tests/ -q` → `264 passed, 48 deselected`, rc=0 (258 + os 6 desta task). Step bloqueante `Run tests` (`ci.yml:238-239`). |
-| 5.5 | Coverage >= baseline | **PASS** | **[MEDIDO]** `pytest tests/ -q --cov=app --cov-precision=2 --cov-fail-under=59.19` → `TOTAL 6343 2573 59.44%` (3770/6343; cru 59,4356%), `Required test coverage of 59.19% reached.`, rc=0. Piso efetivo: **≥ 3755 statements cobertos** (3755 → 59,1991% → 59,20 passa; 3754 → 59,18 reprova). A folga era de **2 statements** no baseline e é de **15** aqui, porque o teste novo cobriu 13 linhas que estavam descobertas. |
+| 5.5 | Coverage >= baseline | **PASS** | **[MEDIDO]** `pytest tests/ -q --cov=app --cov-precision=2 --cov-fail-under=59.19` → `TOTAL 6343 2573 59.44%` (3770/6343; cru 59,4356%), `Required test coverage of 59.19% reached.`, rc=0. Piso efetivo: **≥ 3755 statements cobertos** (3755 → 59,1991% → 59,20 passa; 3754 → 59,18 reprova). A folga era de **2 statements** no baseline e é de **15** aqui, porque o teste novo cobriu **13 statements** que estavam descobertos (medido: `missing_lines` de `article_parser.py` caiu de 133 para 120, em 13 linhas de fonte distintas). |
 | 5.6 | Docker build passa no CI | **NÃO VERIFICADO** | **[LIDO]** o step existe, é **bloqueante** e é o último do job: `ci.yml:348-354` (`docker build -f Dockerfile .`, com `timeout-minutes: 40` no step e 60 no job, e **um** retry com `::warning::`). **[NÃO VERIFICADO]** **o build não foi executado nesta verificação** (custo de minutos + consumo de rede) e **nunca foi executado no GitHub Actions** — não houve push. Não afirmo que passa. |
 
 ---
@@ -120,7 +122,7 @@ de `app/` foi alterada**: `git diff -- bhub-backend-python/app/` é vazio.
 | # | Item literal | Status | Evidência |
 |---|---|---|---|
 | 6.1 | `.env` não está versionado | **PASS** | **[MEDIDO]** `git ls-files \| grep -E "(^\|/)\.env($\|\.)"` → apenas `.env.example` (raiz e backend). `.gitignore:36` ignora `.env` (e `:37-40` as variantes). |
-| 6.2 | secrets vêm do ambiente | **PASS** | **[LIDO]** `docker-compose.prod.yml` não contém segredo literal: tudo vem de `${…}` do `.env`, e `SECRET_KEY=${SECRET_KEY:?defina SECRET_KEY no .env}` (`:39`) **obriga** o operador a defini-la. `config.py:66` só tem valor default de placeholder, que é rejeitado (6.3). |
+| 6.2 | secrets vêm do ambiente | **PASS** | **[LIDO]** `docker-compose.prod.yml` não contém segredo literal: tudo vem de `${…}` do `.env`, e `SECRET_KEY=${SECRET_KEY:?defina SECRET_KEY no .env}` (`bhub-backend-python/docker-compose.prod.yml:35` e `:88`) **obriga** o operador a defini-la. `config.py:66` só tem valor default de placeholder, que é rejeitado (6.3). |
 | 6.3 | produção rejeita configuração insegura | **PASS** | **[MEDIDO]** três rejeições reproduzidas com `ENVIRONMENT=production`: `DEBUG=true` → `ValidationError: DEBUG deve ser False em produção` (`config.py:189`); `ALLOWED_ORIGINS=*` → `Wildcards não são permitidos em ALLOWED_ORIGINS em produção` (`config.py:51-53`); `SECRET_KEY` default → `SECRET_KEY deve ser alterado em produção e ter pelo menos 32 caracteres` (`config.py:84-86`). Origem sem `http(s)://` e lista de origens vazia também são rejeitadas (`:49-53`, `:192-193`). **Ressalva:** `ENABLE_ARQ=false` em produção **não** é rejeitado (ver 2.1 e §11-F1). |
 | 6.4 | headers de segurança permanecem ativos | **PASS** | **[LIDO]** `app/core/security_headers.py`: HSTS (`:66`), `X-Frame-Options: SAMEORIGIN` (`:71`), `X-Content-Type-Options: nosniff` (`:74`), `Referrer-Policy` (`:80`), CSP (`:88-94`). **[MEDIDO]** `tests/test_core_components.py:270,282` asserem `X-Frame-Options` e `content-security-policy`. |
 | 6.5 | cookies de autenticação continuam HttpOnly/Secure em produção | **PASS** | **[LIDO]** `app/core/auth_cookie_middleware.py:25` → `cookie_secure = settings.is_production` (Secure só em produção, que é onde importa); `:63-65` e `:77-79` → `httponly=True`, `secure=self.cookie_secure`, `samesite="strict"`. **[MEDIDO]** as suítes de auth/cookie passam (`tests/test_auth_flow.py`, `tests/test_core_components.py`). **Nota de precisão:** os testes de `CookieTransport` usam `cookie_secure=False` explícito, logo o **valor** `Secure=True` em produção é **[LIDO]**, não asserido por teste. |
@@ -151,15 +153,18 @@ de `app/` foi alterada**: `git diff -- bhub-backend-python/app/` é vazio.
 | 8.3 | Deduplicação atual continua funcionando | **PASS** | **[MEDIDO]** `test_duplicata_nao_gera_novo_artigo_nem_novo_job` (`test_feed_pipeline.py:649`): mesmo feed re-sincronizado → `new_articles == 0` **e** `errors == []`; a chave de dedupe é **por feed** (`feed_{feed_id}_{md5(guid)}`), com backstop global em `articles.doi` único. **Prova de mutação independente**: removida a pré-checagem, a asserção de `errors` é a que discrimina (`rc=1`). |
 | 8.4 | Parsing de autores OJS possui teste de regressão | **PASS (fechado nesta task)** | **[MEDIDO]** a heurística de desmembramento existe em `app/services/article_parser.py:190-222` (ramo de split em `:210-220`). **[MEDIDO — estado inicial]** este item **falhava**: `grep -rn "OJS\|_extract_authors" tests/` → **0 testes** exercitavam a heurística, e `--cov-report=term-missing` mostrava as linhas **215-218** (o corpo do split) em `missing_lines` **tanto** na suíte unitária **quanto** na de integração. O commit que introduziu o comportamento (`d858451`, "desmembra listas de autores colapsadas pelo feedparser (feeds OJS)") não trouxe guarda. **Correção aplicada** (§11-F2): novo `tests/unit/test_article_parser_ojs_authors.py`, **6 testes** exercitando o caminho real (`feedparser.parse` → `_extract_authors`), pinando a heurística **nos dois sentidos** — lista colapsada deve ser dividida; `'de Rose, Júlio C.'`, `'Angela West, MS, BCBA'`, `'Helena de Freitas Rocha e Silva'` **não** podem ser divididos. **[MEDIDO]** GREEN: 6 passed, rc=0; as linhas **215-218 agora estão EXECUTED**. **[MEDIDO — prova de mutação em cópia `/tmp`, árvore intocada]** revertendo a heurística para `looks_like_list = False` (comportamento pré-`d858451`) → **3 failed, rc=1**; forçando `looks_like_list = True` (divide demais) → **2 failed, rc=1**. O teste sabe falhar nas duas direções. |
 | 8.5 | Feed rediscovery possui teste de regressão | **PASS** | **[MEDIDO]** `tests/test_feed_rediscovery.py` — 4 testes: valida candidato e retorna URL, ignora candidato igual/inválido, sem `website_url` retorna `None`, e respeita a unique constraint. |
-| 8.6 | Truncamento de campos não mascara corrupção silenciosa | **PARCIAL — o truncamento É silencioso** | **[MEDIDO]** `_truncate` (`app/services/feed_aggregator.py:23-32`) corta com `value[:max_length]` **sem nenhum log, aviso ou contador** quando trunca; os 9 call sites (`:325-337`) aplicam-no a `external_id`/`title`/`original_url`/`doi`/`journal_name`/`language`/`image_url`/`pdf_url`. **[MEDIDO]** `grep -rn "_truncate\|truncat" tests/` → **0 testes** de `_truncate` do agregador (o único hit é `_truncate_text` do OpenGraph, que é outra função). A intenção declarada na docstring (evitar `StringDataRightTruncationError` e não derrubar o flush) é cumprida, e isso é bom — mas "não mascara corrupção silenciosa" não: hoje um título de 900 caracteres é cortado a 500 **sem que ninguém saiba**. O item está satisfeito apenas na metade que impede a falha em cascata. |
+| 8.6 | Truncamento de campos não mascara corrupção silenciosa | **PARCIAL — o truncamento É silencioso** | **[MEDIDO]** `_truncate` (`app/services/feed_aggregator.py:23-32`) corta com `value[:max_length]` **sem nenhum log, aviso ou contador** quando trunca; as **8 chamadas** (`:325,326,329,331,332,333,336,337`) aplicam-no a `external_id`/`title`/`original_url`/`doi`/`journal_name`/`language`/`image_url`/`pdf_url`. **[MEDIDO]** `grep -rn "_truncate\|truncat" tests/` → **0 testes** de `_truncate` do agregador (o único hit é `_truncate_text` do OpenGraph, que é outra função). A intenção declarada na docstring (evitar `StringDataRightTruncationError` e não derrubar o flush) é cumprida, e isso é bom — mas "não mascara corrupção silenciosa" não: hoje um título de 900 caracteres é cortado a 500 **sem que ninguém saiba**. O item está satisfeito apenas na metade que impede a falha em cascata. |
 
 ---
 
 ## 9. Staging (plano:1430–1442)
 
 **Seção inteira: NÃO VERIFICADA.** Não existe ambiente de staging neste repositório — só o guia
-`docs/deploy/DEPLOY_STAGING.md`. Nenhum deploy de staging foi executado nesta verificação, e
-**nenhum dos 11 itens é verificável por código ou teste**.
+`docs/deploy/DEPLOY_STAGING.md`. Nenhum deploy de staging foi executado nesta verificação. O que
+torna estes itens não verificáveis aqui **não** é a ausência de qualquer prova em código/teste — é
+que o critério de cada um é o **ambiente de staging** (um deploy real, com restart e recuperação).
+Quatro deles têm a mecânica provada em infraestrutura real descartável, o que **não** substitui a
+prova em staging; o resto não tem cobertura alguma.
 
 | # | Item literal | Status |
 |---|---|---|
@@ -213,19 +218,23 @@ por omissão.
 GO/NO-GO PARCIAL  (o status que a própria Task 19 pede)
 
 Verificação de CÓDIGO — o que a Task 19 manda verificar:   GO
-  - 36 dos 37 itens de código/teste verificados, com evidência medida;
-  - 1 item falhava (8.4 — teste de regressão OJS) e foi CORRIGIDO nesta task,
-    com prova de mutação nas duas direções;
-  - 0 item de código/teste permanece FALHANDO;
-  - 3 itens ficam PARCIAIS, com a metade que falta nomeada (3.6, 7.7, 8.6);
-  - 2 itens dependem de restart/ambiente e não têm cobertura (4.5, 4.6);
-  - 11 itens de staging NÃO VERIFICADOS (fora do alcance de código/testes).
+
+  ITENS DE CÓDIGO/TESTE (§2-§8) = 42, contados na tabela:
+      34 PASS
+       5 PARCIAL   (3.6 pool não testado; 4.5 restart do worker não exercitado;
+                    4.6 backlog sem superfície no app; 7.7 métricas sem exportador;
+                    8.6 truncamento silencioso)
+       3 NÃO VERIFICADO  (4.1 Redis em staging; 4.2 worker em staging; 5.6 Docker build)
+       0 FALHANDO  (o único que falhava — 8.4, teste de regressão OJS — foi
+                    CORRIGIDO nesta task, com prova de mutação nas duas direções)
+  ITENS DE STAGING (§9)          = 11, NÃO VERIFICADOS (exigem ambiente externo)
+  TOTAL                          = 53 itens, todos com status e evidência
 
 Liberação da RELEASE v1.1:                                 NO-GO
-  - a condição de GO "staging verde" NÃO foi satisfeita (não executada);
-  - 1 Important fica aberto para adjudicação (F1 — config aceita
-    ENABLE_ARQ=false em produção);
-  - o Docker build e o GitHub Actions nunca foram executados (§5.6, §10).
+  - condição de GO "staging verde" NÃO satisfeita (não executada);
+  - Docker build e GitHub Actions nunca executados (§5.6, §10.1);
+  - 1 Important aberto para adjudicação (F1 — config aceita ENABLE_ARQ=false
+    em produção).
 ```
 
 **Este NO-GO é sobre a liberação da release, não sobre o fechamento da Task 19.** O deliverable da
@@ -236,8 +245,9 @@ como PASS sem evidência, nenhum gate foi relaxado para caber num GO, e nenhum p
 
 ## 11. Achados desta verificação
 
-Registrados com o mesmo destaque dos itens que passam. **Nenhum deles foi corrigido aqui** — a
-Task 19 é de verificação, e a correção de código/escopo pertence a decisão registrada.
+Registrados com o mesmo destaque dos itens que passam. **Apenas o F2 foi corrigido nesta task** —
+era um item de release falhando cujo fix é um arquivo de teste, sem tocar `app/`. **Nenhum dos
+outros achados foi corrigido**; a correção de código/escopo deles pertence a decisão registrada.
 
 | ID | Achado | Severidade proposta | Evidência |
 |---|---|---|---|
@@ -245,58 +255,55 @@ Task 19 é de verificação, e a correção de código/escopo pertence a decisã
 | **F2** | O item **8.4** falhava: a heurística de desmembramento de autores OJS (`article_parser.py:190-222`) **não tinha teste de regressão**, e as linhas **215-218** estavam descobertas nas duas suítes; o commit `d858451` entregou comportamento sem guarda. **CORRIGIDO nesta task** (§8.4): `tests/unit/test_article_parser_ojs_authors.py`, 6 testes pelo caminho real, com prova de mutação nas duas direções (undersplit → 3 failed; oversplit → 2 failed). Nenhuma linha de `app/` foi tocada. | **Important — RESOLVIDO** | **[MEDIDO]** `--cov-report=term-missing` (unit e integração) listava `215-218`; hoje `EXECUTED`. |
 | **F3** | O item **3.6** pede pool "configurado **e testado**": está configurado (`database.py:28-33`) e **não** testado (0 asserções em `tests/`). | Minor | **[MEDIDO]** grep em `tests/` → 0 hits. |
 | **F4** | O item **7.7**: as métricas são criadas mas o `MeterProvider` não tem exportador (`telemetry.py:31`), e `ENABLE_TELEMETRY` é `false` por default. | Minor | **[LIDO]** `telemetry.py:19-31`. |
-| **F5** | O item **8.6**: `_truncate` corta silenciosamente, sem log/contador. | Minor | **[MEDIDO]** `feed_aggregator.py:23-32`, 9 call sites, 0 testes. |
+| **F5** | O item **8.6**: `_truncate` corta silenciosamente, sem log/contador. | Minor | **[MEDIDO]** `feed_aggregator.py:23-32`, **8** chamadas, 0 testes. |
 | **F6** | O item **4.5** (restart do worker) e **4.6** (backlog) não têm cobertura: não existe teste de restart nem superfície de backlog no app. | Minor | **[MEDIDO]** greps em `tests/integration/` e `app/`. |
 | **F7** | Existem **3** arquivos compose e **2** se chamam "prod"; o da raiz fixa SQLite (`:31`) e monta um `./Frontend` que não existe (`:86`). A ambiguidade está **documentada** (não resolvida) — ver §12. | Observation | **[MEDIDO]** `docker-compose.prod.yml:31,:86`; `bhub-backend-python/docker-compose.prod.yml:32`. |
-| **F8** | **1 link local quebrado** encontrado: `docs/ui-ux/UI_UX_SETUP.md:157` → `./GUIA_INICIO_RAPIDO.md` (o alvo real é `docs/configuracao/GUIA_INICIO_RAPIDO.md`). **Pré-existente**, fora dos arquivos tocados pelas Tasks 17/18 (o arquivo não aparece no diff `d6c3fc9..9091bc8`). | Minor | **[MEDIDO]** detector próprio: 192 links conferidos, 1 quebrado. |
+| **F8** | **1 link local quebrado** encontrado: `docs/ui-ux/UI_UX_SETUP.md:157` → `./GUIA_INICIO_RAPIDO.md` (o alvo real é `docs/configuracao/GUIA_INICIO_RAPIDO.md`). **Pré-existente**, fora dos arquivos tocados pelas Tasks 17/18 (o arquivo não aparece no diff `d6c3fc9..9091bc8`). | Minor | **[MEDIDO]** detector próprio: 194 links conferidos (excluindo este artefato), 1 quebrado — **idêntico** no baseline `9091bc8`. |
 
 ---
 
 ## 12. Invariantes de documentação (revalidados)
 
-Revalidados **por medição** nesta verificação, porque a Task 19 edita `docs/`. Os dois contadores
-foram medidos **no baseline congelado `9091bc8`** (árvore extraída para `/tmp` com `git archive`) e
-**no estado atual** — a diferença é atribuída e **não** há hit novo não qualificado:
+Revalidados **por medição** nesta verificação, porque a Task 19 edita `docs/`. A forma de medir foi
+escolhida para ser **imune à autorreferência**: este próprio documento contém os termos
+(`SQLite`, `produção`, `create_task`), então o número absoluto do repositório muda a cada edição
+dele e não é evidência de nada. O que é evidência é a comparação **excluindo este arquivo**:
 
 ```text
-SQLite-as-production (asserções NÃO qualificadas):
-  baseline 9091bc8: 29 linhas / 17 arquivos
-  estado atual:     32 linhas / 18 arquivos
-  delta: +3 linhas, TODAS em docs/quality/RELEASE_CHECKLIST_v1.1.md (este artefato),
-         e todas são metalinguagem DESTA verificação, não afirmação sobre o banco:
-           1) o título do próprio contador do invariante;
-           2) a citação desse título na reconciliação do delta;
-           3) a linha da tabela de riscos para `R-10` ("templates ainda anunciam SQLite"),
-              que é um RISCO REGISTRADO, não uma afirmação corrente.
-  → 0 asserções não qualificadas. Cada uma das 29 linhas do baseline foi lida no
-    contexto: negação explícita, qualificador dev/testes, alternativa REJEITADA dentro
-    de ADR, documento com banner STATUS: HISTÓRICO + caveat inline, ou risco registrado.
+MÉTRICA ESTÁVEL (repositório .md versionado, EXCLUINDO este artefato)
 
-create_task-as-primary-strategy:
-  baseline 9091bc8: 42 linhas / 6 arquivos
-  estado atual:     45 linhas / 7 arquivos
-  delta: +3 linhas, TODAS em docs/quality/RELEASE_CHECKLIST_v1.1.md (este artefato):
-           1) o item 2.1 do checklist, cujo texto literal É a negação
-              ("Nenhuma task crítica usa `asyncio.create_task()` em produção");
-           2) o título do contador do invariante;
-           3) a citação do item 2.1 na reconciliação do delta.
-  → 0 asserções não qualificadas. Os 42 hits do baseline foram lidos: negação
-    explícita em AGENTS.md:31, descrição do fallback guardado, alternativa rejeitada
-    na ADR-0002, ou documento histórico com banner.
+SQLite-as-production    baseline 9091bc8: 29 linhas
+                        estado atual:     29 linhas   IDÊNTICO
+create_task             baseline 9091bc8: 42 linhas
+                        estado atual:     42 linhas   IDÊNTICO
 
-Broken local links (detector próprio, 196 links conferidos):  1  (F8, PRÉ-EXISTENTE)
+→ os 29 e os 42 hits do baseline estão intactos, um a um. Nenhuma linha de
+  documentação PRÉ-EXISTENTE foi alterada, adicionada ou removida nesta task
+  (o diff de 9091bc8..HEAD só cria 2 arquivos novos e edita 2 linhas de índice).
+→ 0 asserções não qualificadas em ambos. Cada uma das 29 linhas foi lida no
+  contexto: negação explícita, qualificador dev/testes, alternativa REJEITADA dentro
+  de ADR, documento com banner STATUS: HISTÓRICO + caveat inline, ou risco registrado.
+  Cada uma das 42 idem: negação explícita (ex.: AGENTS.md:31), descrição do fallback
+  guardado, alternativa rejeitada na ADR-0002, ou documento histórico com banner.
+
+CONTRIBUIÇÃO DESTE ARTEFATO (não é violação — é metalinguagem da verificação)
+  As ocorrências que o arquivo novo ADICIONA ao repositório são todas sobre o
+  próprio ato de verificar, e nenhuma afirma que a produção usa SQLite ou que
+  `create_task` é a estratégia de jobs:
+    - o item 3.1 (diz "PostgreSQL é o banco de produção | PASS");
+    - o item 2.1 (cujo texto literal É a negação: "Nenhuma task crítica usa
+      asyncio.create_task() em produção");
+    - os títulos dos contadores acima e a regra de contagem;
+    - a linha da tabela de riscos para `R-10` ("templates ainda anunciam SQLite",
+      um RISCO REGISTRADO) e a citação dele em §11-F8.
+
+Broken local links (detector próprio):  1  (F8, PRÉ-EXISTENTE)
+  - 194 links conferidos excluindo este arquivo / 196 incluindo-o;
   - baseline 9091bc8: 1 (docs/ui-ux/UI_UX_SETUP.md:157 -> ./GUIA_INICIO_RAPIDO.md)
   - estado atual:     1 (o MESMO link, no mesmo arquivo, não tocado por esta task)
   → o link novo deste artefato e os de ROADMAP.md/docs/README.md resolvem.
 Missing referenced paths citados como existentes:              0
 ```
-
-**Nota de método:** os dois contadores são sensíveis a este próprio documento (ele contém o texto
-"SQLite"/"produção" e o nome do invariante). Por isso o delta está atribuído linha a linha acima em
-vez de apenas declarado como zero — um contador autorreferente que se "explica" sozinho não é
-evidência.
-
----
 
 ## 13. Riscos conhecidos (permanecem riscos — não foram corrigidos)
 
@@ -325,8 +332,11 @@ verificação.
 
 ## 14. Fora de escopo (não tocado por esta verificação)
 
-- **UI/UX:** milestone **separada e futura** (decisão explícita do projeto). Nenhum template,
-  estilo, navegação ou design system foi alterado.
+- **UI/UX:** o redesenho de UI/UX é um ciclo **encerrado** cujos documentos estão marcados como
+  históricos (`CURRENT_ARCHITECTURE.md` §14, `ROADMAP.md` §4) e a modernização visual é trabalho
+  **fora do contrato desta milestone** — nenhum template, estilo, navegação ou design system foi
+  alterado por esta verificação (medido: 0 arquivos de UI/templates/css/js no diff). Qualquer
+  achado visual pertence a uma milestone própria; nenhuma foi especificada aqui.
 - **Ambiguidade dos composes (F7):** documentada, **não** resolvida — escolher uma variante canônica
   é decisão de produto, não desta task.
 - **Push / tag:** o roadmap **não** pede tag nem versão nova. Nenhuma foi criada.

@@ -97,7 +97,9 @@ completo: seção **HISTORICAL** de [`CURRENT_ARCHITECTURE.md`](CURRENT_ARCHITEC
 
 ---
 
-**Última revisão deste índice:** Task 18 (Épico 5 / T5.4) — criado para que os arquivos de
+**Última revisão deste índice:** Task 19 (Épico 6) — a linha de status da Task 19 deixou de dizer
+"Pendente" e passou a apontar para o artefato criado; o restante do índice não foi revisado nesta
+rodada. Criado na Task 18 (Épico 5 / T5.4) para que os arquivos de
 contexto de agentes ([`AGENTS.md`](../../AGENTS.md), [`CLAUDE.md`](../../CLAUDE.md)) tenham
 para onde apontar, já que a estrutura proposta pelo plano previa `docs/architecture/ROADMAP.md`
 e o arquivo não existia.
