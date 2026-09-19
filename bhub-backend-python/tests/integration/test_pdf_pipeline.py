@@ -5,11 +5,11 @@ seção "Task 16", linha 1141) pede o fluxo PDF determinístico:
 
     article OA -> job -> download fixture -> extract -> persist
 
-e sete critérios de aceite literais, todos cobertos aqui: PostgreSQL REAL, Redis REAL,
-``alembic upgrade head`` já aplicado (fixture ``migrated_database``), TSVector validado na
-suíte irmã ``test_postgres_search.py``, ARQ validado ALÉM de mocks (worker de produção em
-modo ``burst``), pelo menos um fluxo de ingestão ponta a ponta controlado, e nenhuma
-dependência de internet externa. A regra literal do épico — *"Evitar rede pública em CI.
+e sete critérios de aceite literais, satisfeitos por esta suíte e pela suíte irmã:
+PostgreSQL REAL, Redis REAL, ``alembic upgrade head`` já aplicado (fixture
+``migrated_database``), TSVector validado em ``test_postgres_search.py``, ARQ validado ALÉM
+de mocks (worker de produção em modo ``burst``), pelo menos um fluxo de ingestão ponta a
+ponta controlado, e nenhuma dependência de internet externa. A regra literal do épico — *"Evitar rede pública em CI.
 Servir fixture local ou mockar apenas a fronteira HTTP."* — é cumprida pelo caminho mais
 estreito possível: **a ÚNICA costura falsa desta suíte é o transporte HTTP**
 (``httpx.MockTransport``), que não abre socket nenhum. Download, leitura de bytes, validação
@@ -48,7 +48,7 @@ As asserções abaixo prendem o contrato MEDIDO contra o PostgreSQL real, inclus
    payload não-PDF e ``%PDF`` corrompido são TODOS engolidos em
    ``pdf_service.py:632-639`` (``except httpx.TimeoutException`` / ``httpx.HTTPStatusError``
    / ``Exception`` -> ``return None``); ``process_article_pdf`` devolve ``None`` e o job
-   devolve ``{"status": "skipped"}`` (``app/jobs/tasks.py:74-75``). Nenhuma linha de
+   devolve ``{"status": "skipped"}`` (``app/jobs/tasks.py:77-78``). Nenhuma linha de
    ``pdf_metadata`` é criada, nenhum ``FAILED`` aparece e o job NÃO morre
    (``jobs_failed == 0``; não há ``raise`` no caminho, então o ``retry_jobs`` do worker nem
    é acionado). O status ``ProcessingStatus.FAILED`` (``app/models/pdf_metadata.py:19``) é,
@@ -339,11 +339,20 @@ def _pdf_only_worker_settings(pdf_service: PDFService) -> type[WorkerSettings]:
     carrega o MiniLM (modelo de embeddings, dependência de rede/HF-hub e segundos de
     custo) e, se ``settings.enable_telemetry`` estivesse ligado, telemetria OTLP: nada
     disso pertence ao fluxo de PDF, e puxá-lo aqui quebraria o critério "sem internet
-    externa". Tudo o mais continua sendo produção: ``functions``, ``max_jobs``,
-    ``job_timeout``, ``max_tries``, ``retry_jobs``, ``keep_result`` e os hooks
+    externa". Tudo o mais continua sendo produção: ``max_jobs``, ``job_timeout``,
+    ``max_tries``, ``retry_jobs``, ``keep_result`` e os hooks
     ``on_job_start``/``on_job_end``/``on_shutdown`` (é o ``on_job_start`` de produção que
     cria ``ctx["db"]`` a partir de ``ctx["session_factory"]``, apontado pelo fixture para o
     banco migrado do container).
+
+    **Exceção declarada: ``functions`` É estreitada de propósito** — a produção registra
+    ``[task_classify_article, task_download_pdf]`` (``app/jobs/tasks.py:161``) e aqui só
+    ``[task_download_pdf]``. É a direção SEGURA: um worker ``burst`` com as duas funções
+    drenaria um job de CLASSIFICAÇÃO alheio (que este teste não controla e que pode ir à
+    rede), então o estreitamento protege o critério "sem internet externa". Efeito
+    colateral assumido: um job de outro tipo na fila seria FALHADO por este worker em vez
+    de executado — inalcançável na prática porque a guarda ``_assert_queue_only`` reprova o
+    teste antes disso se houver job que não seja deste arquivo.
     """
 
     class _PDFOnlyWorkerSettings(WorkerSettings):
@@ -819,7 +828,7 @@ async def test_artigo_que_ja_tem_pdf_nao_chama_http(
 
     A asserção forte é ``handler_calls == 0``: não basta "nenhuma linha nova" (isso um
     download que falhasse também produziria). O curto-circuito está em
-    ``pdf_service.py:436-438`` (``if article.pdf_file_path: return None``), antes do
+    ``pdf_service.py:435-437`` (``if article.pdf_file_path: return None``), antes do
     ``except`` que engole falhas — por isso aqui o ``skipped`` significa "não havia
     trabalho", não "falhou".
     """
