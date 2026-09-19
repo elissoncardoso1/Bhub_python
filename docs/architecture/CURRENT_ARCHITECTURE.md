@@ -5,7 +5,9 @@ existe no repositório hoje, com evidência (`arquivo:linha`). Se algo aqui dive
 código, o código está certo e este documento precisa de conserto.
 
 - Repositório: `Bhub_py` · aplicação: `bhub-backend-python/` (FastAPI, Python 3.12+).
-- Baseline desta versão do documento: commit `399915d` (branch `feat/v1.1-reliability`).
+- Baseline desta versão do documento: commit `6444ab8` (branch `feat/v1.1-reliability`) — o commit
+  em que o conteúdo foi verificado contra o código. A Task 18 (documentação) atualizou § 11, § 14,
+  a redação e os índices, **sem tocar código**.
 - Decisões estruturais: [`docs/adr/`](../adr/) — ADR-0001 (banco), ADR-0002 (fila de jobs),
   ADR-0003 (busca), ADR-0004 (monolito modular), ADR-0005 (estratégia de IA).
 - Plano de trabalho em curso: `docs/superpowers/plans/2026-09-15-bhub-v1.1-production-reliability.md`.
@@ -357,9 +359,10 @@ Nada nesta seção existe. É backlog declarado, sem implementação.
   opcional e métricas OTel quando ligadas; painel/alertas avançados não existem.
 - Documentação pública da API (`docs_url`/`redoc_url` só aparecem com `DEBUG=true` —
   `app/main.py:127-128`).
-- `ROADMAP.md`: a estrutura proposta pelo plano prevê `docs/architecture/ROADMAP.md`; o
-  arquivo **não existe** no repositório. O plano vigente
-  (`docs/superpowers/plans/2026-09-15-bhub-v1.1-production-reliability.md`) faz esse papel.
+- `ROADMAP.md`: existe em [`docs/architecture/ROADMAP.md`](ROADMAP.md) (T5.4). É um **índice** do
+  trabalho já declarado — o plano vigente, os itens adiados (§ 12) e os riscos conhecidos (§ 13)
+  — e não cria compromisso novo. A fonte do ciclo em curso continua sendo
+  `docs/superpowers/plans/2026-09-15-bhub-v1.1-production-reliability.md`.
 
 ## 12. DEFERRED
 
@@ -460,32 +463,49 @@ contra PostgreSQL nesta rodada.** Registrada, não corrigida.
 
 ## 14. HISTORICAL
 
-Documentos que descrevem uma arquitetura ANTERIOR. Não são a arquitetura atual.
-A marcação sistemática (T5.3) é da Task 18; o que já foi corrigido (na Task 17 e na rodada de
-correção dos achados da sua revisão) está indicado na tabela.
+Documentos que descrevem uma arquitetura ANTERIOR, cada um marcado no topo com o banner
+`> STATUS: HISTÓRICO` (T5.3). Não são a arquitetura atual — e **item não marcado de um
+documento desta seção não é backlog aberto**: o trabalho declarado vive no
+[`ROADMAP.md`](ROADMAP.md).
 
 | Documento | Estado |
 |---|---|
 | `bhub-backend-python/ARCHITECTURE_REPORT.md` | **HISTÓRICO marcado** (análise de 06/mai/2026), com notas de CORREÇÃO em §1 (infra), §4.1, §7 e §9. Afirmava `asyncio.create_task` como estratégia de jobs e SQLite como infraestrutura — nenhum dos dois é verdade hoje. |
 | `BHUB_REFACTORING_PLAN.md` (raiz) | **HISTÓRICO marcado** (plano de refatoração). Seus itens não marcados já foram executados (ARQ, DI, migração para PostgreSQL). Não é backlog aberto. |
 | `docs/ESTADO_ATUAL_PROJETO.md` | **HISTÓRICO marcado** (análise de dez/2024). As afirmações de produção foram corrigidas: banco = PostgreSQL 16, busca = `TSVECTOR` + `pg_trgm`. |
-| `docs/deploy/SQLITE_LIMITS.md` | **HISTÓRICO marcado** nesta rodada. Era o documento que afirmava SQLite em produção. |
-| `docs/deploy/DEPLOY_PROD.md` | **HISTÓRICO marcado** nesta rodada (checklist da era SQLite). |
-| `bhub-backend-python/agents.md` | Descreve IA/ML de uma revisão antiga ("Future Improvements" já atendidas por `app/core/telemetry.py`). Ainda não marcado — Task 18. |
-| `docs/arquitetura/MIGRATION_GUIDE.md`, `MIGRATION_GUIDE_BACKEND.md` | **HISTÓRICO marcado** na rodada de correção da revisão da Task 17 (banner no topo): guias da migração Next.js → Python, concluída. As citações de SQLite (`:23`, `:173`, `:222`, `:480`, nos dois arquivos) são daquela fase. `bhub-stack-recomendada.md` e `bhub-design-reference.md` não citam SQLite e seguem sem banner — Task 18. |
-| `docs/deploy/MAPA_EXECUCAO_DEPLOY.md`, `CHECKLIST_GO_NOGO.md`, `RESUMO_IMPLEMENTACAO.md` | **HISTÓRICO marcado** na rodada de correção da revisão da Task 17 (documentos operacionais da era SQLite). |
-| `docs/deploy/DEPLOY_STAGING.md`, `VPS_DEPLOY.md`, `TESTES_DEPLOY.md` | Documentos da era SQLite, **ainda sem banner** (Task 18). A rodada de correção da revisão da Task 17 corrigiu a `DATABASE_URL` de staging (`DEPLOY_STAGING.md:71-76` → PostgreSQL), marcou como histórico o troubleshooting de lock do SQLite (`VPS_DEPLOY.md:199-205`) e qualificou a citação de SQLite da suíte (`TESTES_DEPLOY.md:176-178`, dev/testes). |
-| `docs/configuracao/DOCUMENTACAO_BACKEND.md` | **HISTÓRICO marcado** na rodada de correção da revisão da Task 17: banner no topo e `:44` corrigido para `TSVECTOR` + `pg_trgm`; `:220` (`aiosqlite`), `:305` (`DATABASE_URL` SQLite) e `:663` (`bhub.db`) são da fase anterior à migração. |
-| `README.md` (raiz) | **Corrigido** na rodada de correção da revisão da Task 17: `:10-11` afirmam PostgreSQL 16 na produção (busca `TSVECTOR` + `pg_trgm`) e `:172` diz que o default dos composes é PostgreSQL. |
+| `docs/deploy/SQLITE_LIMITS.md` | **HISTÓRICO marcado.** Era o documento que afirmava SQLite em produção. |
+| `docs/deploy/DEPLOY_PROD.md` | **HISTÓRICO marcado** (checklist da era SQLite). |
+| `docs/arquitetura/MIGRATION_GUIDE.md`, `MIGRATION_GUIDE_BACKEND.md` | **HISTÓRICO marcado** (banner no topo): guias da migração Next.js → Python, concluída. As citações de SQLite (`:23`, `:173`, `:222`, `:480`, nos dois arquivos) são daquela fase. |
+| `docs/arquitetura/bhub-stack-recomendada.md` | **HISTÓRICO marcado** (T5.3): stack *recomendada* da fase de migração (FastAPI 0.109+, Tailwind por CDN, Prisma Python como opção de ORM). A stack vigente é a desta seção § 1. |
+| `docs/arquitetura/bhub-design-reference.md` | **HISTÓRICO marcado** (T5.3): design da fase anterior à paleta v3 — declara azul `#2563eb`/slate como base. A identidade atual é a v3 (borgonha/sage, `docs/ui-ux/PALETA_CORES.md`). |
+| `docs/deploy/MAPA_EXECUCAO_DEPLOY.md`, `CHECKLIST_GO_NOGO.md`, `RESUMO_IMPLEMENTACAO.md` | **HISTÓRICO marcado** (documentos operacionais da era SQLite). |
+| `docs/deploy/DEPLOY_STAGING.md`, `VPS_DEPLOY.md`, `TESTES_DEPLOY.md` | **HISTÓRICO marcado**: documentos da era SQLite. A rodada de correção da revisão da Task 17 corrigiu a `DATABASE_URL` de staging (`DEPLOY_STAGING.md:71-76` → PostgreSQL), marcou como histórico o troubleshooting de lock do SQLite (`VPS_DEPLOY.md:199-205`) e qualificou a citação de SQLite da suíte (`TESTES_DEPLOY.md:176-178`, dev/testes). |
+| `docs/deploy/VPS_UPLOAD.md`, `VPS_MAINTENANCE.md`, `TESTES_FINAL.md`, `TESTES_RESULTADO.md` | **HISTÓRICO marcado** (T5.3): era do frontend separado (`VPS_UPLOAD.md:72` sobe `Frontend/`; `:145` diz que `bhub.db` será criado na VPS) e a manutenção restaurando **arquivo** SQLite (`VPS_MAINTENANCE.md:88`, `cp … .db bhub.db`) em vez de `pg_restore` — o procedimento vigente de backup/restore é o do `docs/deploy/RUNBOOK.md`. `TESTES_FINAL.md`/`TESTES_RESULTADO.md` são snapshots de teste de jan/2025. |
+| `docs/deploy/DOCKER_DEPLOY.md`, `README_DOCKER.md` | **HISTÓRICO marcado** (T5.3): descrevem o `docker-compose.prod.yml` da **raiz** (backend + serviço `frontend`), não o caminho de deploy atual — ver § 10. |
+| `docs/configuracao/DOCUMENTACAO_BACKEND.md` | **HISTÓRICO marcado**: banner no topo e `:44` corrigido para `TSVECTOR` + `pg_trgm`; `:220` (`aiosqlite`), `:305` (`DATABASE_URL` SQLite) e `:663` (`bhub.db`) são da fase anterior à migração. |
+| `docs/configuracao/GUIA_INICIO_RAPIDO.md`, `docs/ui-ux/UI_UX_ANALYSIS.md`, `docs/ui-ux/PLANO_IMPLEMENTACAO_UI_UX.md` | **HISTÓRICO marcado** (T5.3): plano, início rápido e análise da fase de UI/UX de jan/2025, que declaram a paleta **teal/verde-água** como oficial. A identidade atual é a v3 (`docs/ui-ux/PALETA_CORES.md`). |
+| `docs/configuracao/prompt_tradutor.md` | **HISTÓRICO marcado** (T5.3): especificação escrita para a arquitetura Frontend (TypeScript/Node.js) + Backend Python daquela fase. A implementação atual é `app/services/translation_cache_service.py` (§ 7). |
+| `docs/implementacao/CHECKLIST_IMPLEMENTACAO.md`, `PROGRESSO_IMPLEMENTACAO.md`, `PRÓXIMOS_PASSOS.md`, `IMPLEMENTAÇÃO_PRIORIDADE_ALTA.md` | **HISTÓRICO marcado** (T5.3): plano de UI/UX de jan/2025 e o acompanhamento dele. Os checkboxes desmarcados não são backlog aberto. |
+| `README.md` (raiz) | **Corrigido**: `:10-11` afirmam PostgreSQL 16 na produção (busca `TSVECTOR` + `pg_trgm`); o quadro de `DATABASE_URL` documenta o default PostgreSQL dos dois composes de `bhub-backend-python/` e marca como **legado fora do caminho de deploy** o `docker-compose.prod.yml` da raiz (que fixa SQLite em `:31`) — ver N-01 no relatório da Task 18. |
 
 **Referências cruzadas que continuam válidas:** `docs/quality/BASELINE.md` (baseline de
 qualidade e limites declarados dos gates), `docs/superpowers/plans/2026-09-15-bhub-v1.1-production-reliability.md`
-(plano vigente) e `CLAUDE.md` (orientação operacional — já aponta para cá; o rewiring
-completo de `CLAUDE.md`/`AGENTS.md` é da Task 18).
+(plano vigente), [`ROADMAP.md`](ROADMAP.md) (trabalho declarado), `docs/README.md` (índice da
+documentação, com os históricos separados por categoria), `CLAUDE.md` e `AGENTS.md` (orientação
+operacional — ambos apontam para cá e para o `ROADMAP.md`).
+
+**Documentos de camada que NÃO são históricos** (descrevem o presente e apontam para cá):
+`bhub-backend-python/agents.md` (IA/ML — § 7; a antiga seção "Future Improvements" foi
+substituída pelo estado medido da observabilidade, § 9) e
+`bhub-backend-python/app/web/agents.md` (frontend SSR/HTMX — § 1), além de
+`docs/architecture/GLOBAL_SINGLETONS.md` e `docs/architecture/SERVICE_INSTANTIATION_MAP.md`
+(status ATIVO, Épico 2).
 
 ---
 
 **Última verificação deste documento:** leitura final contra o código no baseline `6444ab8`,
 após a rodada de correção dos achados da revisão da Task 17 (`docs/architecture/CURRENT_ARCHITECTURE.md`
 §10: âncoras de compose desambiguadas com `bhub-backend-python/`; R-05 em §13 reancorada em
-`app/api/v1/ai.py` (`:114` e `:63`); tabela de §14 atualizada).
+`app/api/v1/ai.py` (`:114` e `:63`); tabela de §14 atualizada). A Task 18 (T5.3/T5.4) **não**
+alterou nenhuma afirmação verificada contra o código: ela marcou os documentos históricos, criou o
+`ROADMAP.md`, corrigiu a rotação dos índices e trocou linguagem temporal por redação atemporal.

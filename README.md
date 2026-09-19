@@ -65,8 +65,8 @@ O servidor estará disponível em: http://localhost:8000
 
 ## 📚 Documentação da API
 
-- **Swagger UI**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
+- **Swagger UI**: http://localhost:8000/docs — **só existe com `DEBUG=true`** (`docs_url`/`redoc_url` são `None` fora disso: `bhub-backend-python/app/main.py:127-128`)
+- **ReDoc**: http://localhost:8000/redoc — mesma condição
 
 ## 🖥️ Frontend (HTMX)
 
@@ -148,11 +148,14 @@ curl -X GET "http://localhost:8000/api/v1/admin/stats" \
 ## 🐳 Docker
 
 ```bash
-# Build e run
-docker-compose up -d
+# Produção — de DENTRO de bhub-backend-python/ (é o compose com PostgreSQL + Redis + arq-worker)
+cd bhub-backend-python && docker compose -f docker-compose.prod.yml up -d
+
+# Desenvolvimento
+cd bhub-backend-python && docker compose up -d
 
 # Ver logs
-docker-compose logs -f backend
+docker compose -f docker-compose.prod.yml logs -f backend
 ```
 
 ## 🧪 Testes
@@ -169,7 +172,7 @@ pytest tests/ -v --cov=app --cov-report=html
 
 | Variável | Descrição | Padrão |
 |----------|-----------|--------|
-| `DATABASE_URL` | URL do banco | `postgresql+asyncpg://bhub:bhub@db:5432/bhub` nos composes (`bhub-backend-python/docker-compose.yml:15`, `bhub-backend-python/docker-compose.prod.yml:32`); o default da aplicação, usado em dev/testes, é `sqlite+aiosqlite:///./bhub.db` |
+| `DATABASE_URL` | URL do banco | `postgresql+asyncpg://bhub:bhub@db:5432/bhub` nos dois composes de `bhub-backend-python/` (`docker-compose.yml:15`, `docker-compose.prod.yml:32`); o default da aplicação, usado em dev/testes, é `sqlite+aiosqlite:///./bhub.db`. **Exceção legada, não é caminho de deploy:** o `docker-compose.prod.yml` da **raiz** ainda fixa SQLite (`:31`) e monta um `./Frontend` que não existe no repositório (registrado em ADR-0001 e em `docs/quality/BASELINE.md`) |
 | `SECRET_KEY` | Chave JWT | - |
 | `DEBUG` | Modo debug | `false` |
 | `DEEPSEEK_API_KEY` | API DeepSeek | - |

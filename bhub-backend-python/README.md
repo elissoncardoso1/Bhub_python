@@ -6,8 +6,10 @@
 
 A documentação canônica fica na raiz do repositório, para não duplicar conteúdo:
 
+- 🏗️ **[Arquitetura atual](../docs/architecture/CURRENT_ARCHITECTURE.md)** — referência única (o código manda)
+- 🗺️ **[Roadmap](../docs/architecture/ROADMAP.md)** — o que está declarado como trabalho aberto
 - 📄 **[README do projeto](../README.md)** — visão geral, stack e instalação passo a passo
-- 🤖 **[CLAUDE.md](../CLAUDE.md)** — comandos (setup, run, testes, lint, migrations), arquitetura e convenções
+- 🤖 **[AGENTS.md](../AGENTS.md)** / **[CLAUDE.md](../CLAUDE.md)** — contexto para agentes de código, comandos (setup, run, testes, lint, migrations) e convenções
 - 📚 **[docs/](../docs/README.md)** — documentação completa por categoria (arquitetura, deploy, segurança, UI/UX, …)
 
 ## Início rápido
