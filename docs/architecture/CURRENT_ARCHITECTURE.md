@@ -221,8 +221,8 @@ executado).
 ## 7. IA (CURRENT)
 
 - **Facade:** `AIManager` (`app/ai/manager.py`). Ordem de provedores para classificação:
-  **DeepSeek → LLM local → OpenRouter → HuggingFace** (`:71-77`); para tradução o mesmo
-  arranjo sem o HuggingFace (`:114-117`). Um provedor só entra no dicionário se a chave
+  **DeepSeek → LLM local → OpenRouter → HuggingFace** (`:71-76`); para tradução o mesmo
+  arranjo sem o HuggingFace (`:114-118`). Um provedor só entra no dicionário se a chave
   correspondente estiver configurada (`:41-62`).
 - **Fallback instrumentado:** cada queda de provedor chama `record_ai_fallback`
   (`app/ai/manager.py:98-100`), que alimenta a métrica `ai.fallback.total` quando o

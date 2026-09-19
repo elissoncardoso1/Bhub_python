@@ -83,8 +83,8 @@ O SQLite mantém a tabela virtual `articles_fts` e os triggers `articles_ai` / `
   mais um componente para operar e sincronizar, num projeto de um servidor só; o
   levantamento comparativo está em `docs/rss/rss_research.md`.
 - **`tsvector` sem `pg_trgm`.** Funcionaria para full-text, mas perderia a similaridade
-  das sugestões e o índice sobre `title` para `ilipe`/`ilike` — as duas coisas foram
-  pedidas juntas.
+  das sugestões e o índice sobre `title` para `ILIKE` — as duas coisas foram pedidas
+  juntas.
 - **Coluna gerada (`GENERATED ALWAYS AS ... STORED`) em vez de trigger.** Não adotada:
   a expressão de `to_tsvector` com pesos e duas configurações de idioma não era imutável
   de forma confiável no momento da migração; o trigger é explícito e já reescreve os

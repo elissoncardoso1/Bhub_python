@@ -62,7 +62,7 @@ inline pendentes antes de encerrar (`app/services/task_dispatcher.py:58-64`).
   modelo, a classificação degrada silenciosamente para a heurística (RED-5).
 - **Negativo — dois caminhos de código no fallback inline.** `InlineTaskQueue.dispatch_classification`
   chama `app.services.background_tasks.classify_article_task`, enquanto o job ARQ chama
-  `ClassificationService.classify_article` (`app/interfaces/task_queue.py:101-104` vs
+  `ClassificationService.classify_article` (`app/interfaces/task_queue.py:100-104` vs
   `app/jobs/tasks.py:24-45`). Um teste que esqueça `ENABLE_ARQ=true` mede o caminho errado.
 - **Negativo — a ordem commit→dispatch não é atômica.** O job é enfileirado depois do
   `commit` (`app/services/feed_aggregator.py:223`, `:231`, `:238`) sem outbox; um crash na
