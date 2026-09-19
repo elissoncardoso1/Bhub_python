@@ -1,5 +1,17 @@
 # Plano de Refatoração — BHub Backend (Python)
 
+> STATUS: HISTÓRICO
+> Este documento não representa necessariamente a arquitetura atual.
+> Consulte docs/architecture/CURRENT_ARCHITECTURE.md.
+>
+> É um **plano**, não um retrato do presente: as Fases 1 (DI via `Protocol` + `Depends`),
+> 2 (fila persistente ARQ) e 3 (migração para PostgreSQL) já foram executadas, embora os
+> checkboxes abaixo continuem desmarcados. **Não trate item não marcado deste arquivo como
+> backlog aberto** — confira o que existe em `app/` e em `docs/adr/`. Em particular, o
+> padrão de `asyncio.create_task` descrito aqui como "PADRÃO ATUAL" não é mais o de
+> produção: os jobs rodam em ARQ sobre Redis (`app/services/task_dispatcher.py`,
+> `app/jobs/tasks.py`; ADR-0002).
+
 **Baseado em:** ARCHITECTURE_REPORT.md (06/mai/2026) + Bhub_Backend_Architecture_Review.md (Obsidian) + Python Wiki (OOP, ABC, Protocolos)  
 **Versão:** 1.0 — Elisson Coimbra, CRP 22/01992 / pontobhv
 

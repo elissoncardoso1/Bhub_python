@@ -1,5 +1,15 @@
 # Deploy BHUB - Produção
 
+> STATUS: HISTÓRICO
+> Este documento não representa necessariamente a arquitetura atual.
+> Consulte docs/architecture/CURRENT_ARCHITECTURE.md.
+>
+> Checklist escrito quando a produção era SQLite (Jan/2025). A decisão mudou:
+> **produção hoje é PostgreSQL 16** (ADR-0001) e os jobs rodam em **ARQ sobre Redis**
+> (ADR-0002) — os itens abaixo sobre SQLite/`SCHEDULER_MODE` descrevem aquela fase. A
+> operação vigente está em `docs/deploy/RUNBOOK.md` e em
+> `docs/architecture/CURRENT_ARCHITECTURE.md` (§ Deploy).
+
 **Versão**: 1.0.0  
 **Data**: Janeiro 2025  
 **Status**: ⚠️ **NO-GO** até fechar bloqueadores

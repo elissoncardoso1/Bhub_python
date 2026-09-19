@@ -1,5 +1,22 @@
 # Relatório de Arquitetura de Software — BHub Backend (Python)
 
+> STATUS: HISTÓRICO
+> Este documento não representa necessariamente a arquitetura atual.
+> Consulte docs/architecture/CURRENT_ARCHITECTURE.md.
+>
+> A análise é de **maio de 2026** e duas afirmações dela não valem mais — estão corrigidas
+> pontualmente no texto abaixo (notas marcadas "CORREÇÃO"):
+>
+> 1. **Jobs**: o relatório afirma (presente do indicativo) que as tarefas pesadas são
+>    disparadas por `asyncio.create_task()`. Não é mais verdade: produção usa **ARQ sobre
+>    Redis**, com worker em processo separado (`app/services/task_dispatcher.py`,
+>    `app/jobs/tasks.py`, `docker-compose.prod.yml:76-114`; ADR-0002). `asyncio.create_task`
+>    sobreviveu apenas como executor inline de desenvolvimento, atrás de
+>    `ENABLE_ARQ=false` (`app/interfaces/task_queue.py:72-93`) — não foi removido.
+> 2. **Banco**: o box de infraestrutura lista SQLite. Produção é **PostgreSQL 16**
+>    (`docker-compose.prod.yml:32`, `:85`, `:117`; `app/database.py:27-33`; ADR-0001);
+>    SQLite ficou em desenvolvimento e na suíte unitária.
+
 **Data da Análise:** 06 de Maio de 2026
 **Versão do Sistema:** 1.0.0
 **Repositório:** `bhub-backend-python/`
@@ -35,7 +52,8 @@ O backend do BHub é um **monolito modular** desenvolvido em **Python 3.12+** co
 │  SQLAlchemy 2.0 async ORM — 15 modelos                  │
 ├─────────────────────────────────────────────────────────┤
 │           Infrastructure                                 │
-│  SQLite + Alembic + APScheduler + Docker                │
+│  PostgreSQL 16 + Alembic + APScheduler + Docker          │
+│  (CORREÇÃO: era "SQLite"; produção é PostgreSQL — ADR-0001)│
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -234,9 +252,15 @@ Isso elimina a necessidade de um frontend SPA separado para o admin, reduzindo c
 
 ### 4.1 Gerenciamento Frágil de Tarefas Assíncronas [CRÍTICO]
 
+> **CORREÇÃO (docs/architecture/CURRENT_ARCHITECTURE.md, ADR-0002):** este débito foi
+> resolvido. Hoje produção usa **ARQ sobre Redis** com worker em processo separado; o
+> `asyncio.create_task` descrito abaixo sobrevive apenas no executor inline de
+> desenvolvimento (`ENABLE_ARQ=false`, `app/interfaces/task_queue.py:90-93`). Mantido como
+> registro da análise de maio/2026.
+
 **Local:** `app/services/background_tasks.py` e callers
 
-Tarefas pesadas (classificação paralela de artigos, download de PDFs) são disparadas via `asyncio.create_task()`. Isso implica:
+Tarefas pesadas (classificação paralela de artigos, download de PDFs) são disparadas via `asyncio.create_task()` (estado de maio/2026 — ver CORREÇÃO acima). Isso implica:
 
 - **Perda de trabalho em restart**: se o processo cair, todas as tasks em andamento são perdidas sem retry
 - **Sem políticas de retry**: falhas transitórias em APIs externas (DeepSeek, HuggingFace) não são tratadas automaticamente
@@ -342,6 +366,11 @@ Presença de diretório literal `{api/` na árvore do projeto — resquício de 
 
 ## 7. Diagrama de Fluxo — Sincronização de Feeds
 
+> **CORREÇÃO:** no fluxo atual o `dispatch` acontece **depois** do `commit` e enfileira em
+> ARQ (`app/services/feed_aggregator.py:223`, `:231`, `:238`), não em `asyncio.create_task`.
+> Leia as duas linhas marcadas "⚠️ sem fila" abaixo como o estado de maio/2026. O diagrama
+> atual está em `docs/architecture/CURRENT_ARCHITECTURE.md` § Ingestão.
+
 ```
 Cron/Scheduler (/api/v1/cron/sync)
   │
@@ -404,6 +433,9 @@ Route Handler (API ou SSR)
 ## 9. Conclusão
 
 O backend do BHub apresenta uma arquitetura **sólida para o estágio atual do produto**, com decisões arquiteturais maduras em segurança (CSRF, refresh token rotation, rate limiting) e integração com IA (multi-provider com fallback). A separação de camadas é limpa e o uso de SSR+HTMX como alternativa ao SPA é pragmático.
+
+> **CORREÇÃO:** os três débitos abaixo foram resolvidos (ARQ/Redis, `Protocol` + `Depends`
+> e PostgreSQL). Ver `docs/architecture/CURRENT_ARCHITECTURE.md` e `docs/adr/`.
 
 Os **3 débitos principais** que limitam a escalabilidade são:
 

@@ -1,5 +1,18 @@
 # Estado Atual do Projeto BHUB
 
+> **STATUS: HISTÓRICO**
+> Este documento não representa necessariamente a arquitetura atual.
+> Consulte `docs/architecture/CURRENT_ARCHITECTURE.md`.
+>
+> A análise abaixo é de **dezembro de 2024** e descreve uma fase anterior à migração para
+> produção. Duas afirmações dele **não** valem mais e foram corrigidas pontualmente nesta
+> rodada: o banco de produção é **PostgreSQL 16** (não SQLite) e a busca full-text de
+> produção é `TSVECTOR` + `pg_trgm` do PostgreSQL (o FTS5 do SQLite ficou restrito a
+> desenvolvimento e à suíte unitária). Evidência:
+> `bhub-backend-python/docker-compose.prod.yml:32`, `:85`, `:117`;
+> `bhub-backend-python/app/database.py:27-33`;
+> `bhub-backend-python/alembic/versions/008_postgres_fts.py`.
+
 **Data da Análise**: Dezembro 2024  
 **Versão**: 1.0.0  
 **Status**: Em Desenvolvimento Ativo
@@ -30,7 +43,7 @@ Fornecer uma plataforma centralizada onde pesquisadores, profissionais e estudan
 | **Framework Web** | FastAPI | 0.115+ |
 | **Linguagem** | Python | 3.12+ |
 | **ORM** | SQLAlchemy | 2.0 (async) |
-| **Banco de Dados** | SQLite | com FTS5 (Full-Text Search) |
+| **Banco de Dados** | PostgreSQL 16 (produção) / SQLite (apenas dev e testes) | busca de produção é `TSVECTOR` + `pg_trgm`; FTS5 só em dev |
 | **Autenticação** | FastAPI-Users | JWT tokens |
 | **Machine Learning** | sentence-transformers | 3.3.0+ |
 | **Scheduler** | APScheduler | 3.10.4+ |
@@ -125,7 +138,8 @@ Bhub_py/
 
 ### 4. Busca e Filtros
 
-- **Busca Full-Text**: Usando FTS5 do SQLite
+- **Busca Full-Text**: PostgreSQL `TSVECTOR` + `pg_trgm` (produção); FTS5 do SQLite apenas
+  em desenvolvimento e na suíte unitária
 - **Filtros Avançados**: Por categoria, autor, data, impacto, idioma
 - **Sugestões**: Sistema de autocompletar para buscas
 - **Busca Semântica**: Preparado para busca por similaridade (futuro)
@@ -298,8 +312,8 @@ APP_VERSION=1.0.0
 DEBUG=false
 ENVIRONMENT=production
 
-# Database
-DATABASE_URL=sqlite+aiosqlite:///./bhub.db
+# Database (produção: PostgreSQL 16 + asyncpg)
+DATABASE_URL=postgresql+asyncpg://bhub:bhub@db:5432/bhub
 
 # Security
 SECRET_KEY=<gerar-com-openssl-rand-hex-32>
@@ -328,7 +342,7 @@ CRON_SECRET=<secret-para-cron-externo>
 
 3. **Desenvolvimento Local**
    - Uvicorn com reload
-   - SQLite local
+   - SQLite local (banco de desenvolvimento; produção usa PostgreSQL)
    - Hot-reload de templates
 
 ---

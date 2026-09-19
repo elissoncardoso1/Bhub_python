@@ -1,5 +1,13 @@
 # Limites e Considerações - SQLite em Produção
 
+> STATUS: HISTÓRICO
+> Este documento não representa necessariamente a arquitetura atual.
+> Consulte docs/architecture/CURRENT_ARCHITECTURE.md.
+>
+> Escrito quando a produção era SQLite. **Produção hoje é PostgreSQL 16** (ADR-0001), e o
+> SQLite ficou restrito a desenvolvimento e à suíte unitária. Leia este texto como o
+> levantamento que motivou a migração, não como a operação vigente.
+
 **Versão**: 1.0.0  
 **Data**: Janeiro 2025
 

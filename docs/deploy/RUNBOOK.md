@@ -3,6 +3,12 @@
 **Versão**: 1.0.0  
 **Data**: Janeiro 2025
 
+> **Escopo:** o banco de **produção** é PostgreSQL 16 (`db`, `postgres:16-alpine`) e os
+> comandos de operação abaixo usam `docker-compose exec db psql ...`. Os helpers
+> `scripts/backup_db.py` / `scripts/restore_db.py` operam sobre **arquivo SQLite** e valem
+> apenas para o banco de desenvolvimento (`DATABASE_URL=sqlite+aiosqlite:///./bhub.db`).
+> Arquitetura atual: `docs/architecture/CURRENT_ARCHITECTURE.md`.
+
 ---
 
 ## 📋 Índice
@@ -23,7 +29,14 @@ O backup automático é configurado via cron ou systemd timer (ver `DEPLOY_STAGI
 
 **Localização dos backups**: `backups/bhub_backup_YYYYMMDD_HHMMSS.db`
 
-### Backup Manual
+> **Atenção (PostgreSQL):** `scripts/vps/backup.sh` copia um **arquivo** (`bhub.db`) — num
+> deploy com PostgreSQL a produção não está nesse arquivo, então o backup automático não
+> cobre o banco de produção. O backup do banco é `pg_dump`/`pg_dumpall` contra o serviço
+> `db`; ver a seção "Verificar Integridade" para os comandos de leitura.
+
+### Backup Manual (SQLite — apenas desenvolvimento)
+
+Os comandos abaixo operam sobre **arquivo SQLite**; não os use contra o serviço `db`:
 
 ```bash
 # Dentro do container
@@ -35,7 +48,17 @@ docker-compose exec backend python -m scripts.backup_db \
   --retention-days 30
 ```
 
+Para o banco de **produção** (PostgreSQL):
+
+```bash
+docker-compose exec db pg_dump -U "${POSTGRES_USER:-bhub}" -d "${POSTGRES_DB:-bhub}" \
+  -Fc -f /tmp/bhub_YYYYMMDD_HHMMSS.dump
+docker cp "$(docker-compose ps -q db):/tmp/bhub_YYYYMMDD_HHMMSS.dump" backups/
+```
+
 ### Restore
+
+Backups **SQLite** (desenvolvimento) via `scripts.restore_db`:
 
 ```bash
 # Listar backups disponíveis
@@ -51,26 +74,32 @@ docker-compose exec backend python -m scripts.restore_db \
   --no-backup
 ```
 
-### Verificar Integridade
+Backup **PostgreSQL** (produção), restaurado no serviço `db`:
 
 ```bash
-# Verificar banco atual
-docker-compose exec backend python -c "
-from scripts.backup_db import verify_database_integrity
-from pathlib import Path
-import asyncio
-result = verify_database_integrity(Path('bhub.db'))
-print('OK' if result else 'FALHOU')
-"
-
-# Verificar backup
-docker-compose exec backend python -c "
-from scripts.restore_db import verify_backup_integrity
-from pathlib import Path
-result = verify_backup_integrity(Path('backups/bhub_backup_20250115_020000.db'))
-print('OK' if result else 'FALHOU')
-"
+docker-compose exec -T db pg_restore -U "${POSTGRES_USER:-bhub}" -d "${POSTGRES_DB:-bhub}" \
+  --clean --if-exists < backups/bhub_YYYYMMDD_HHMMSS.dump
 ```
+
+### Verificar Integridade
+
+O banco de **produção** é PostgreSQL: a integridade se verifica no servidor, não por
+arquivo.
+
+```bash
+# Banco atual (PostgreSQL) — conectividade e sanidade do catálogo
+docker-compose exec db pg_isready -U "${POSTGRES_USER:-bhub}" -d "${POSTGRES_DB:-bhub}"
+docker-compose exec db psql -U "${POSTGRES_USER:-bhub}" -d "${POSTGRES_DB:-bhub}" \
+  -c "SELECT count(*) AS tabelas FROM information_schema.tables WHERE table_schema = 'public';" \
+  -c "SELECT version_num FROM alembic_version;"
+
+# Backup lógico (formato próprio do PostgreSQL)
+docker-compose exec db pg_restore --list backups/bhub_YYYYMMDD_HHMMSS.dump | head
+```
+
+Os scripts `scripts.backup_db` / `scripts.restore_db` operam sobre **arquivo SQLite** e
+servem apenas ao banco de desenvolvimento (`DATABASE_URL=sqlite+aiosqlite:///./bhub.db`).
+Não os use contra produção.
 
 ---
 
@@ -107,15 +136,20 @@ docker-compose exec backend env | grep -E "(SECRET_KEY|DATABASE_URL)"
 
 ### 2. Banco de Dados Corrompido
 
-**Sintomas**: Erros de SQLite, "database is locked", integridade falha
+**Sintomas**: Erros de banco de dados, integridade falha, conexões travadas
+
+> Os comandos abaixo assumem PostgreSQL (o banco de produção). Para o banco **de
+> desenvolvimento** em SQLite, o equivalente é `sqlite3 bhub.db 'PRAGMA integrity_check;'`.
 
 **Diagnóstico**:
 ```bash
-# Verificar integridade
-docker-compose exec backend python -m scripts.backup_db --no-verify
+# Verificar integridade (PostgreSQL)
+docker-compose exec db psql -U "${POSTGRES_USER:-bhub}" -d "${POSTGRES_DB:-bhub}" \
+  -c "SELECT pg_is_in_recovery();" -c "SELECT 1;"
 
-# Verificar locks
-docker-compose exec backend sqlite3 bhub.db "PRAGMA integrity_check;"
+# Verificar locks (PostgreSQL)
+docker-compose exec db psql -U "${POSTGRES_USER:-bhub}" -d "${POSTGRES_DB:-bhub}" \
+  -c "SELECT pid, state, wait_event_type, wait_event, query FROM pg_stat_activity WHERE datname = current_database();"
 ```
 
 **Solução**:
@@ -123,17 +157,14 @@ docker-compose exec backend sqlite3 bhub.db "PRAGMA integrity_check;"
 # 1. Parar aplicação
 docker-compose down
 
-# 2. Restaurar último backup
-docker-compose run --rm backend python -m scripts.restore_db \
-  backups/bhub_backup_YYYYMMDD_HHMMSS.db
+# 2. Restaurar o último backup do PostgreSQL (banco parado)
+docker-compose up -d db
+docker-compose exec -T db pg_restore -U "${POSTGRES_USER:-bhub}" -d "${POSTGRES_DB:-bhub}" \
+  --clean --if-exists < backups/bhub_YYYYMMDD_HHMMSS.dump
 
-# 3. Verificar integridade
-docker-compose run --rm backend python -c "
-from scripts.backup_db import verify_database_integrity
-from pathlib import Path
-result = verify_database_integrity(Path('bhub.db'))
-print('OK' if result else 'FALHOU')
-"
+# 3. Verificar integridade (PostgreSQL)
+docker-compose exec db psql -U "${POSTGRES_USER:-bhub}" -d "${POSTGRES_DB:-bhub}" \
+  -c "SELECT count(*) FROM articles;" -c "SELECT version_num FROM alembic_version;"
 
 # 4. Reiniciar aplicação
 docker-compose up -d
@@ -222,11 +253,12 @@ print(f'Rate limit: {settings.rate_limit_requests}/{settings.rate_limit_period}s
 # Verificar espaço
 df -h
 
-# Verificar tamanho do banco
-docker-compose exec backend ls -lh bhub.db
+# Verificar tamanho do banco (PostgreSQL)
+docker-compose exec db psql -U "${POSTGRES_USER:-bhub}" -d "${POSTGRES_DB:-bhub}" \
+  -c "SELECT pg_size_pretty(pg_database_size(current_database())) AS banco;"
 
 # Verificar tamanho dos backups
-docker-compose exec backend du -sh backups/
+docker-compose exec db du -sh backups/
 
 # Verificar tamanho dos logs
 docker-compose exec backend du -sh logs/
@@ -264,9 +296,10 @@ curl -f http://localhost:8000/health || echo "FALHOU"
 echo "2. Status do container:"
 docker-compose ps backend
 
-# Tamanho do banco
+# Tamanho do banco (PostgreSQL)
 echo "3. Tamanho do banco:"
-docker-compose exec backend ls -lh bhub.db
+docker-compose exec db psql -U "${POSTGRES_USER:-bhub}" -d "${POSTGRES_DB:-bhub}" \
+  -c "SELECT pg_size_pretty(pg_database_size(current_database())) AS banco;"
 
 # Último backup
 echo "4. Último backup:"
@@ -289,14 +322,11 @@ df -h | grep -E "(Filesystem|/var)"
 
 echo "=== Verificação Semanal BHUB ==="
 
-# Integridade do banco
+# Integridade do banco (PostgreSQL)
 echo "1. Integridade do banco:"
-docker-compose exec backend python -c "
-from scripts.backup_db import verify_database_integrity
-from pathlib import Path
-result = verify_database_integrity(Path('bhub.db'))
-print('OK' if result else 'FALHOU')
-"
+docker-compose exec db pg_isready -U "${POSTGRES_USER:-bhub}" -d "${POSTGRES_DB:-bhub}"
+docker-compose exec db psql -U "${POSTGRES_USER:-bhub}" -d "${POSTGRES_DB:-bhub}" \
+  -c "SELECT version_num FROM alembic_version;"
 
 # Status do scheduler
 echo "2. Status do scheduler:"
@@ -306,14 +336,10 @@ import json
 print(json.dumps(get_scheduler_status(), indent=2))
 "
 
-# Estatísticas do banco
+# Estatísticas do banco (PostgreSQL)
 echo "3. Estatísticas:"
-docker-compose exec backend sqlite3 bhub.db "
-SELECT 
-    (SELECT COUNT(*) FROM articles) as articles,
-    (SELECT COUNT(*) FROM users) as users,
-    (SELECT COUNT(*) FROM feeds) as feeds;
-"
+docker-compose exec db psql -U "${POSTGRES_USER:-bhub}" -d "${POSTGRES_DB:-bhub}" \
+  -c "SELECT (SELECT COUNT(*) FROM articles) AS articles, (SELECT COUNT(*) FROM users) AS users, (SELECT COUNT(*) FROM feeds) AS feeds;"
 
 # Verificar backups
 echo "4. Backups disponíveis:"
@@ -551,11 +577,13 @@ docker stats bhub-backend
 # Verificar queries lentas (se habilitado)
 docker-compose logs backend | grep -i "slow"
 
-# Verificar tamanho do banco
-docker-compose exec backend ls -lh bhub.db
+# Verificar tamanho do banco (PostgreSQL)
+docker-compose exec db psql -U "${POSTGRES_USER:-bhub}" -d "${POSTGRES_DB:-bhub}" \
+  -c "SELECT pg_size_pretty(pg_database_size(current_database())) AS banco;"
 
-# Verificar índices
-docker-compose exec backend sqlite3 bhub.db ".indices"
+# Verificar índices (PostgreSQL)
+docker-compose exec db psql -U "${POSTGRES_USER:-bhub}" -d "${POSTGRES_DB:-bhub}" \
+  -c "SELECT indexname, indexdef FROM pg_indexes WHERE schemaname = 'public' ORDER BY tablename, indexname;"
 ```
 
 ### Erros de Conexão
