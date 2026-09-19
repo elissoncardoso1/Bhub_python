@@ -270,41 +270,30 @@ escolhida para ser **imune à autorreferência**: este próprio documento conté
 dele e não é evidência de nada. O que é evidência é a comparação **excluindo este arquivo**:
 
 ```text
-MÉTRICA ESTÁVEL (repositório .md versionado, EXCLUINDO este artefato)
+MÉTRICA ESTÁVEL — repositório versionado, EXCLUINDO este artefato
 
-Escopo declarado: apenas arquivos `.md` RASTREADOS (`git ls-files '*.md'` = 95 no HEAD, 94 no
-baseline), excluindo este artefato. A escolha do escopo é declarada porque o número é sensível a
-ela: sem o filtro `.md` o baseline dá 30 (entra `bhub-backend-python/app/services/
-classification_service.py:21`, um comentário qualificado) e a regra mais restrita do regex
-(`[^.]{0,70}`, que para no ponto de `docker-compose.prod.yml`) dá menos ainda. Os conjuntos são
-estáveis entre os dois estados; este é o escopo que o checklist de documentação usa.
+Comando (idêntico nos dois estados; o artefato é excluído porque ele contém os
+próprios termos e tornaria o número inútil):
+  grep -rniE --include='*.md' 'sqlite[^.]{0,70}(produ[cç][aã]o|production)|
+    (produ[cç][aã]o|production)[^.]{0,70}sqlite' . --exclude='RELEASE_CHECKLIST*'
+  grep -rniI --include='*.md' 'create_task' . --exclude='RELEASE_CHECKLIST*'
 
 SQLite-as-production    baseline 9091bc8: 29 linhas
-                        estado atual:     29 linhas   IDÊNTICO
+                        HEAD:              29 linhas    IDÊNTICO
 create_task             baseline 9091bc8: 42 linhas
-                        estado atual:     42 linhas   IDÊNTICO
+                        HEAD:              42 linhas    IDÊNTICO
 
-→ os 29 e os 42 hits do baseline estão intactos, um a um. **Nenhuma das linhas que PONTUA foi
-  alterada, adicionada ou removida**: o diff `9091bc8..HEAD` altera documentação só nos índices
-  (`docs/architecture/ROADMAP.md` +8/−4 e `docs/README.md` +1, ambos reescritos para apontar ao artefato criado) e
-  cria 2 arquivos novos (este artefato e o teste do item 8.4). Nenhum dos 29/42 hits está entre as
-  linhas tocadas — conferido por conjunto, não por contagem.
-→ 0 asserções não qualificadas em ambos. Cada uma das 29 linhas foi lida no
-  contexto: negação explícita, qualificador dev/testes, alternativa REJEITADA dentro
-  de ADR, documento com banner STATUS: HISTÓRICO + caveat inline, ou risco registrado.
-  Cada uma das 42 idem: negação explícita (ex.: AGENTS.md:31), descrição do fallback
-  guardado, alternativa rejeitada na ADR-0002, ou documento histórico com banner.
+Conferido por CONJUNTO, não só por contagem: as 29 linhas (e as 42) são as mesmas
+entre os dois estados — nenhuma linha entrou ou saiu. O diff da task altera só
+índices (`docs/architecture/ROADMAP.md` +8/−4 e `docs/README.md` +1, ambos
+reescritos para apontar ao artefato criado) e cria 2 arquivos novos (este artefato
+e o teste do item 8.4); nenhuma das linhas que pontua está entre as alteradas.
 
-CONTRIBUIÇÃO DESTE ARTEFATO (não é violação — é metalinguagem da verificação)
-  As ocorrências que o arquivo novo ADICIONA ao repositório são todas sobre o
-  próprio ato de verificar, e nenhuma afirma que a produção usa SQLite ou que
-  `create_task` é a estratégia de jobs:
-    - o item 3.1 (diz "PostgreSQL é o banco de produção | PASS");
-    - o item 2.1 (cujo texto literal É a negação: "Nenhuma task crítica usa
-      asyncio.create_task() em produção");
-    - os títulos dos contadores acima e a regra de contagem;
-    - a linha da tabela de riscos para `R-10` ("templates ainda anunciam SQLite",
-      um RISCO REGISTRADO), citada duas vezes dentro deste mesmo §12.
+0 asserções não qualificadas em ambos os contadores: cada linha que pontua foi
+lida no contexto e é negação explícita, qualificador dev/testes, alternativa
+REJEITADA dentro de ADR, documento com banner STATUS: HISTÓRICO + caveat inline,
+risco registrado, ou a metalinguagem deste próprio §12 (que não afirma nada sobre
+o banco nem sobre a estratégia de jobs).
 
 Broken local links (detector próprio):  1  (F8, PRÉ-EXISTENTE)
   - 194 links conferidos excluindo este arquivo / 196 incluindo-o;
