@@ -2,7 +2,7 @@
 
 > **Escopo:** descreve a camada de IA/ML que existe hoje em `app/ai/` e `app/ml/`.
 > A referência única da arquitetura atual é
-> [`docs/architecture/CURRENT_ARCHITECTURE.md`](../../docs/architecture/CURRENT_ARCHITECTURE.md)
+> [`docs/architecture/CURRENT_ARCHITECTURE.md`](../docs/architecture/CURRENT_ARCHITECTURE.md)
 > (§ 7 — IA, § 9 — Observabilidade); em caso de divergência, valem o documento e o código.
 
 This document outlines the AI and Machine Learning architecture of the BHub backend, emphasizing the intelligent orchestration and fallback strategies between local models and remote APIs.
@@ -61,5 +61,5 @@ improvement, which is no longer accurate:
   counters, the `arq.job.duration` histogram and the `arq.job` span.
 
 Current behaviour, with `arquivo:linha`, is described in § 9 of
-[`docs/architecture/CURRENT_ARCHITECTURE.md`](../../docs/architecture/CURRENT_ARCHITECTURE.md)
+[`docs/architecture/CURRENT_ARCHITECTURE.md`](../docs/architecture/CURRENT_ARCHITECTURE.md)
 (Observabilidade).

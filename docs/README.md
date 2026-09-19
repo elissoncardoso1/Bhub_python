@@ -143,7 +143,7 @@ Registros de funcionalidades que existem no código:
 
 ### Para Desenvolvedores
 
-1. **Começando**: [AGENTS.md](../AGENTS.md) → [CLAUDE.md](../CLAUDE.md) → [configuracao/GUIA_INICIO_RAPIDO.md](./configuracao/GUIA_INICIO_RAPIDO.md) (_histórico_, só para contexto da fase de UI/UX) → [README do projeto](../README.md)
+1. **Começando**: [AGENTS.md](../AGENTS.md) → [CLAUDE.md](../CLAUDE.md) → [README do projeto](../README.md)
 2. **Arquitetura**: [architecture/CURRENT_ARCHITECTURE.md](./architecture/CURRENT_ARCHITECTURE.md) e [adr/](./adr/); o trabalho declarado está em [architecture/ROADMAP.md](./architecture/ROADMAP.md)
 3. **Configuração**: [architecture/CURRENT_ARCHITECTURE.md](./architecture/CURRENT_ARCHITECTURE.md) § 3 (banco), § 10 (deploy) e [CLAUDE.md](../CLAUDE.md) (variáveis de ambiente)
 
@@ -163,7 +163,7 @@ Registros de funcionalidades que existem no código:
 
 1. **Estado atual**: [architecture/CURRENT_ARCHITECTURE.md](./architecture/CURRENT_ARCHITECTURE.md) — `ESTADO_ATUAL_PROJETO.md` é **histórico** (análise de dez/2024)
 2. **Trabalho aberto**: [architecture/ROADMAP.md](./architecture/ROADMAP.md)
-3. **Progresso**: [implementacao/PROGRESSO_IMPLEMENTACAO.md](./implementacao/PROGRESSO_IMPLEMENTACAO.md) e [implementacao/PRÓXIMOS_PASSOS.md](./implementacao/PRÓXIMOS_PASSOS.md) — **históricos** (jan/2025); o andamento do ciclo v1.1 está em [`.superpowers/sdd/`](../.superpowers/sdd/2026-09-15-bhub-v1.1-production-reliability/progress.md)
+3. **Progresso**: [implementacao/PROGRESSO_IMPLEMENTACAO.md](./implementacao/PROGRESSO_IMPLEMENTACAO.md) e [implementacao/PRÓXIMOS_PASSOS.md](./implementacao/PRÓXIMOS_PASSOS.md) — **históricos** (jan/2025); o andamento do ciclo v1.1 fica em `.superpowers/sdd/2026-09-15-bhub-v1.1-production-reliability/progress.md` (diretório de trabalho, não versionado)
 
 ---
 

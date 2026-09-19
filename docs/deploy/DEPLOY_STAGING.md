@@ -4,8 +4,8 @@
 > Este documento não representa necessariamente a arquitetura atual.
 > Consulte docs/architecture/CURRENT_ARCHITECTURE.md.
 >
-> Pipeline de janeiro de 2025, da era SQLite: há passos que inspecionam `bhub.db` (`:323`) e uma
-> menção à linha de SQLite do `.env` (`:75`). A produção vigente é PostgreSQL 16 (`db`,
+> Pipeline de janeiro de 2025, da era SQLite: há passos que inspecionam `bhub.db` (`:331`) e uma
+> menção à linha de SQLite do template de `.env` (`:83`). A produção vigente é PostgreSQL 16 (`db`,
 > `postgres:16-alpine`) e o procedimento atual é `docs/deploy/RUNBOOK.md`.
 
 **Versão**: 1.0.0  

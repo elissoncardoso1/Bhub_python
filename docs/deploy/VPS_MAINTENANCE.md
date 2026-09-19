@@ -5,7 +5,7 @@
 > Consulte docs/architecture/CURRENT_ARCHITECTURE.md.
 >
 > Manutenção da era do frontend em PM2 e do banco em **arquivo** SQLite: a restauração de backup
-> copia `bhub_YYYYMMDD_HHMMSS.db` para `bhub.db` (`:88`) e os comandos usam `pm2`. Nada disso vale
+> copia `bhub_YYYYMMDD_HHMMSS.db` para `bhub.db` (`:101`) e os comandos usam `pm2`. Nada disso vale
 > para a produção atual (PostgreSQL 16 + `arq-worker`): backup e restore vigentes são
 > `pg_dump`/`pg_restore` contra o serviço `db` — ver `docs/deploy/RUNBOOK.md`.
 

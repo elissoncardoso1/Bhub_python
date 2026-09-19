@@ -41,7 +41,8 @@ que trabalhe neste repositório. Ele diz **o que ler primeiro** e **o que não a
   assumem esse diretório.**
 - Documentação: `docs/` — índice em [`docs/README.md`](docs/README.md).
 - Andamento do ciclo v1.1 (relatórios por task, com evidência):
-  [`.superpowers/sdd/2026-09-15-bhub-v1.1-production-reliability/`](.superpowers/sdd/2026-09-15-bhub-v1.1-production-reliability/).
+  `.superpowers/sdd/2026-09-15-bhub-v1.1-production-reliability/` — diretório de trabalho **não
+  versionado** (`.superpowers/sdd/.gitignore`).
 
 ## Comandos essenciais
 

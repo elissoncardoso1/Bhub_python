@@ -5,7 +5,7 @@
 > Consulte docs/architecture/CURRENT_ARCHITECTURE.md.
 >
 > Guia de janeiro de 2025, da era SQLite: a execução de teste em container usa
-> `--db-url=sqlite+aiosqlite:///./test.db` (`:178`). O comando **não** corresponde à suíte atual —
+> `--db-url=sqlite+aiosqlite:///./test.db` (`:187`). O comando **não** corresponde à suíte atual —
 > hoje a suíte unitária roda em SQLite em memória (`tests/conftest.py`) e a de integração exige
 > PostgreSQL 16 real (`pytest tests/integration -m integration`).
 

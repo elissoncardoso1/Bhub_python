@@ -1,12 +1,12 @@
 # Estado Atual do Projeto BHUB
 
-> **STATUS: HISTÓRICO**
+> STATUS: HISTÓRICO
 > Este documento não representa necessariamente a arquitetura atual.
-> Consulte `docs/architecture/CURRENT_ARCHITECTURE.md`.
+> Consulte docs/architecture/CURRENT_ARCHITECTURE.md.
 >
 > A análise abaixo é de **dezembro de 2024** e descreve uma fase anterior à migração para
-> produção. Duas afirmações dele **não** valem mais e foram corrigidas pontualmente nesta
-> rodada: o banco de produção é **PostgreSQL 16** (não SQLite) e a busca full-text de
+> produção. Duas afirmações dele **não** valem mais e foram corrigidas pontualmente: o banco de
+> produção é **PostgreSQL 16** (não SQLite) e a busca full-text de
 > produção é `TSVECTOR` + `pg_trgm` do PostgreSQL (o FTS5 do SQLite ficou restrito a
 > desenvolvimento e à suíte unitária). Evidência:
 > `bhub-backend-python/docker-compose.prod.yml:32`, `:85`, `:117`;

@@ -23,8 +23,8 @@ O trabalho aberto deste ciclo vive em **um** arquivo:
   saída em `docs/quality/RELEASE_CHECKLIST_v1.1.md`. Esse arquivo **não existe** em
   `docs/quality/` hoje (o diretório contém apenas `BASELINE.md`).
 - O andamento por task, com evidência, fica em
-  [`.superpowers/sdd/2026-09-15-bhub-v1.1-production-reliability/`](../../.superpowers/sdd/2026-09-15-bhub-v1.1-production-reliability/)
-  (`progress.md` + `task-N-report.md`).
+  `.superpowers/sdd/2026-09-15-bhub-v1.1-production-reliability/` (`progress.md` +
+  `task-N-report.md`) — diretório de trabalho **não versionado** (`.superpowers/sdd/.gitignore`).
 
 **Não há outro ciclo aberto.** Os ciclos anteriores (migração Next.js → Python, refatoração
 ARQ/DI/PostgreSQL, redesenho de UI/UX) estão encerrados e seus documentos estão marcados como
@@ -53,7 +53,7 @@ medição e evidência `arquivo:linha`, é a seção **KNOWN RISKS** de
 
 - `R-01` — não existe outbox entre o `commit` do banco e o despacho do job.
 - `R-02` — T16-F1: TOCTOU na deduplicação de PDF por hash (falha terminal sem retry).
-- `R-03` — R-03/RED-3: `max_tries`/`retry_jobs` são configuração morta para os jobs do repo.
+- `R-03` — RED-3: `max_tries`/`retry_jobs` são configuração morta para os jobs do repo.
 - `R-04` — RED-5: o startup do worker custa ~12 s e toca a rede.
 - `R-05` — rate limiting do `POST /api/v1/ai/translate` não opera como pretendido.
 - `R-06` — `get_or_create_category` é check-then-act.
@@ -76,6 +76,11 @@ completo: seção **HISTORICAL** de [`CURRENT_ARCHITECTURE.md`](CURRENT_ARCHITEC
 - `bhub-backend-python/ARCHITECTURE_REPORT.md` — análise de 06/mai/2026.
 - `docs/ESTADO_ATUAL_PROJETO.md` — análise de dez/2024.
 - `docs/arquitetura/` — guias da migração Next.js → Python e stack recomendada daquela fase.
+- `docs/superpowers/plans/2026-07-04-feed-resilience.md` +
+  `docs/superpowers/specs/2026-07-04-feed-resilience-design.md` — ciclo de resiliência de feeds
+  (jul/2026), **executado**: `FeedFetcher` (`app/services/feed_fetcher.py:51`) com retry
+  (`tenacity`) e fallback de impersonação TLS (`curl_cffi`) no 403, fallback `trafilatura` no
+  scraping, e as colunas de cache HTTP de `feeds` (migração `009_feed_http_cache`).
 
 ---
 

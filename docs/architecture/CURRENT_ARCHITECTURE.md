@@ -459,7 +459,7 @@ criada **apenas** no ramo SQLite (`app/database.py:142-186`). Num deploy Postgre
 chamada levanta e o `except` de `:117-118` a converte em `log.warning`, seguindo para a
 busca textual com o filtro de categoria já aplicado (`:106-108`) — ou seja, o modo
 "semântico" degrada para busca textual. **Observação de leitura de código; não medida
-contra PostgreSQL nesta rodada.** Registrada, não corrigida.
+contra PostgreSQL.** Registrada, não corrigida.
 
 ## 14. HISTORICAL
 
@@ -479,8 +479,8 @@ documento desta seção não é backlog aberto**: o trabalho declarado vive no
 | `docs/arquitetura/bhub-stack-recomendada.md` | **HISTÓRICO marcado** (T5.3): stack *recomendada* da fase de migração (FastAPI 0.109+, Tailwind por CDN, Prisma Python como opção de ORM). A stack vigente é a desta seção § 1. |
 | `docs/arquitetura/bhub-design-reference.md` | **HISTÓRICO marcado** (T5.3): design da fase anterior à paleta v3 — declara azul `#2563eb`/slate como base. A identidade atual é a v3 (borgonha/sage, `docs/ui-ux/PALETA_CORES.md`). |
 | `docs/deploy/MAPA_EXECUCAO_DEPLOY.md`, `CHECKLIST_GO_NOGO.md`, `RESUMO_IMPLEMENTACAO.md` | **HISTÓRICO marcado** (documentos operacionais da era SQLite). |
-| `docs/deploy/DEPLOY_STAGING.md`, `VPS_DEPLOY.md`, `TESTES_DEPLOY.md` | **HISTÓRICO marcado**: documentos da era SQLite. A rodada de correção da revisão da Task 17 corrigiu a `DATABASE_URL` de staging (`DEPLOY_STAGING.md:71-76` → PostgreSQL), marcou como histórico o troubleshooting de lock do SQLite (`VPS_DEPLOY.md:199-205`) e qualificou a citação de SQLite da suíte (`TESTES_DEPLOY.md:176-178`, dev/testes). |
-| `docs/deploy/VPS_UPLOAD.md`, `VPS_MAINTENANCE.md`, `TESTES_FINAL.md`, `TESTES_RESULTADO.md` | **HISTÓRICO marcado** (T5.3): era do frontend separado (`VPS_UPLOAD.md:72` sobe `Frontend/`; `:145` diz que `bhub.db` será criado na VPS) e a manutenção restaurando **arquivo** SQLite (`VPS_MAINTENANCE.md:88`, `cp … .db bhub.db`) em vez de `pg_restore` — o procedimento vigente de backup/restore é o do `docs/deploy/RUNBOOK.md`. `TESTES_FINAL.md`/`TESTES_RESULTADO.md` são snapshots de teste de jan/2025. |
+| `docs/deploy/DEPLOY_STAGING.md`, `VPS_DEPLOY.md`, `TESTES_DEPLOY.md` | **HISTÓRICO marcado**: documentos da era SQLite. A rodada de correção da revisão da Task 17 corrigiu a `DATABASE_URL` de staging (`DEPLOY_STAGING.md:79-84` → PostgreSQL), marcou como histórico o troubleshooting de lock do SQLite (`VPS_DEPLOY.md:208-214`) e qualificou a citação de SQLite da suíte (`TESTES_DEPLOY.md:185-187`, dev/testes). Os números de linha foram remedidos depois dos banners desta task. |
+| `docs/deploy/VPS_UPLOAD.md`, `VPS_MAINTENANCE.md`, `TESTES_FINAL.md`, `TESTES_RESULTADO.md` | **HISTÓRICO marcado** (T5.3): era do frontend separado (`VPS_UPLOAD.md:81` sobe `Frontend/`; `:154` diz que `bhub.db` será criado na VPS) e a manutenção restaurando **arquivo** SQLite (`VPS_MAINTENANCE.md:101`, `cp … .db bhub.db`) em vez de `pg_restore` — o procedimento vigente de backup/restore é o do `docs/deploy/RUNBOOK.md`. `TESTES_FINAL.md`/`TESTES_RESULTADO.md` são snapshots de teste de jan/2025. |
 | `docs/deploy/DOCKER_DEPLOY.md`, `README_DOCKER.md` | **HISTÓRICO marcado** (T5.3): descrevem o `docker-compose.prod.yml` da **raiz** (backend + serviço `frontend`), não o caminho de deploy atual — ver § 10. |
 | `docs/configuracao/DOCUMENTACAO_BACKEND.md` | **HISTÓRICO marcado**: banner no topo e `:44` corrigido para `TSVECTOR` + `pg_trgm`; `:220` (`aiosqlite`), `:305` (`DATABASE_URL` SQLite) e `:663` (`bhub.db`) são da fase anterior à migração. |
 | `docs/configuracao/GUIA_INICIO_RAPIDO.md`, `docs/ui-ux/UI_UX_ANALYSIS.md`, `docs/ui-ux/PLANO_IMPLEMENTACAO_UI_UX.md` | **HISTÓRICO marcado** (T5.3): plano, início rápido e análise da fase de UI/UX de jan/2025, que declaram a paleta **teal/verde-água** como oficial. A identidade atual é a v3 (`docs/ui-ux/PALETA_CORES.md`). |
@@ -496,10 +496,11 @@ operacional — ambos apontam para cá e para o `ROADMAP.md`).
 
 **Documentos de camada que NÃO são históricos** (descrevem o presente e apontam para cá):
 `bhub-backend-python/agents.md` (IA/ML — § 7; a antiga seção "Future Improvements" foi
-substituída pelo estado medido da observabilidade, § 9) e
+substituída pelo estado medido da observabilidade, § 9),
 `bhub-backend-python/app/web/agents.md` (frontend SSR/HTMX — § 1), além de
-`docs/architecture/GLOBAL_SINGLETONS.md` e `docs/architecture/SERVICE_INSTANTIATION_MAP.md`
-(status ATIVO, Épico 2).
+`bhub-backend-python/README.md` (referência de uso do backend, com links para cá e para o
+`ROADMAP.md`), `docs/architecture/GLOBAL_SINGLETONS.md` e
+`docs/architecture/SERVICE_INSTANTIATION_MAP.md` (status ATIVO, Épico 2).
 
 ---
 

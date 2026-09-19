@@ -6,7 +6,7 @@
 >
 > Descreve a estrutura com dois composes — o da **raiz** ("backend + frontend") e o standalone do
 > backend. O compose da raiz não é caminho de deploy (monta `./Frontend`, que não existe) e é ele
-> que ainda fixa SQLite (`:31`). O deploy vigente usa
+> que ainda fixa SQLite (`docker-compose.prod.yml` da raiz, `:31`). O deploy vigente usa
 > `bhub-backend-python/docker-compose.prod.yml` com PostgreSQL 16 — `docs/deploy/RUNBOOK.md`.
 
 Este projeto está configurado para rodar completamente em containers Docker.

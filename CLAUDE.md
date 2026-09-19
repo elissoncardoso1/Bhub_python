@@ -28,7 +28,9 @@ uvicorn app.main:app --reload
 
 ### Run (Docker)
 ```bash
-docker-compose up -d
+cd bhub-backend-python
+docker compose -f docker-compose.prod.yml up -d    # produção (PostgreSQL + Redis + arq-worker)
+docker compose up -d                               # desenvolvimento
 ```
 
 ### Tests
@@ -122,7 +124,7 @@ SQLite (dev) / PostgreSQL (prod) + Redis (ARQ job queue)
 3. `ArticleParser` extracts title, DOI, abstract, authors
 4. `WebScraper` fetches full text; `PDFService` handles PDFs
 5. `ClassificationService` assigns up to 3 behavior-analysis categories
-6. `ImpactRating` scores relevance; article written to DB + FTS5 index
+6. `ImpactRating` scores relevance; article written to DB + search index (FTS5 em dev, `TSVECTOR` em produção — ver CURRENT_ARCHITECTURE § 6)
 
 ### Authentication
 - **JWT** access tokens stored as `HttpOnly` cookies via `access_token_cookie_middleware.py`
@@ -130,8 +132,8 @@ SQLite (dev) / PostgreSQL (prod) + Redis (ARQ job queue)
 - CSRF protection: double-submit cookie pattern; state-changing API routes require `X-CSRF-Token` header
 
 ### AI/LLM Strategy
-- Provider priority: DeepSeek → OpenRouter → local Phi-3-mini (llama.cpp)
-- `app/ai/manager.py` handles selection, retries, fallback
+- Provider priority for classification: DeepSeek → local LLM (llama.cpp) → OpenRouter → HuggingFace (`app/ai/manager.py:71-76`); translation uses the same order without HuggingFace
+- `app/ai/manager.py` handles selection, fallback and the `ai.fallback.total` metric
 - `app/ai/local_llm_service.py` wraps llama.cpp (optional, enabled via env)
 - ML classification can run offline using `sentence-transformers` (no API key needed)
 

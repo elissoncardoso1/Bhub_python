@@ -4,8 +4,8 @@
 > Este documento não representa necessariamente a arquitetura atual.
 > Consulte docs/architecture/CURRENT_ARCHITECTURE.md.
 >
-> Deploy da era do frontend separado: usa PM2 (`pm2 restart bhub-frontend`, `:87`/`:173`), monta
-> um diretório `frontend/` na VPS (`:126`) e lista `bhub.db` na árvore do projeto (`:123`). A
+> Deploy da era do frontend separado: usa PM2 (`pm2 restart bhub-frontend`, `:182`), monta um
+> diretório `frontend/` na VPS (`:135`) e lista `bhub.db` na árvore do projeto (`:132`). A
 > produção vigente é o `bhub-backend-python/docker-compose.prod.yml` (PostgreSQL 16 + Redis +
 > `arq-worker`) e o procedimento atual é `docs/deploy/RUNBOOK.md`.
 

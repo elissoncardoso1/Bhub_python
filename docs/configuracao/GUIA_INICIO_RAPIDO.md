@@ -403,10 +403,10 @@ Após completar este guia:
 
 ## 📚 Recursos
 
-- [Paleta de Cores Completa](./PALETA_CORES.md)
-- [Plano Completo de Implementação](./PLANO_IMPLEMENTACAO_UI_UX.md)
-- [Análise UI/UX Detalhada](./UI_UX_ANALYSIS.md)
-- [Exemplos de Componentes](./UI_UX_COMPONENT_EXAMPLES.md)
+- [Paleta de Cores Completa](../ui-ux/PALETA_CORES.md)
+- [Plano Completo de Implementação](../ui-ux/PLANO_IMPLEMENTACAO_UI_UX.md)
+- [Análise UI/UX Detalhada](../ui-ux/UI_UX_ANALYSIS.md)
+- [Exemplos de Componentes](../ui-ux/UI_UX_COMPONENT_EXAMPLES.md)
 
 ---
 
