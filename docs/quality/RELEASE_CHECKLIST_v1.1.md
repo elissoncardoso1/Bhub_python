@@ -257,7 +257,7 @@ outros achados foi corrigido**; a correção de código/escopo deles pertence a 
 | **F4** | O item **7.7**: as métricas são criadas mas o `MeterProvider` não tem exportador (`telemetry.py:31`), e `ENABLE_TELEMETRY` é `false` por default. | Minor | **[LIDO]** `telemetry.py:19-31`. |
 | **F5** | O item **8.6**: `_truncate` corta silenciosamente, sem log/contador. | Minor | **[MEDIDO]** `feed_aggregator.py:23-32`, **8** chamadas, 0 testes. |
 | **F6** | O item **4.5** (restart do worker) e **4.6** (backlog) não têm cobertura: não existe teste de restart nem superfície de backlog no app. | Minor | **[MEDIDO]** greps em `tests/integration/` e `app/`. |
-| **F7** | Existem **3** arquivos compose e **2** se chamam "prod"; o da raiz fixa SQLite (`:31`) e monta um `./Frontend` que não existe (`:86`). A ambiguidade está **documentada** (não resolvida) — ver §12. | Observation | **[MEDIDO]** `docker-compose.prod.yml:31,:86`; `bhub-backend-python/docker-compose.prod.yml:32`. |
+| **F7** | Existem **3** arquivos compose e **2** se chamam "prod"; o da raiz fixa SQLite (`:31`) e monta um `./Frontend` que não existe (`:86`). A ambiguidade está **documentada** (não resolvida) — ver §14. | Observation | **[MEDIDO]** `docker-compose.prod.yml:31,:86`; `bhub-backend-python/docker-compose.prod.yml:32`. |
 | **F8** | **1 link local quebrado** encontrado: `docs/ui-ux/UI_UX_SETUP.md:157` → `./GUIA_INICIO_RAPIDO.md` (o alvo real é `docs/configuracao/GUIA_INICIO_RAPIDO.md`). **Pré-existente**, fora dos arquivos tocados pelas Tasks 17/18 (o arquivo não aparece no diff `d6c3fc9..9091bc8`). | Minor | **[MEDIDO]** detector próprio: 194 links conferidos (excluindo este artefato), 1 quebrado — **idêntico** no baseline `9091bc8`. |
 
 ---
@@ -272,11 +272,23 @@ dele e não é evidência de nada. O que é evidência é a comparação **exclu
 ```text
 MÉTRICA ESTÁVEL — repositório versionado, EXCLUINDO este artefato
 
-Comando (idêntico nos dois estados; o artefato é excluído porque ele contém os
-próprios termos e tornaria o número inútil):
-  grep -rniE --include='*.md' 'sqlite[^.]{0,70}(produ[cç][aã]o|production)|
-    (produ[cç][aã]o|production)[^.]{0,70}sqlite' . --exclude='RELEASE_CHECKLIST*'
-  grep -rniI --include='*.md' 'create_task' . --exclude='RELEASE_CHECKLIST*'
+Comando (rodado VERBATIM nos dois estados; restrito aos `.md` RASTREADOS via
+`git ls-files` para não capturar os ~130 `.md` gitignorados de `.superpowers/`,
+e excluindo este artefato, que contém os próprios termos):
+
+  git ls-files -z '*.md' | tr '\0' '\n' | grep -v 'RELEASE_CHECKLIST' \
+    | xargs grep -niE "sqlite[^.]{0,70}(produ[cç][aã]o|production)|(produ[cç][aã]o|production)[^.]{0,70}sqlite" | wc -l
+
+  git ls-files -z '*.md' | tr '\0' '\n' | grep -v 'RELEASE_CHECKLIST' \
+    | xargs grep -niI "create_task" | wc -l
+
+Cada um devolveu 29 e 42 no HEAD e 29 e 42 no baseline. Sem o filtro de
+rastreados (`grep -r … --include='*.md' .`) o mesmo regex devolve **94**, porque
+varre o filesystem inteiro — é o número que NÃO deve ser usado.
+
+Escopo: 95 `.md` rastreados no HEAD (94 no baseline), menos este artefato. A
+escolha do escopo é declarada porque o número é sensível a ela; o escopo
+"rastreado, excluindo este artefato" é o único que reproduz 29 e 42.
 
 SQLite-as-production    baseline 9091bc8: 29 linhas
                         HEAD:              29 linhas    IDÊNTICO
