@@ -23,7 +23,7 @@ rotulados:
 | **[NÃO VERIFICADO]** | Não foi executado, e não se afirma que passou. O motivo é declarado. |
 
 **O que este documento não é:** não é prova de que a release foi liberada. As seções **§9 (Staging)**,
-**§8.6 (build da imagem)** e **§10 (GitHub Actions)** descrevem verificações que **exigem uma
+**§5.6 (build da imagem)** e **§10 (GitHub Actions)** descrevem verificações que **exigem uma
 execução externa a esta máquina** e que **não** foram feitas. Elas estão marcadas como tal — não
 como aprovadas por omissão.
 
@@ -272,14 +272,23 @@ dele e não é evidência de nada. O que é evidência é a comparação **exclu
 ```text
 MÉTRICA ESTÁVEL (repositório .md versionado, EXCLUINDO este artefato)
 
+Escopo declarado: apenas arquivos `.md` RASTREADOS (`git ls-files '*.md'` = 95 no HEAD, 94 no
+baseline), excluindo este artefato. A escolha do escopo é declarada porque o número é sensível a
+ela: sem o filtro `.md` o baseline dá 30 (entra `bhub-backend-python/app/services/
+classification_service.py:21`, um comentário qualificado) e a regra mais restrita do regex
+(`[^.]{0,70}`, que para no ponto de `docker-compose.prod.yml`) dá menos ainda. Os conjuntos são
+estáveis entre os dois estados; este é o escopo que o checklist de documentação usa.
+
 SQLite-as-production    baseline 9091bc8: 29 linhas
                         estado atual:     29 linhas   IDÊNTICO
 create_task             baseline 9091bc8: 42 linhas
                         estado atual:     42 linhas   IDÊNTICO
 
-→ os 29 e os 42 hits do baseline estão intactos, um a um. Nenhuma linha de
-  documentação PRÉ-EXISTENTE foi alterada, adicionada ou removida nesta task
-  (o diff de 9091bc8..HEAD só cria 2 arquivos novos e edita 2 linhas de índice).
+→ os 29 e os 42 hits do baseline estão intactos, um a um. **Nenhuma das linhas que PONTUA foi
+  alterada, adicionada ou removida**: o diff `9091bc8..HEAD` altera documentação só nos índices
+  (`docs/architecture/ROADMAP.md` +8/−4 e `docs/README.md` +1, ambos reescritos para apontar ao artefato criado) e
+  cria 2 arquivos novos (este artefato e o teste do item 8.4). Nenhum dos 29/42 hits está entre as
+  linhas tocadas — conferido por conjunto, não por contagem.
 → 0 asserções não qualificadas em ambos. Cada uma das 29 linhas foi lida no
   contexto: negação explícita, qualificador dev/testes, alternativa REJEITADA dentro
   de ADR, documento com banner STATUS: HISTÓRICO + caveat inline, ou risco registrado.
@@ -295,19 +304,19 @@ CONTRIBUIÇÃO DESTE ARTEFATO (não é violação — é metalinguagem da verifi
       asyncio.create_task() em produção");
     - os títulos dos contadores acima e a regra de contagem;
     - a linha da tabela de riscos para `R-10` ("templates ainda anunciam SQLite",
-      um RISCO REGISTRADO) e a citação dele em §11-F8.
+      um RISCO REGISTRADO), citada duas vezes dentro deste mesmo §12.
 
 Broken local links (detector próprio):  1  (F8, PRÉ-EXISTENTE)
   - 194 links conferidos excluindo este arquivo / 196 incluindo-o;
   - baseline 9091bc8: 1 (docs/ui-ux/UI_UX_SETUP.md:157 -> ./GUIA_INICIO_RAPIDO.md)
   - estado atual:     1 (o MESMO link, no mesmo arquivo, não tocado por esta task)
-  → o link novo deste artefato e os de ROADMAP.md/docs/README.md resolvem.
+  → o link novo deste artefato e os de docs/architecture/ROADMAP.md e docs/README.md resolvem.
 Missing referenced paths citados como existentes:              0
 ```
 
 ## 13. Riscos conhecidos (permanecem riscos — não foram corrigidos)
 
-Fonte: `CURRENT_ARCHITECTURE.md` §13 e `ROADMAP.md` §3. Nada aqui foi implementado por esta
+Fonte: `docs/architecture/CURRENT_ARCHITECTURE.md` §13 e `docs/architecture/ROADMAP.md` §3. Nada aqui foi implementado por esta
 verificação.
 
 | Risco | Status | Impacto na liberação |
@@ -333,7 +342,7 @@ verificação.
 ## 14. Fora de escopo (não tocado por esta verificação)
 
 - **UI/UX:** o redesenho de UI/UX é um ciclo **encerrado** cujos documentos estão marcados como
-  históricos (`CURRENT_ARCHITECTURE.md` §14, `ROADMAP.md` §4) e a modernização visual é trabalho
+  históricos (`docs/architecture/CURRENT_ARCHITECTURE.md` §14, `docs/architecture/ROADMAP.md` §4) e a modernização visual é trabalho
   **fora do contrato desta milestone** — nenhum template, estilo, navegação ou design system foi
   alterado por esta verificação (medido: 0 arquivos de UI/templates/css/js no diff). Qualquer
   achado visual pertence a uma milestone própria; nenhuma foi especificada aqui.
