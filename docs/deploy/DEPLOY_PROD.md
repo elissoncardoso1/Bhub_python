@@ -215,6 +215,9 @@ BACKUP_RETENTION_DAYS=90  # 3 meses em produção
 
 ### SQLite em Produção
 
+> **HISTÓRICO:** esta seção é o registro da era SQLite. A produção atual é PostgreSQL 16
+> (ADR-0001) — leia cada afirmação abaixo como limite *daquele* arranjo.
+
 **⚠️ IMPORTANTE**: SQLite tem limitações para produção pública:
 
 - **Concorrência**: Máximo ~1000 writes/segundo

@@ -15,7 +15,7 @@
 
 ## 📋 Visão Geral
 
-Este documento descreve os limites do SQLite e quando considerar migração para PostgreSQL em produção.
+Este documento descreve os limites do SQLite e quando considerar migração para PostgreSQL em produção. *(Estado atual: a produção já é PostgreSQL — ver ADR-0001; o texto abaixo é o registro da avaliação que motivou a migração.)*
 
 ---
 
