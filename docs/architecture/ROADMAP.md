@@ -19,9 +19,11 @@ O trabalho aberto deste ciclo vive em **um** arquivo:
 (Tasks 1–19; Épicos 1–3 = ARQ/DI/CI, Épico 4 = testes de integração com infraestrutura real,
 Épico 5 = sincronização da documentação arquitetural, Épico 6 = checklist de release).
 
-- **Pendente:** Task 19 (Épico 6) — verificação de código do checklist de release v1.1, com
-  saída em `docs/quality/RELEASE_CHECKLIST_v1.1.md`. Esse arquivo **não existe** em
-  `docs/quality/` hoje (o diretório contém apenas `BASELINE.md`).
+- **Concluído:** Task 19 (Épico 6) — verificação de código do checklist de release v1.1, com saída
+  em [`RELEASE_CHECKLIST_v1.1.md`](../quality/RELEASE_CHECKLIST_v1.1.md)
+  (status **GO/NO-GO parcial**, com evidência por item e os achados abertos registrados). Épico 6
+  fechado nesta task; os itens de **Staging** do checklist permanecem **não verificados**, porque
+  exigem um ambiente externo a código/testes — está declarado no próprio artefato.
 - O andamento por task, com evidência, fica em
   `.superpowers/sdd/2026-09-15-bhub-v1.1-production-reliability/` (`progress.md` +
   `task-N-report.md`) — diretório de trabalho **não versionado** (`.superpowers/sdd/.gitignore`).

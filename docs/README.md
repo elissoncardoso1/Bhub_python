@@ -136,6 +136,7 @@ Registros de funcionalidades que existem no código:
 ### 🧪 Qualidade — [`quality/`](./quality/)
 
 - **[quality/BASELINE.md](./quality/BASELINE.md)** — baseline de qualidade e limites declarados dos gates de CI (Ruff, mypy, cobertura, ratchet, build da imagem)
+- **[quality/RELEASE_CHECKLIST_v1.1.md](./quality/RELEASE_CHECKLIST_v1.1.md)** — verificação de código do checklist de release da v1.1 (Task 19), item por item, com status GO/NO-GO parcial, evidência e riscos conhecidos
 
 ---
 
