@@ -1,5 +1,11 @@
 # Frontend (HTMX/SSR) Architecture & AI Agents Context
 
+> **Escopo:** descreve a camada web SSR/HTMX que existe hoje em `app/web/`, `app/templates/` e
+> `app/static/`. A referência única da arquitetura atual é
+> [`docs/architecture/CURRENT_ARCHITECTURE.md`](../../docs/architecture/CURRENT_ARCHITECTURE.md)
+> (§ 1 — Web SSR); design system em [`docs/ui-ux/PALETA_CORES.md`](../../docs/ui-ux/PALETA_CORES.md)
+> e nos tokens de `app/static/css/design-tokens.css`.
+
 This document outlines the architecture of the frontend layer within the BHub project, specifically focusing on how UI interactions are orchestrated and how AI-driven features are surfaced to the client.
 
 ## 1. Architectural Paradigm

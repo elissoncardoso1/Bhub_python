@@ -1,5 +1,10 @@
 # AI and Machine Learning Architecture
 
+> **Escopo:** descreve a camada de IA/ML que existe hoje em `app/ai/` e `app/ml/`.
+> A referência única da arquitetura atual é
+> [`docs/architecture/CURRENT_ARCHITECTURE.md`](../../docs/architecture/CURRENT_ARCHITECTURE.md)
+> (§ 7 — IA, § 9 — Observabilidade); em caso de divergência, valem o documento e o código.
+
 This document outlines the AI and Machine Learning architecture of the BHub backend, emphasizing the intelligent orchestration and fallback strategies between local models and remote APIs.
 
 ## 1. Overview
@@ -43,9 +48,18 @@ The intelligent orchestration is a core strength of the BHub architecture.
 3. **Fallback Trigger:** If the DeepSeek API returns an HTTP 5xx error, a rate limit (429), or a timeout, the `AIManager` catches the exception.
 4. **Secondary Extraction (Local LLM):** The `AIManager` transparently routes the failed request to the `LocalLLMService`. The local model processes the prompt and returns the result, ensuring the background job doesn't fail completely.
 
-## 4. Future Improvements
+## 4. Observability
 
-As noted in the architecture review, the orchestration currently lacks detailed observability. Future iterations should incorporate APM (Application Performance Monitoring) to track:
-- Latency differences between remote and local providers.
-- Frequency of fallback triggers to alert on API stability issues.
-- Overall token usage and cost metrics.
+The orchestration **is** instrumented today — this section previously listed it as a future
+improvement, which is no longer accurate:
+
+- `app/core/telemetry.py` — OpenTelemetry opt-in (`ENABLE_TELEMETRY=false` by default) with the
+  metrics `ai.classify.duration_ms`, `ai.fallback.total`, `feed.ingested.total`,
+  `feed.failed.total`. Every provider fallback calls `record_ai_fallback`
+  (`app/ai/manager.py`), which is what feeds `ai.fallback.total`.
+- `app/jobs/observe.py` — structured log per job plus `arq.job.success` / `arq.job.failure`
+  counters, the `arq.job.duration` histogram and the `arq.job` span.
+
+Current behaviour, with `arquivo:linha`, is described in § 9 of
+[`docs/architecture/CURRENT_ARCHITECTURE.md`](../../docs/architecture/CURRENT_ARCHITECTURE.md)
+(Observabilidade).

@@ -66,7 +66,8 @@ python scripts/backup_db.py
 ## Architecture
 
 > **Arquitetura atual — referência única:** [`docs/architecture/CURRENT_ARCHITECTURE.md`](docs/architecture/CURRENT_ARCHITECTURE.md)
-> (decisões em [`docs/adr/`](docs/adr/)). O diagrama e as tabelas abaixo são um resumo; em
+> (decisões em [`docs/adr/`](docs/adr/); trabalho declarado em [`docs/architecture/ROADMAP.md`](docs/architecture/ROADMAP.md)).
+> O diagrama e as tabelas abaixo são um resumo; em
 > caso de divergência, vale o documento de arquitetura e o código.
 
 ### Layer Diagram
@@ -164,10 +165,23 @@ OPENROUTER_API_KEY  # fallback LLM provider
 
 ## Known Technical Debt
 
-From `BHUB_REFACTORING_PLAN.md`:
-1. **Background Tasks** — Some tasks bypass ARQ and use `BackgroundTasks` directly; migrate to `task_dispatcher.py`
-2. **Dependency Injection** — Several services are manually instantiated; the plan is to use `Depends()` + Protocol interfaces (`app/interfaces/`)
-3. **SQLite (dev) vs PostgreSQL (prod)** — dev usa SQLite FTS5; migration `008_postgres_fts` adds a PostgreSQL `TSVECTOR` `search_vector` (+ trigger, GIN/pg_trgm indexes) and a plain `search_vector` column on SQLite. Production search scale → PostgreSQL.
+O estado corrente, com evidência `arquivo:linha`, está em
+[`docs/architecture/CURRENT_ARCHITECTURE.md`](docs/architecture/CURRENT_ARCHITECTURE.md)
+(§ KNOWN RISKS / § DEFERRED) e em
+[`docs/architecture/ROADMAP.md`](docs/architecture/ROADMAP.md).
+
+Os dois primeiros débitos que este arquivo listava vinham do `BHUB_REFACTORING_PLAN.md`
+(documento **histórico**) e já foram executados — não são backlog aberto:
+
+1. **Fila de jobs — resolvido.** Produção usa ARQ sobre Redis (`app/jobs/tasks.py`,
+   ADR-0002); a suíte prova dispatcher → Redis → worker → PostgreSQL em
+   `tests/integration/test_arq_worker.py`. Não há uso de `BackgroundTasks` em `app/`;
+   `app/services/background_tasks.py` sobrevive apenas como corpo do executor inline de
+   desenvolvimento (`ENABLE_ARQ=false`), importado por `app/interfaces/task_queue.py`.
+2. **Injeção de dependências — resolvido.** `app/api/deps.py` declara 11 dependências
+   (`Depends()`) sobre os `Protocol` de `app/interfaces/services.py` (6 declarações),
+   exercitadas em `tests/unit/test_dependencies.py`.
+3. **SQLite (dev) vs PostgreSQL (prod)** — dev usa o default `sqlite+aiosqlite:///./bhub.db` e a suíte unitária roda em `:memory:`; a migração `008_postgres_fts` cria a extensão `pg_trgm`, a coluna `TSVECTOR`, o trigger de atualização e os índices (GIN / `gin_trgm_ops`). **Produção é PostgreSQL 16** (ADR-0001) e a busca de produção é `TSVECTOR` + `pg_trgm` (ADR-0003).
 
 ---
 
@@ -180,7 +194,7 @@ From `BHUB_REFACTORING_PLAN.md`:
 
 ## Documentation
 
-Full docs live in `docs/` — start at [`docs/README.md`](docs/README.md) (indexed by Arquitetura / Configuração / Deploy / Segurança / UI-UX / Implementação / Refatoração). Design system: `docs/ui-ux/PALETA_CORES.md` + the in-code tokens.
+Full docs live in `docs/` — start at [`docs/README.md`](docs/README.md) (indexed by Arquitetura / Configuração / Deploy / Segurança / UI-UX / Implementação / Refatoração), with the current architecture in [`docs/architecture/CURRENT_ARCHITECTURE.md`](docs/architecture/CURRENT_ARCHITECTURE.md) and the declared work in [`docs/architecture/ROADMAP.md`](docs/architecture/ROADMAP.md). Documents marked `STATUS: HISTÓRICO` describe earlier phases — do not treat their unchecked items as open backlog. Design system: `docs/ui-ux/PALETA_CORES.md` + the in-code tokens.
 
 ---
 
