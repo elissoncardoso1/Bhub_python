@@ -186,7 +186,7 @@ APScheduler `AsyncIOScheduler` com timezone `America/Sao_Paulo` (`app/jobs/sched
   (`app/core/scheduler_lock.py:22-25`). Lock não adquirido gera `RuntimeError`, que o job
   trata como "outra instância está executando" (`app/jobs/scheduler.py:37-39`).
 - **Quem roda o scheduler:** no compose, só o `backend` (`ENABLE_SCHEDULER=true`,
-  `docker-compose.prod.yml:43`); o `arq-worker` recebe `ENABLE_SCHEDULER=false` (`:94`).
+  `bhub-backend-python/docker-compose.prod.yml:43`); o `arq-worker` recebe `ENABLE_SCHEDULER=false` (`:94`).
 - **Status:** `get_scheduler_status()` devolve `{running, jobs[]}`
   (`app/jobs/scheduler.py:93-108`).
 
@@ -299,7 +299,7 @@ APScheduler (sync_feeds, de hora em hora)
 - **Health:** `GET /health` devolve versão, `database`, `ml_model` e timestamp
   (`app/main.py:348-361`). O Dockerfile usa `curl -f http://localhost:8000/health`
   (`Dockerfile:64-65`) e o `arq-worker` desliga o healthcheck porque não tem HTTP
-  (`docker-compose.prod.yml:100-102`).
+  (`bhub-backend-python/docker-compose.prod.yml:100-102`).
 - **Analytics:** middleware registrado sempre, com gate avaliado por request
   (`app/main.py:152-155`; `app/core/analytics_middleware.py`), respeitando consentimento
   e DNT (`app/config.py:161-167`).
@@ -314,7 +314,7 @@ APScheduler (sync_feeds, de hora em hora)
 - **Stack:** `docker compose -f docker-compose.prod.yml up -d` **de dentro de
   `bhub-backend-python/`** (é o único compose com PostgreSQL; ver `docs/deploy/RUNBOOK.md`).
 - **Topologia:** Traefik na frente (TLS + domínio), app publicado apenas em
-  `127.0.0.1:8000` (`docker-compose.prod.yml:18-21`), `--proxy-headers
+  `127.0.0.1:8000` (`bhub-backend-python/docker-compose.prod.yml:18-21`), `--proxy-headers
   --forwarded-allow-ips=*` para o esquema/IP reais chegarem ao app (`:22-27`).
 - **Containers:** `python:3.12-slim`, usuário não-root `appuser` (`Dockerfile:56-58`),
   modelo de embeddings pré-baixado na imagem (`Dockerfile:42-47`), torch CPU
@@ -326,7 +326,7 @@ APScheduler (sync_feeds, de hora em hora)
   (`:55-60`), `no-new-privileges` e tetos de CPU/memória por serviço (`:61-69`,
   `:103-109`, `:132-135`, `:154-157`), rotação de log `10m × 3` (`:70-74`).
 - **Segredos:** `SECRET_KEY` e `POSTGRES_PASSWORD` são obrigatórios via `.env`
-  (`docker-compose.prod.yml:35`, `:88`, `:123`). `SECRET_KEY` tem validação própria em
+  (`bhub-backend-python/docker-compose.prod.yml:35`, `:88`, `:123`). `SECRET_KEY` tem validação própria em
   produção (`app/config.py:71-89`) e `ALLOWED_ORIGINS` recusa wildcard em produção
   (`app/config.py:45-55`).
 - **Migrações:** `alembic upgrade head` (passo do procedimento de deploy;
@@ -409,9 +409,9 @@ para a heurística.
 **R-05 — Rate limiting do `POST /api/v1/ai/translate`.** Os decorators `@limiter.limit`
 estão presentes (`app/api/v1/ai.py:106-107`), mas o parâmetro que o slowapi procura chama-se
 `request` e, nesse endpoint, `request` é o **corpo Pydantic** (`TranslateRequest`); o
-`starlette.requests.Request` está em `_http_request` (`:112`), que ninguém consome. A
+`starlette.requests.Request` está em `_http_request` (`:114`), que ninguém consome. A
 chave/limite não opera como pretendido nessa rota. (`/classify` não tem esse problema —
-`app/api/v1/ai.py:58-62`.)
+`app/api/v1/ai.py:63`.)
 
 **R-06 — `get_or_create_category` é check-then-act.** `SELECT` por `Category.slug` (linha
 141) seguido de `db.add()` + `db.flush()` (linhas 160-161), sem `ON CONFLICT`
@@ -461,8 +461,8 @@ contra PostgreSQL nesta rodada.** Registrada, não corrigida.
 ## 14. HISTORICAL
 
 Documentos que descrevem uma arquitetura ANTERIOR. Não são a arquitetura atual.
-A marcação sistemática (T5.3) é da Task 18; o que já foi corrigido nesta rodada está
-indicado na tabela.
+A marcação sistemática (T5.3) é da Task 18; o que já foi corrigido (na Task 17 e na rodada de
+correção dos achados da sua revisão) está indicado na tabela.
 
 | Documento | Estado |
 |---|---|
@@ -472,10 +472,11 @@ indicado na tabela.
 | `docs/deploy/SQLITE_LIMITS.md` | **HISTÓRICO marcado** nesta rodada. Era o documento que afirmava SQLite em produção. |
 | `docs/deploy/DEPLOY_PROD.md` | **HISTÓRICO marcado** nesta rodada (checklist da era SQLite). |
 | `bhub-backend-python/agents.md` | Descreve IA/ML de uma revisão antiga ("Future Improvements" já atendidas por `app/core/telemetry.py`). Ainda não marcado — Task 18. |
-| `docs/arquitetura/*` (`MIGRATION_GUIDE.md`, `MIGRATION_GUIDE_BACKEND.md`, `bhub-stack-recomendada.md`, `bhub-design-reference.md`) | Guias da migração Next.js → Python; dois ainda listam SQLite (`MIGRATION_GUIDE.md:14`, `MIGRATION_GUIDE_BACKEND.md:14`). Ainda não marcados — Task 18. |
-| `docs/deploy/MAPA_EXECUCAO_DEPLOY.md`, `CHECKLIST_GO_NOGO.md`, `DEPLOY_STAGING.md`, `RESUMO_IMPLEMENTACAO.md`, `VPS_DEPLOY.md` | Documentos operacionais da era SQLite. Ainda não marcados — Task 18. |
-| `docs/configuracao/DOCUMENTACAO_BACKEND.md` | Documentação de backend anterior à migração para PostgreSQL (`:35`, `:211`, `:296`, `:654`). Ainda não marcado — Task 18. |
-| `README.md` (raiz) | Ainda lista "SQLite com FTS5" na stack (`:10`) e o default SQLite em `:171`. Ainda não marcado — Task 18. |
+| `docs/arquitetura/MIGRATION_GUIDE.md`, `MIGRATION_GUIDE_BACKEND.md` | **HISTÓRICO marcado** na rodada de correção da revisão da Task 17 (banner no topo): guias da migração Next.js → Python, concluída. As citações de SQLite (`:23`, `:173`, `:222`, `:480`, nos dois arquivos) são daquela fase. `bhub-stack-recomendada.md` e `bhub-design-reference.md` não citam SQLite e seguem sem banner — Task 18. |
+| `docs/deploy/MAPA_EXECUCAO_DEPLOY.md`, `CHECKLIST_GO_NOGO.md`, `RESUMO_IMPLEMENTACAO.md` | **HISTÓRICO marcado** na rodada de correção da revisão da Task 17 (documentos operacionais da era SQLite). |
+| `docs/deploy/DEPLOY_STAGING.md`, `VPS_DEPLOY.md`, `TESTES_DEPLOY.md` | Documentos da era SQLite, **ainda sem banner** (Task 18). A rodada de correção da revisão da Task 17 corrigiu a `DATABASE_URL` de staging (`DEPLOY_STAGING.md:71-76` → PostgreSQL), marcou como histórico o troubleshooting de lock do SQLite (`VPS_DEPLOY.md:199-205`) e qualificou a citação de SQLite da suíte (`TESTES_DEPLOY.md:176-178`, dev/testes). |
+| `docs/configuracao/DOCUMENTACAO_BACKEND.md` | **HISTÓRICO marcado** na rodada de correção da revisão da Task 17: banner no topo e `:44` corrigido para `TSVECTOR` + `pg_trgm`; `:220` (`aiosqlite`), `:305` (`DATABASE_URL` SQLite) e `:663` (`bhub.db`) são da fase anterior à migração. |
+| `README.md` (raiz) | **Corrigido** na rodada de correção da revisão da Task 17: `:10-11` afirmam PostgreSQL 16 na produção (busca `TSVECTOR` + `pg_trgm`) e `:172` diz que o default dos composes é PostgreSQL. |
 
 **Referências cruzadas que continuam válidas:** `docs/quality/BASELINE.md` (baseline de
 qualidade e limites declarados dos gates), `docs/superpowers/plans/2026-09-15-bhub-v1.1-production-reliability.md`
@@ -484,5 +485,7 @@ completo de `CLAUDE.md`/`AGENTS.md` é da Task 18).
 
 ---
 
-**Última verificação deste documento:** leitura final contra o código no baseline
-`399915d`, após a última edição da Task 17.
+**Última verificação deste documento:** leitura final contra o código no baseline `6444ab8`,
+após a rodada de correção dos achados da revisão da Task 17 (`docs/architecture/CURRENT_ARCHITECTURE.md`
+§10: âncoras de compose desambiguadas com `bhub-backend-python/`; R-05 em §13 reancorada em
+`app/api/v1/ai.py` (`:114` e `:63`); tabela de §14 atualizada).

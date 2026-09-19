@@ -1,5 +1,14 @@
 # Resumo da Implementação - Deploy BHUB
 
+> STATUS: HISTÓRICO
+> Este documento não representa necessariamente a arquitetura atual.
+> Consulte docs/architecture/CURRENT_ARCHITECTURE.md.
+>
+> Resumo de janeiro de 2025, da era SQLite: a seção "D) SQLite - Backup e Restore" e as listas de
+> arquivos que citam `scripts/backup_db.py` / `scripts/restore_db.py` / `docs/deploy/SQLITE_LIMITS.md`
+> descrevem aquela fase. A produção de hoje é **PostgreSQL 16** (ADR-0001) e o backup operacional é
+> `pg_dump` contra o serviço `db` (`docs/deploy/RUNBOOK.md`).
+
 **Data**: Janeiro 2025  
 **Versão**: 1.0.0
 

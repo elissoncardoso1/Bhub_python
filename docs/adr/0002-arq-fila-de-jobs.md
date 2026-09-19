@@ -67,7 +67,7 @@ inline pendentes antes de encerrar (`app/services/task_dispatcher.py:58-64`).
 - **Negativo — a ordem commit→dispatch não é atômica.** O job é enfileirado depois do
   `commit` (`app/services/feed_aggregator.py:223`, `:231`, `:238`) sem outbox; um crash na
   janela perde o job (R-01).
-- O healthcheck do `arq-worker` é desligado (`docker-compose.prod.yml:100-102`): a
+- O healthcheck do `arq-worker` é desligado (`bhub-backend-python/docker-compose.prod.yml:100-102`): a
   liveness é do ARQ + política de restart, não do `curl` da imagem.
 
 ## Alternativas consideradas

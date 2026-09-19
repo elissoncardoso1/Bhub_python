@@ -68,8 +68,12 @@ APP_VERSION=1.0.0
 DEBUG=false
 ENVIRONMENT=staging
 
-# Database
-DATABASE_URL=sqlite+aiosqlite:///./bhub.db
+# Database — a produção é PostgreSQL 16 (ADR-0001); este é o default dos composes
+# (`bhub-backend-python/docker-compose.prod.yml:32`). O default da aplicação, sem essa
+# variável, continua SQLite — só para dev/testes.
+# ATENÇÃO: o template do passo 2 (`config/env.production.template:29`) ainda traz
+# `sqlite+aiosqlite:///./bhub.db` — sobrescreva essa linha no `.env`.
+DATABASE_URL=postgresql+asyncpg://bhub:bhub@db:5432/bhub
 
 # Security (GERAR NOVA CHAVE!)
 SECRET_KEY=<gerar-com-openssl-rand-hex-32>

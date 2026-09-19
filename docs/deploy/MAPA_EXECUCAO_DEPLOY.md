@@ -1,5 +1,13 @@
 # Mapa de Execução - Deploy BHUB
 
+> STATUS: HISTÓRICO
+> Este documento não representa necessariamente a arquitetura atual.
+> Consulte docs/architecture/CURRENT_ARCHITECTURE.md.
+>
+> Mapa de execução de janeiro de 2025, escrito quando a produção era SQLite: os itens
+> "SQLite: limites + operação" e "Backup automático SQLite" descrevem aquela fase. A produção de
+> hoje é **PostgreSQL 16** (ADR-0001) e a operação vigente está em `docs/deploy/RUNBOOK.md`.
+
 **Data**: Janeiro 2025  
 **Versão**: 1.0.0  
 **Objetivo**: Preparar BHUB para deploy em BETA (GO) e PRODUÇÃO (NO-GO até fechar bloqueadores)

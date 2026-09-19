@@ -1,5 +1,13 @@
 # Checklist GO/NO-GO - Deploy BHUB
 
+> STATUS: HISTÓRICO
+> Este documento não representa necessariamente a arquitetura atual.
+> Consulte docs/architecture/CURRENT_ARCHITECTURE.md.
+>
+> Checklist de janeiro de 2025, da era SQLite: o bloco "✅ SQLite" (limites, backup, restore,
+> pragmas de concorrência) descreve aquela fase. A produção de hoje é **PostgreSQL 16**
+> (ADR-0001); o checklist operacional vigente é `docs/deploy/RUNBOOK.md`.
+
 **Versão**: 1.0.0  
 **Data**: Janeiro 2025
 

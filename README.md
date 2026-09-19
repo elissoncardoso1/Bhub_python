@@ -7,7 +7,8 @@ Backend da plataforma BHUB (Behavior Hub) para agregação e análise de artigos
 - **Framework**: FastAPI 0.115+
 - **Python**: 3.12+
 - **ORM**: SQLAlchemy 2.0 (async)
-- **Banco de Dados**: SQLite com FTS5
+- **Banco de Dados**: PostgreSQL 16 (produção) — SQLite somente em desenvolvimento e na suíte unitária
+- **Busca Full-Text**: PostgreSQL `TSVECTOR` + `pg_trgm` (produção); FTS5 do SQLite apenas em dev
 - **Autenticação**: FastAPI-Users com JWT
 - **ML**: sentence-transformers
 - **Scheduler**: APScheduler
@@ -168,7 +169,7 @@ pytest tests/ -v --cov=app --cov-report=html
 
 | Variável | Descrição | Padrão |
 |----------|-----------|--------|
-| `DATABASE_URL` | URL do banco | `sqlite+aiosqlite:///./bhub.db` |
+| `DATABASE_URL` | URL do banco | `postgresql+asyncpg://bhub:bhub@db:5432/bhub` nos composes (`bhub-backend-python/docker-compose.yml:15`, `bhub-backend-python/docker-compose.prod.yml:32`); o default da aplicação, usado em dev/testes, é `sqlite+aiosqlite:///./bhub.db` |
 | `SECRET_KEY` | Chave JWT | - |
 | `DEBUG` | Modo debug | `false` |
 | `DEEPSEEK_API_KEY` | API DeepSeek | - |

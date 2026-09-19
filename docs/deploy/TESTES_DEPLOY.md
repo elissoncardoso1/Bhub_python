@@ -173,7 +173,8 @@ jobs:
 # Dentro do container
 docker-compose exec backend pytest tests/test_smoke.py -v
 
-# Ou criar banco de teste separado
+# Ou criar banco de teste separado — a suíte unitária roda em SQLite (dev/testes);
+# o banco de deploy é PostgreSQL 16 (ADR-0001)
 docker-compose exec backend pytest tests/ -v --db-url=sqlite+aiosqlite:///./test.db
 ```
 

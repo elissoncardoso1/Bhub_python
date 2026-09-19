@@ -93,8 +93,11 @@ docker-compose exec db psql -U "${POSTGRES_USER:-bhub}" -d "${POSTGRES_DB:-bhub}
   -c "SELECT count(*) AS tabelas FROM information_schema.tables WHERE table_schema = 'public';" \
   -c "SELECT version_num FROM alembic_version;"
 
-# Backup lógico (formato próprio do PostgreSQL)
-docker-compose exec db pg_restore --list backups/bhub_YYYYMMDD_HHMMSS.dump | head
+# Backup lógico (formato próprio do PostgreSQL). O dump vive no host, em `backups/` (ao lado do
+# compose, onde o `docker cp` acima grava); o serviço `db` só monta `postgres_data`, então copie o
+# dump para dentro dele antes de ler o índice.
+docker cp backups/bhub_YYYYMMDD_HHMMSS.dump "$(docker-compose ps -q db):/tmp/"
+docker-compose exec db pg_restore --list /tmp/bhub_YYYYMMDD_HHMMSS.dump | head
 ```
 
 Os scripts `scripts.backup_db` / `scripts.restore_db` operam sobre **arquivo SQLite** e
@@ -257,8 +260,9 @@ df -h
 docker-compose exec db psql -U "${POSTGRES_USER:-bhub}" -d "${POSTGRES_DB:-bhub}" \
   -c "SELECT pg_size_pretty(pg_database_size(current_database())) AS banco;"
 
-# Verificar tamanho dos backups
-docker-compose exec db du -sh backups/
+# Verificar tamanho dos backups (no host: `backups/` fica ao lado do compose, não dentro do
+# container `db`, que só monta `postgres_data`)
+du -sh backups/
 
 # Verificar tamanho dos logs
 docker-compose exec backend du -sh logs/

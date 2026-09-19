@@ -1,5 +1,14 @@
 # 📚 BHUB Backend - Documentação Completa
 
+> STATUS: HISTÓRICO
+> Este documento não representa necessariamente a arquitetura atual.
+> Consulte docs/architecture/CURRENT_ARCHITECTURE.md.
+>
+> Documentação escrita em dezembro de 2024, **antes** da migração para PostgreSQL: a produção
+> hoje é **PostgreSQL 16** (ADR-0001) e a busca full-text de produção é `TSVECTOR` + `pg_trgm`
+> (ADR-0003). As linhas que citam `sqlite`/`aiosqlite`/`bhub.db` (`:44`, `:220`, `:305`, `:663`)
+> descrevem aquela fase, não a arquitetura vigente.
+
 > **Versão:** 1.0.0  
 > **Python:** ≥3.12  
 > **Framework:** FastAPI  
@@ -32,7 +41,7 @@ O **BHUB Backend** é uma API REST desenvolvida em **FastAPI** para agregação 
 ### Principais Funcionalidades
 
 - 📰 **Agregação de Feeds RSS** - Sincronização automática de artigos científicos
-- 🔍 **Busca Full-Text** - Pesquisa semântica com SQLite FTS5
+- 🔍 **Busca Full-Text** - Pesquisa full-text (na fase deste documento, FTS5 do SQLite; a produção atual usa `TSVECTOR` + `pg_trgm` — ADR-0003)
 - 🤖 **Classificação ML** - Categorização automática via embeddings
 - 📄 **Processamento de PDFs** - Extração de metadados e texto
 - 🌐 **Web Scraping** - Extração de artigos de sites

@@ -1,5 +1,14 @@
 # Guia de Migração: BHUB Backend - Next.js para Python
 
+> STATUS: HISTÓRICO
+> Este documento não representa necessariamente a arquitetura atual.
+> Consulte docs/architecture/CURRENT_ARCHITECTURE.md.
+>
+> Guia escrito para a migração Next.js/TypeScript → Python/FastAPI (era SQLite). A tabela de
+> stack abaixo lista **SQLite (via aiosqlite)** porque era esse o banco daquela fase: a produção
+> de hoje é **PostgreSQL 16** (ADR-0001) e o SQLite ficou restrito a desenvolvimento e à suíte
+> unitária. A migração em si está concluída — este texto é o registro de como ela foi feita.
+
 ## Visão Geral da Migração
 
 Este documento detalha a migração completa do backend BHUB de Next.js/TypeScript para Python, utilizando FastAPI como framework principal.

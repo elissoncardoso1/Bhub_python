@@ -196,8 +196,13 @@ sudo chmod -R 755 /var/www/bhub
 
 ### Banco de dados bloqueado
 
+> **HISTÓRICO (era SQLite):** o procedimento abaixo remove `bhub.db-shm` / `bhub.db-wal`, arquivos
+> que só existem no SQLite. Na produção atual (**PostgreSQL 16**, ADR-0001) não há arquivo de banco
+> no host desse deploy; para banco travado use a seção "Incidentes Comuns" de
+> [`docs/deploy/RUNBOOK.md`](./RUNBOOK.md).
+
 ```bash
-# Se SQLite estiver bloqueado
+# (era SQLite) Se o banco estiver bloqueado
 cd /var/www/bhub/backend/bhub-backend-python
 docker-compose -f docker-compose.prod.yml down
 rm -f bhub.db-shm bhub.db-wal

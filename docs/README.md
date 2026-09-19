@@ -38,7 +38,7 @@ arquitetura resumida, convenções de código), veja também o
 - **[DEPLOY_STAGING.md](./deploy/DEPLOY_STAGING.md)** · **[DEPLOY_PROD.md](./deploy/DEPLOY_PROD.md)** — pipelines de staging e produção
 - **[MAPA_EXECUCAO_DEPLOY.md](./deploy/MAPA_EXECUCAO_DEPLOY.md)** · **[CHECKLIST_GO_NOGO.md](./deploy/CHECKLIST_GO_NOGO.md)** · **[RUNBOOK.md](./deploy/RUNBOOK.md)** — execução, go/no-go e runbook operacional
 - **[SECURITY_DECISIONS.md](./deploy/SECURITY_DECISIONS.md)** — decisões de segurança de deploy
-- **[SQLITE_LIMITS.md](./deploy/SQLITE_LIMITS.md)** — limites do SQLite e quando migrar para PostgreSQL
+- **[SQLITE_LIMITS.md](./deploy/SQLITE_LIMITS.md)** — limites do SQLite e quando migrar para PostgreSQL (**histórico**; a produção é PostgreSQL 16 — ADR-0001)
 - **[RESUMO_IMPLEMENTACAO.md](./deploy/RESUMO_IMPLEMENTACAO.md)** · **[TESTES_DEPLOY.md](./deploy/TESTES_DEPLOY.md)** · **[TESTES_FINAL.md](./deploy/TESTES_FINAL.md)** · **[TESTES_RESULTADO.md](./deploy/TESTES_RESULTADO.md)** — testes de deploy
 
 ### 🔒 Segurança — [`seguranca/`](./seguranca/)
