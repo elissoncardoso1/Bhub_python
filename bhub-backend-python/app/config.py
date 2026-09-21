@@ -192,6 +192,16 @@ class Settings(BaseSettings):
             if not self.allowed_origins:
                 raise ValueError("ALLOWED_ORIGINS deve conter pelo menos uma origem em produção")
 
+            # Jobs persistentes são obrigatórios em produção (ADR-0002): com
+            # ENABLE_ARQ=false get_task_queue() devolve o executor inline, que
+            # não sobrevive a restart e não tem retry. Falha aqui, no startup,
+            # em vez de aceitar tráfego e perder jobs silenciosamente.
+            if not self.enable_arq:
+                raise ValueError(
+                    "ENABLE_ARQ deve ser true em produção: jobs precisam de Redis + ARQ. "
+                    "O executor inline é suportado apenas fora de produção."
+                )
+
         return self
 
 

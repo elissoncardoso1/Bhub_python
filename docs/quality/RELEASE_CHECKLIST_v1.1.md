@@ -70,7 +70,7 @@ de `app/` foi alterada**: `git diff -- bhub-backend-python/app/` é vazio.
 
 | # | Item literal | Status | Evidência |
 |---|---|---|---|
-| 2.1 | Nenhuma task crítica usa `asyncio.create_task()` em produção | **PASS (com ressalva medida)** | **[LIDO]** `grep -rn create_task app/` → apenas 2 hits reais: `app/interfaces/task_queue.py:77` (docstring) e `:91` (corpo de `InlineTaskQueue._run_inline`). A seleção da fila é `app/services/task_dispatcher.py:73-79`: `enable_arq=True` → `ArqTaskQueue`; `False` → `InlineTaskQueue`. **[MEDIDO]** a produção documentada fixa ARQ ligado: `docker-compose.prod.yml:34` (`ENABLE_ARQ=${ENABLE_ARQ:-true}`) e `:87` do serviço `arq-worker` (`ENABLE_ARQ=true`). **Ressalva (medida, ver §11-F1):** com `ENVIRONMENT=production ENABLE_ARQ=false`, o processo **aceita** a configuração e `get_task_queue()` devolve `InlineTaskQueue` — não há rejeição de configuração insegura nesse eixo. |
+| 2.1 | Nenhuma task crítica usa `asyncio.create_task()` em produção | **PASS (com ressalva medida)** | **[LIDO]** `grep -rn create_task app/` → apenas 2 hits reais: `app/interfaces/task_queue.py:77` (docstring) e `:91` (corpo de `InlineTaskQueue._run_inline`). A seleção da fila é `app/services/task_dispatcher.py:73-79`: `enable_arq=True` → `ArqTaskQueue`; `False` → `InlineTaskQueue`. **[MEDIDO]** a produção documentada fixa ARQ ligado: `docker-compose.prod.yml:34` (`ENABLE_ARQ=${ENABLE_ARQ:-true}`) e `:87` do serviço `arq-worker` (`ENABLE_ARQ=true`). **Ressalva resolvida:** com `ENVIRONMENT=production ENABLE_ARQ=false` o processo **aceitava** a configuração e `get_task_queue()` devolvia `InlineTaskQueue`; a combinação passou a ser **rejeitada no startup** (§11-F1, §15). |
 | 2.2 | Jobs ARQ são idempotentes | **PASS** | **[MEDIDO]** `tests/integration/test_arq_worker.py` 8 passed: reexecução sequencial (`:339`) e **dois dispatches concorrentes** (`:382`) com worker ARQ + Redis + PostgreSQL reais. **[MEDIDO]** o caso concorrente é uma regressão real: o defeito era `IntegrityError uq_article_category` com `jobs_failed=1` (Task 14), corrigido por `INSERT … ON CONFLICT (article_id, category_id) DO NOTHING` dialeto-aware (`app/services/classification_service.py`), com prova de mutação nos dois sentidos. Cobertura unitária adicional: `tests/unit/test_arq_job_idempotency.py` (5) e `tests/unit/test_classification_concurrent_link.py` (2). |
 | 2.3 | PDF job não depende de `background_tasks.py` | **PASS** | **[LIDO]** `grep -n background_tasks app/jobs/tasks.py` → **0 hits**. `task_download_pdf` (`app/jobs/tasks.py:48-86`) opera via `PDFService.process_article_pdf`. **[MEDIDO]** `tests/integration/test_pdf_pipeline.py` 11 passed com worker ARQ real. O único import de `background_tasks` vivo é `app/interfaces/task_queue.py:101`, dentro do executor inline de desenvolvimento. |
 | 2.4 | Dependências externas dos serviços críticos são substituíveis | **PASS** | **[MEDIDO]** `tests/unit/test_dependencies.py` 14 passed; `tests/unit/test_feed_aggregator_dependencies.py` 4 passed. **[LIDO]** costuras: `PDFService(upload_path, http_client)`, `OpenGraphService(db)`, `FeedAggregatorService(db, ai_manager, parser, fetcher, http_client)` (`app/services/feed_aggregator.py:38-45`). Fronteira HTTP é o **único** dublê autorizado pelo plano, e é o usado. |
@@ -123,7 +123,7 @@ de `app/` foi alterada**: `git diff -- bhub-backend-python/app/` é vazio.
 |---|---|---|---|
 | 6.1 | `.env` não está versionado | **PASS** | **[MEDIDO]** `git ls-files \| grep -E "(^\|/)\.env($\|\.)"` → apenas `.env.example` (raiz e backend). `.gitignore:36` ignora `.env` (e `:37-40` as variantes). |
 | 6.2 | secrets vêm do ambiente | **PASS** | **[LIDO]** `docker-compose.prod.yml` não contém segredo literal: tudo vem de `${…}` do `.env`, e `SECRET_KEY=${SECRET_KEY:?defina SECRET_KEY no .env}` (`bhub-backend-python/docker-compose.prod.yml:35` e `:88`) **obriga** o operador a defini-la. `config.py:66` só tem valor default de placeholder, que é rejeitado (6.3). |
-| 6.3 | produção rejeita configuração insegura | **PASS** | **[MEDIDO]** três rejeições reproduzidas com `ENVIRONMENT=production`: `DEBUG=true` → `ValidationError: DEBUG deve ser False em produção` (`config.py:189`); `ALLOWED_ORIGINS=*` → `Wildcards não são permitidos em ALLOWED_ORIGINS em produção` (`config.py:51-53`); `SECRET_KEY` default → `SECRET_KEY deve ser alterado em produção e ter pelo menos 32 caracteres` (`config.py:84-86`). Origem sem `http(s)://` e lista de origens vazia também são rejeitadas (`:49-53`, `:192-193`). **Ressalva:** `ENABLE_ARQ=false` em produção **não** é rejeitado (ver 2.1 e §11-F1). |
+| 6.3 | produção rejeita configuração insegura | **PASS** | **[MEDIDO]** três rejeições reproduzidas com `ENVIRONMENT=production`: `DEBUG=true` → `ValidationError: DEBUG deve ser False em produção` (`config.py:189`); `ALLOWED_ORIGINS=*` → `Wildcards não são permitidos em ALLOWED_ORIGINS em produção` (`config.py:51-53`); `SECRET_KEY` default → `SECRET_KEY deve ser alterado em produção e ter pelo menos 32 caracteres` (`config.py:84-86`). Origem sem `http(s)://` e lista de origens vazia também são rejeitadas (`:49-53`, `:192-193`). **Quarta rejeição (F1, corrigido em §15):** `ENABLE_ARQ=false` em produção → `ENABLE_ARQ deve ser true em produção` (`config.py:195-203`). |
 | 6.4 | headers de segurança permanecem ativos | **PASS** | **[LIDO]** `app/core/security_headers.py`: HSTS (`:66`), `X-Frame-Options: SAMEORIGIN` (`:71`), `X-Content-Type-Options: nosniff` (`:74`), `Referrer-Policy` (`:80`), CSP (`:88-94`). **[MEDIDO]** `tests/test_core_components.py:270,282` asserem `X-Frame-Options` e `content-security-policy`. |
 | 6.5 | cookies de autenticação continuam HttpOnly/Secure em produção | **PASS** | **[LIDO]** `app/core/auth_cookie_middleware.py:25` → `cookie_secure = settings.is_production` (Secure só em produção, que é onde importa); `:63-65` e `:77-79` → `httponly=True`, `secure=self.cookie_secure`, `samesite="strict"`. **[MEDIDO]** as suítes de auth/cookie passam (`tests/test_auth_flow.py`, `tests/test_core_components.py`). **Nota de precisão:** os testes de `CookieTransport` usam `cookie_secure=False` explícito, logo o **valor** `Secure=True` em produção é **[LIDO]**, não asserido por teste. |
 | 6.6 | consentimento e analytics não sofreram regressão | **PASS** | **[MEDIDO]** `pytest tests/test_analytics_consent_gate.py tests/test_cookie_consent_endpoints.py tests/test_cookie_consent_unit.py tests/test_legal_pages.py -q` → **70 passed**, rc=0. O gate de consentimento é `ENABLE_ANALYTICS=false` por default (`config.py:162`) e `ANALYTICS_RESPECT_DNT=true` no compose de produção. |
@@ -207,7 +207,7 @@ por omissão.
 
 | Condição | Situação | Evidência |
 |---|---|---|
-| task crítica ainda usa fallback não persistente | **NÃO, na configuração de produção documentada** | §2.1 — em produção o ARQ está ligado (`docker-compose.prod.yml:34,:87`) e o `InlineTaskQueue` não é alcançado; o dispatcher **recusa** enfileirar sem pool (`task_dispatcher.py:82-89`) em vez de degradar. **Ressalva registrada (F1, §11):** `ENVIRONMENT=production ENABLE_ARQ=false` é **aceito** pela config e cai no inline — é lacuna de *validação de configuração*, não o caminho que o deploy percorre. |
+| task crítica ainda usa fallback não persistente | **NÃO, na configuração de produção documentada** | §2.1 — em produção o ARQ está ligado (`docker-compose.prod.yml:34,:87`) e o `InlineTaskQueue` não é alcançado; o dispatcher **recusa** enfileirar sem pool (`task_dispatcher.py:82-89`) em vez de degradar. **Ressalva F1 resolvida (§15):** `ENVIRONMENT=production ENABLE_ARQ=false` passou a ser **rejeitado** pela config no startup — a lacuna de *validação de configuração* foi fechada. |
 | migration falha em banco vazio | **NÃO** | §3.2 — passa, com `rc=0` asserido. |
 | worker não recupera jobs | **NÃO VERIFICADO, não refutado** | §4.5 — a persistência do job está provada; o **restart** do worker não foi exercitado por teste algum. |
 | CI permite lint/type-check falhar | **NÃO** | `ruff`, `format`, `mypy app`, o ratchet e o harness são steps **bloqueantes**; **0** `continue-on-error`. |
@@ -232,9 +232,9 @@ Verificação de CÓDIGO — o que a Task 19 manda verificar:   GO
 
 Liberação da RELEASE v1.1:                                 NO-GO
   - condição de GO "staging verde" NÃO satisfeita (não executada);
-  - Docker build e GitHub Actions nunca executados (§5.6, §10.1);
-  - 1 Important aberto para adjudicação (F1 — config aceita ENABLE_ARQ=false
-    em produção).
+  - Docker build e GitHub Actions nunca executados (§5.6, §10.1).
+
+Critical aberto: 0     Important aberto: 0  (F1 corrigido — ver §11 e §15)
 ```
 
 **Este NO-GO é sobre a liberação da release, não sobre o fechamento da Task 19.** O deliverable da
@@ -245,13 +245,14 @@ como PASS sem evidência, nenhum gate foi relaxado para caber num GO, e nenhum p
 
 ## 11. Achados desta verificação
 
-Registrados com o mesmo destaque dos itens que passam. **Apenas o F2 foi corrigido nesta task** —
-era um item de release falhando cujo fix é um arquivo de teste, sem tocar `app/`. **Nenhum dos
-outros achados foi corrigido**; a correção de código/escopo deles pertence a decisão registrada.
+Registrados com o mesmo destaque dos itens que passam. **Dois foram corrigidos:** o **F2**
+(item de release falhando; fix é um arquivo de teste, sem tocar `app/`) e o **F1** (autorizado
+na rodada de fechamento; fix é validação de configuração — ver §15). **Nenhum dos outros achados
+foi corrigido**; a correção deles pertence a decisão registrada.
 
 | ID | Achado | Severidade proposta | Evidência |
 |---|---|---|---|
-| **F1** | `ENVIRONMENT=production` + `ENABLE_ARQ=false` é **aceito** e o dispatcher devolve `InlineTaskQueue` — produção pode ser configurada para o caminho não persistente sem rejeição (§2.1). A configuração documentada evita isso, mas o config não a força. | **Important (a adjudicar)** | **[MEDIDO]** `env … ENVIRONMENT=production ENABLE_ARQ=false … python -c "get_task_queue()"` → `queue chosen = InlineTaskQueue`, rc=0. `config.py:183-195` valida DEBUG/origens/secret, **não** valida `enable_arq`. |
+| **F1** | `ENVIRONMENT=production` + `ENABLE_ARQ=false` era **aceito** e o dispatcher devolvia `InlineTaskQueue` — produção podia ser configurada para o caminho não persistente sem rejeição (§2.1). **CORRIGIDO** (§15): `app/config.py` rejeita a combinação no startup. | **Important — RESOLVIDO** | **[MEDIDO]** antes: `ENVIRONMENT=production ENABLE_ARQ=false` → aceito, `queue chosen = InlineTaskQueue`, rc=0. Depois: `ValidationError: ENABLE_ARQ deve ser true em produção`. 6 testes em `tests/unit/test_config_production_arq.py`, prova de mutação (guard removido → 2 failed). |
 | **F2** | O item **8.4** falhava: a heurística de desmembramento de autores OJS (`article_parser.py:190-222`) **não tinha teste de regressão**, e as linhas **215-218** estavam descobertas nas duas suítes; o commit `d858451` entregou comportamento sem guarda. **CORRIGIDO nesta task** (§8.4): `tests/unit/test_article_parser_ojs_authors.py`, 6 testes pelo caminho real, com prova de mutação nas duas direções (undersplit → 3 failed; oversplit → 2 failed). Nenhuma linha de `app/` foi tocada. | **Important — RESOLVIDO** | **[MEDIDO]** `--cov-report=term-missing` (unit e integração) listava `215-218`; hoje `EXECUTED`. |
 | **F3** | O item **3.6** pede pool "configurado **e testado**": está configurado (`database.py:28-33`) e **não** testado (0 asserções em `tests/`). | Minor | **[MEDIDO]** grep em `tests/` → 0 hits. |
 | **F4** | O item **7.7**: as métricas são criadas mas o `MeterProvider` não tem exportador (`telemetry.py:31`), e `ENABLE_TELEMETRY` é `false` por default. | Minor | **[LIDO]** `telemetry.py:19-31`. |
@@ -351,3 +352,48 @@ verificação.
 - **Ambiguidade dos composes (F7):** documentada, **não** resolvida — escolher uma variante canônica
   é decisão de produto, não desta task.
 - **Push / tag:** o roadmap **não** pede tag nem versão nova. Nenhuma foi criada.
+
+---
+
+## 15. F1 — correção autorizada (rodada de fechamento)
+
+O F1 deixou de ser um risco a adjudicar: na rodada de fechamento sua correção foi **autorizada** e
+implementada. Produção passa a exigir ARQ **por validação de configuração**.
+
+**O que mudou:** `app/config.py`, dentro do `validate_production_settings` que já existia (`:183`) —
+a validação central e precoce do projeto. Reusa o `is_production` (`:180`) existente; nenhum conceito
+novo de environment foi criado. Não há `PING` de Redis no startup (não é política de
+disponibilidade — é corretude de configuração).
+
+```text
+production + ENABLE_ARQ=false        → rejeitado no startup (fail fast)
+production + ENABLE_ARQ ausente      → rejeitado (default do modelo é false, `:63`)
+production + ENABLE_ARQ=true         → aceito
+development / staging + false        → aceito (executor inline preservado)
+```
+
+**O executor inline não foi removido** — `InlineTaskQueue` segue sendo a fila de dev/test.
+
+| Cenário | Esperado | Observado | Status |
+|---|---|---|---|
+| `production` + `false` | rejeitar | `ValidationError: ENABLE_ARQ deve ser true em produção` | PASS |
+| `production` + ausente | rejeitar | idem (default `false` em `app/config.py:63`) | PASS |
+| `production` + `true` | aceitar | `enable_arq=True` | PASS |
+| `development` + `false` | aceitar | fila = `InlineTaskQueue` | PASS |
+| `staging` + `false` | aceitar | `enable_arq=False` | PASS |
+
+**Sobre o caso `test` do plano:** `test` **não** é um environment válido neste projeto — o
+`Literal` em `app/config.py:28` aceita apenas `development`, `staging`, `production`. A suíte roda
+como `development` (o default), que é aceito com `ENABLE_ARQ=false`. Não foi criado um segundo
+conceito de environment para cobrir o rótulo: o mapeamento está declarado no teste
+(`test_test_nao_e_um_environment_valido`).
+
+**Sem fallback silencioso no runtime (medido):** com ARQ ligado, falha de enfileiramento levanta erro
+explícito (`ArqTaskQueue._enqueue` termina em `raise`, com log estruturado) — não degrada para
+inline. O único `asyncio.create_task` executável do app está dentro de `InlineTaskQueue._run_inline`
+(`app/interfaces/task_queue.py:91`). `runtime silent fallback: NOT PRESENT`. Nada foi alterado nesse
+eixo.
+
+**Custo em `app/`:** 10 linhas adicionadas em um único arquivo. É a **primeira** mudança de `app/` da
+Task 19 — as anteriores eram 0; registrado para que o número não seja lido como se valesse para a
+task inteira.
