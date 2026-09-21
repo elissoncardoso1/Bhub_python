@@ -113,7 +113,7 @@ de `app/` foi alterada**: `git diff -- bhub-backend-python/app/` é vazio.
 | 5.3 | `mypy app` passa — **sob o gate PARCIAL de `BASELINE.md` §6.6** | **PASS (literalmente qualificado)** | **[MEDIDO]** `mypy app` → `Success: no issues found in 105 source files`, rc=0. **[MEDIDO]** o gate é **PARCIAL** e isto está escrito no próprio item do plano: **28 dos 105** arquivos de `app/` estão sob `ignore_errors` e ficam fora de verificação; dos 77 restantes, 44 estão sob `strict` pleno e 33 sob o default. **[MEDIDO]** a lacuna de regressão é fechada pelo **shadow ratchet**: `Found 127 errors in 28 files (checked 105 source files)`, rc=1 — o orçamento de 127 está **intacto**. Números em `docs/quality/BASELINE.md` §6.3/§6.6/§6.8. **Não** ler esta linha como "o codebase está type-checked". |
 | 5.4 | `pytest` passa | **PASS** | **[MEDIDO]** `pytest tests/ -q` → `264 passed, 48 deselected`, rc=0 (258 + os 6 desta task). Step bloqueante `Run tests` (`ci.yml:238-239`). |
 | 5.5 | Coverage >= baseline | **PASS** | **[MEDIDO]** `pytest tests/ -q --cov=app --cov-precision=2 --cov-fail-under=59.19` → `TOTAL 6343 2573 59.44%` (3770/6343; cru 59,4356%), `Required test coverage of 59.19% reached.`, rc=0. Piso efetivo: **≥ 3755 statements cobertos** (3755 → 59,1991% → 59,20 passa; 3754 → 59,18 reprova). A folga era de **2 statements** no baseline e é de **15** aqui, porque o teste novo cobriu **13 statements** que estavam descobertos (medido: `missing_lines` de `article_parser.py` caiu de 133 para 120, em 13 linhas de fonte distintas). |
-| 5.6 | Docker build passa no CI | **NÃO VERIFICADO** | **[LIDO]** o step existe, é **bloqueante** e é o último do job: `ci.yml:348-354` (`docker build -f Dockerfile .`, com `timeout-minutes: 40` no step e 60 no job, e **um** retry com `::warning::`). **[NÃO VERIFICADO]** **o build não foi executado nesta verificação** (custo de minutos + consumo de rede) e **nunca foi executado no GitHub Actions** — não houve push. Não afirmo que passa. |
+| 5.6 | Docker build passa no CI | **BLOCKED — disk capacity** | **[MEDIDO]** `docker build -f Dockerfile .` (comando literal de `ci.yml:351`) foi **executado** na rodada de fechamento: `RC=1`, falha no **último** passo `[11/11]`, `chown: changing ownership of '/app/.cache/huggingface/…': No space left on device`. Causa = **disco**, não código: VM do Docker em **98%** (1.1G livres), host em 96%; o `Dockerfile` **não** foi tocado por esta task. Nenhum prune executado. **[LIDO]** o step existe, é **bloqueante** e é o último do job (`ci.yml:348-354`, `timeout-minutes: 40`, 1 retry com `::warning::`); o commit que o introduziu (`ef19eaf`) **não está em `main`**, e a branch nunca foi pushed — logo **nunca rodou em runner**. Não afirmo que passa, e não afirmo que falha por defeito do código. |
 
 ---
 
@@ -338,7 +338,7 @@ verificação.
 | `R-12` — modo `semantic` usa motor só de dev | **DEFERRED** | — |
 | `.dockerignore` inexistente | **DEFERRED** | `COPY . .` leva a árvore inteira para o contexto de build. |
 | Cenários 25/29/31 do harness | **DEFERRED** | Casos de tabela inline com TOML inválido (as asserções de guard valem). |
-| M5 (Task 11) | **DEFERRED** | O CI builda a imagem mas não a executa (§5.6). |
+| M5 (Task 11) | **DEFERRED** | O CI constrói a imagem mas não a executa; nesta rodada o build foi executado **localmente** e parou por **disco**, não por código (§5.6). |
 
 ---
 
