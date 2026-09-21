@@ -33,36 +33,65 @@ como aprovadas por omissão.
 |---|---|---|---|
 | `git diff --check` | (raiz do worktree) | sem saída | **0** |
 | Ruff | `ruff check app tests` | `All checks passed!` | **0** |
-| Formatter | `ruff format --check .` | `189 files already formatted` | **0** |
+| Formatter | `ruff format --check .` | `190 files already formatted` | **0** |
 | Mypy | `mypy app` | `Success: no issues found in 105 source files` | **0** |
 | Ratchet | `mypy app --config-file pyproject.ratchet.toml` | `Found 127 errors in 28 files (checked 105 source files)` | **1** (esperado) |
-| Unit | `pytest tests/ -q` | `264 passed, 48 deselected` | **0** |
-| Integração | `pytest tests/integration -m integration -q` (idêntico ao CI) | `48 passed` | **0** |
-| Cobertura | `pytest tests/ -q --cov=app --cov-precision=2 --cov-fail-under=59.19` | `TOTAL 6343 2573 59.44%` · `Required test coverage of 59.19% reached.` | **0** |
+| Unit | `pytest tests/ -q` | `270 passed, 48 deselected` | **0** |
+| Integração | `pytest tests/integration -m integration -q` (idêntico ao CI) | `48 passed` — **ver a ressalva de disco em §1.2** | **0** |
+| Cobertura | `pytest tests/ -q --cov=app --cov-precision=2 --cov-fail-under=59.19` | `TOTAL 6345 2563 59.61%` · `Required test coverage of 59.19% reached.` | **0** |
 | Harness do ratchet | `RATCHET_HARNESS_COVERAGE=1 bash tests/ci/ratchet_step_harness.sh` | `35 disponíveis, 35 executados, 35 ok, 0 divergências, 0 pulados` | **0** |
+
+Os valores acima são do **HEAD atual** (pós-F1). A bateria foi medida duas vezes: em `9091bc8`+verificação
+e novamente após o fix — os números de então estão preservados em §1.3, porque foram a base do
+veredito de verificação.
 
 **Delta contra o baseline congelado (explicado, não silenciado).** O baseline autoritativo da
 milestone é `258 passed / 48 deselected`, cobertura `6343 2586 59.23%` e `188 files`. O verificado
-aqui é `264 passed`, `6343 2573 59.44%` e `189 files`. A diferença tem **uma única causa**: esta
-Task 19 adicionou **um arquivo de teste** —
-`tests/unit/test_article_parser_ojs_authors.py` (6 testes) — para fechar o item **8.4**, que
-falhava (§8.4 e §11-F2). Toda a diferença vem daí: `+6` testes, `+1` arquivo formatado e
-**13 statements** a menos não cobertos (o ramo do desmembramento OJS deixou de estar descoberto).
-O revisor independente confirmou a atribuição comparando o baseline extraído com o HEAD menos o
-arquivo novo: **idênticos arquivo a arquivo** (105 arquivos, 6343 statements, 2586 missing).
+aqui é `270 passed`, `6345 2563 59.61%` e `190 files`. As causas são **duas**, ambas desta task: o
+arquivo de teste que fechou o item **8.4** (`tests/unit/test_article_parser_ojs_authors.py`, 6 testes)
+e — já na rodada de fechamento — o teste que guarda o F1
+(`tests/unit/test_config_production_arq.py`, 6 testes) junto das **10 linhas** do guard em
+`app/config.py`. Os `+12` testes explicam `264→270`; os statements cobertos subiram com os testes e
+caíram com o guard novo (`6343→6345` statements, `2573→2563` não cobertos). A atribuição do delta
+de verificação foi confirmada por revisor independente comparando baseline e HEAD **menos** o arquivo
+novo: idênticos arquivo a arquivo (105 arquivos, 6343 statements, 2586 missing).
+
 **Nenhum gate foi relaxado:** o orçamento do ratchet segue **127**, o piso de cobertura segue
 **`--cov-precision=2 --cov-fail-under=59.19`**, `strict = true` segue global, o `addopts` de
-deseleção não foi tocado e há **0** chaves `continue-on-error` no workflow. Também **nenhuma linha
-de `app/` foi alterada**: `git diff -- bhub-backend-python/app/` é vazio.
+deseleção não foi tocado e há **0** chaves `continue-on-error` no workflow.
+
+**`app/`:** a verificação em si não alterou nenhuma linha de `app/`. O fix autorizado do F1 alterou
+**10 linhas em um arquivo** — `git diff --stat 95cb1d1..HEAD -- bhub-backend-python/app/` devolve
+`app/config.py | 10 ++++++++++`, não vazio (a frase anterior, que dizia ser vazio, valia para
+`9091bc8..95cb1d1` e ficou obsoleta com o fix).
 
 ### 1.2 Ambiente observado
 
 - Docker Engine **29.8.0**; imagens `postgres:16-alpine` e `redis:7-alpine` já locais (a suíte de
   integração falha alto se faltarem — nunca `skip` silencioso).
-- Disco do VM do Docker: `overlay 58.4G · 52.3G usados · 3.1G livres · 94%`. **Nenhuma limpeza foi
-  executada** nesta rodada (nenhum `prune`, em nenhuma forma).
+- **Disco do VM do Docker: `98%`, `1.1G` livres no fim da rodada de fechamento** (era `94%` / `3.1G`
+  livres na verificação). O `48 passed` da integração foi medido **antes** do esgotamento; depois
+  dele, a suíte **não é reproduzível** por falta de espaço (`No space left on device`, `DiskFullError`).
+  O revisor independente não pôde reproduzir os 48 — registrado como limitação de ambiente, que
+  **não refuta** a medição anterior e **não** foi causada pelo fix (ver §5.6). **Nenhuma limpeza foi
+  executada** em nenhuma rodada (nenhum `prune`, em nenhuma forma): não há autorização permanente.
 - `unset DEBUG` aplicado em toda execução de `pytest`/`alembic` (o `DEBUG=release` ambiente quebra
   `app/config.py` com `ValidationError`).
+
+### 1.3 Bateria da verificação (histórico, preservado)
+
+Medida antes do fix do F1, sobre `9091bc8`+os três commits de verificação. Preservada porque foi a
+base do veredito de verificação e porque é contra ela que o §1.1 mostra o delta do fix:
+
+```text
+Unit         264 passed, 48 deselected
+Cobertura    TOTAL 6343 2573 59.44%   (piso 59.19)
+Formatter    189 files
+Integração   48 passed
+```
+
+O `app/` era então **0 linhas** (`git diff --stat 9091bc8..95cb1d1 -- bhub-backend-python/app/` vazio).
+O fix do F1 somou 10 linhas em `app/config.py` e 6 testes, como descrito em §1.1 e §15.
 
 ---
 
@@ -197,7 +226,7 @@ por omissão.
 
 | Condição | Situação | Evidência |
 |---|---|---|
-| CI verde | **PARCIAL** | Os **9 steps bloqueantes** mais setup/install do `.github/workflows/ci.yml` (12 steps, YAML válido, `0` chaves `continue-on-error`) foram **lidos** e os seus comandos foram **executados localmente com rc=0** (§1.1). O workflow **nunca rodou no GitHub Actions** — não houve push. **[NÃO VERIFICADO]** como execução hospedada. |
+| CI verde | **PARCIAL** | Os steps bloqueantes do `.github/workflows/ci.yml` (YAML válido, `0` chaves `continue-on-error`) foram **lidos**; os de lint/teste/type-check foram **executados localmente com rc=0** (§1.1) e o de **build foi executado e ficou BLOCKED por disco** (§5.6) — não por defeito do código. O workflow **nunca rodou no GitHub Actions**: não houve push, e há **0 runs** para este HEAD. **[NÃO VERIFICADO]** como execução hospedada. |
 | staging verde | **NÃO — não executado** | §9 — nenhum item executado; fora do alcance de código/testes. |
 | migrações verificadas | **SIM** | §3.2, §3.3, §3.4, §3.5 — PostgreSQL 16 real, banco vazio, cadeia completa e reversível. |
 | fila persistente verificada | **SIM** | §4.3, §4.4, §2.2 — Redis 7 e worker ARQ reais; job persistido no Redis antes do consumo. |
@@ -224,7 +253,8 @@ Verificação de CÓDIGO — o que a Task 19 manda verificar:   GO
        5 PARCIAL   (3.6 pool não testado; 4.5 restart do worker não exercitado;
                     4.6 backlog sem superfície no app; 7.7 métricas sem exportador;
                     8.6 truncamento silencioso)
-       3 NÃO VERIFICADO  (4.1 Redis em staging; 4.2 worker em staging; 5.6 Docker build)
+       2 NÃO VERIFICADO  (4.1 Redis em staging; 4.2 worker em staging)
+       1 BLOCKED         (5.6 Docker build — parou por disco, não por código: §5.6)
        0 FALHANDO  (o único que falhava — 8.4, teste de regressão OJS — foi
                     CORRIGIDO nesta task, com prova de mutação nas duas direções)
   ITENS DE STAGING (§9)          = 11, NÃO VERIFICADOS (exigem ambiente externo)
@@ -232,7 +262,8 @@ Verificação de CÓDIGO — o que a Task 19 manda verificar:   GO
 
 Liberação da RELEASE v1.1:                                 NO-GO
   - condição de GO "staging verde" NÃO satisfeita (não executada);
-  - Docker build e GitHub Actions nunca executados (§5.6, §10.1).
+  - Docker build executado e BLOCKED por disco (§5.6); GitHub Actions nunca
+    executados — 0 runs para este HEAD (§10.1).
 
 Critical aberto: 0     Important aberto: 0  (F1 corrigido — ver §11 e §15)
 ```
