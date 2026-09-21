@@ -142,7 +142,7 @@ O fix do F1 somou 10 linhas em `app/config.py` e 6 testes, como descrito em §1.
 | 5.3 | `mypy app` passa — **sob o gate PARCIAL de `BASELINE.md` §6.6** | **PASS (literalmente qualificado)** | **[MEDIDO]** `mypy app` → `Success: no issues found in 105 source files`, rc=0. **[MEDIDO]** o gate é **PARCIAL** e isto está escrito no próprio item do plano: **28 dos 105** arquivos de `app/` estão sob `ignore_errors` e ficam fora de verificação; dos 77 restantes, 44 estão sob `strict` pleno e 33 sob o default. **[MEDIDO]** a lacuna de regressão é fechada pelo **shadow ratchet**: `Found 127 errors in 28 files (checked 105 source files)`, rc=1 — o orçamento de 127 está **intacto**. Números em `docs/quality/BASELINE.md` §6.3/§6.6/§6.8. **Não** ler esta linha como "o codebase está type-checked". |
 | 5.4 | `pytest` passa | **PASS** | **[MEDIDO]** `pytest tests/ -q` → `264 passed, 48 deselected`, rc=0 (258 + os 6 desta task). Step bloqueante `Run tests` (`ci.yml:238-239`). |
 | 5.5 | Coverage >= baseline | **PASS** | **[MEDIDO]** `pytest tests/ -q --cov=app --cov-precision=2 --cov-fail-under=59.19` → `TOTAL 6343 2573 59.44%` (3770/6343; cru 59,4356%), `Required test coverage of 59.19% reached.`, rc=0. Piso efetivo: **≥ 3755 statements cobertos** (3755 → 59,1991% → 59,20 passa; 3754 → 59,18 reprova). A folga era de **2 statements** no baseline e é de **15** aqui, porque o teste novo cobriu **13 statements** que estavam descobertos (medido: `missing_lines` de `article_parser.py` caiu de 133 para 120, em 13 linhas de fonte distintas). |
-| 5.6 | Docker build passa no CI | **BLOCKED — disk capacity** | **[MEDIDO]** `docker build -f Dockerfile .` (comando literal de `ci.yml:351`) foi **executado** na rodada de fechamento: `RC=1`, falha no **último** passo `[11/11]`, `chown: changing ownership of '/app/.cache/huggingface/…': No space left on device`. Causa = **disco**, não código: VM do Docker em **98%** (1.1G livres), host em 96%; o `Dockerfile` **não** foi tocado por esta task. Nenhum prune executado. **[LIDO]** o step existe, é **bloqueante** e é o último do job (`ci.yml:348-354`, `timeout-minutes: 40`, 1 retry com `::warning::`); o commit que o introduziu (`ef19eaf`) **não está em `main`**, e a branch nunca foi pushed — logo **nunca rodou em runner**. Não afirmo que passa, e não afirmo que falha por defeito do código. |
+| 5.6 | Docker build passa no CI | **PASS (medido localmente)** | **[MEDIDO]** `docker build -f Dockerfile .` (comando literal de `ci.yml:351`) **passou**: `RC=0`, imagem `bhub-v1.1-release:latest` (8.66GB), passo final `[11/11]` concluído. Smoke test próprio: `docker run --rm --entrypoint python <img> -c "import app.main"` → `import app.main OK` (o CI **não** executa a imagem — é o achado M5). A rodada anterior falhava por **disco** (`No space left on device`, VM a 98%): após o cleanup autorizado de volumes anônimos, a VM foi a **77%** (12.5G livres) e o build passou. **[NÃO VERIFICADO] no runner do GitHub** — ver §10.1. |
 
 ---
 
@@ -226,7 +226,7 @@ por omissão.
 
 | Condição | Situação | Evidência |
 |---|---|---|
-| CI verde | **PARCIAL** | Os steps bloqueantes do `.github/workflows/ci.yml` (YAML válido, `0` chaves `continue-on-error`) foram **lidos**; os de lint/teste/type-check foram **executados localmente com rc=0** (§1.1) e o de **build foi executado e ficou BLOCKED por disco** (§5.6) — não por defeito do código. O workflow **nunca rodou no GitHub Actions**: não houve push, e há **0 runs** para este HEAD. **[NÃO VERIFICADO]** como execução hospedada. |
+| CI verde | **PARCIAL — e o workflow NÃO pode rodar neste branch** | Os steps do `.github/workflows/ci.yml` foram **lidos** e executados **localmente**: lint/teste/type-check rc=0 (§1.1), `docker build` **PASS** após o cleanup (§5.6). **[MEDIDO]** o workflow dispara em `push: branches: [main]` e em `pull_request:` — e **nada mais**: o push de `feat/v1.1-reliability` **não gerou run** (`gh run list --branch feat/v1.1-reliability` vazio; 0 runs para o SHA do HEAD). Para haver execução hospedada é preciso um **PR** (ou push em `main`) — ver §16. **[NÃO VERIFICADO]** como execução hospedada. |
 | staging verde | **NÃO — não executado** | §9 — nenhum item executado; fora do alcance de código/testes. |
 | migrações verificadas | **SIM** | §3.2, §3.3, §3.4, §3.5 — PostgreSQL 16 real, banco vazio, cadeia completa e reversível. |
 | fila persistente verificada | **SIM** | §4.3, §4.4, §2.2 — Redis 7 e worker ARQ reais; job persistido no Redis antes do consumo. |
@@ -254,7 +254,7 @@ Verificação de CÓDIGO — o que a Task 19 manda verificar:   GO
                     4.6 backlog sem superfície no app; 7.7 métricas sem exportador;
                     8.6 truncamento silencioso)
        2 NÃO VERIFICADO  (4.1 Redis em staging; 4.2 worker em staging)
-       1 BLOCKED         (5.6 Docker build — parou por disco, não por código: §5.6)
+       1 PASS medido localmente e NÃO VERIFICADO no runner (5.6 Docker build)
        0 FALHANDO  (o único que falhava — 8.4, teste de regressão OJS — foi
                     CORRIGIDO nesta task, com prova de mutação nas duas direções)
   ITENS DE STAGING (§9)          = 11, NÃO VERIFICADOS (exigem ambiente externo)
@@ -262,8 +262,9 @@ Verificação de CÓDIGO — o que a Task 19 manda verificar:   GO
 
 Liberação da RELEASE v1.1:                                 NO-GO
   - condição de GO "staging verde" NÃO satisfeita (não executada);
-  - Docker build executado e BLOCKED por disco (§5.6); GitHub Actions nunca
-    executados — 0 runs para este HEAD (§10.1).
+  - GitHub Actions nunca executados — 0 runs para este HEAD: o workflow só
+    dispara em push de `main` e em `pull_request`, e o branch foi pushed sem PR (§10.1);
+  - staging inexistente (nenhum ambiente/credencial; §9).
 
 Critical aberto: 0     Important aberto: 0  (F1 corrigido — ver §11 e §15)
 ```
@@ -428,3 +429,33 @@ eixo.
 **Custo em `app/`:** 10 linhas adicionadas em um único arquivo. É a **primeira** mudança de `app/` da
 Task 19 — as anteriores eram 0; registrado para que o número não seja lido como se valesse para a
 task inteira.
+
+---
+
+## 16. Gates externos de release (executados sob autorização)
+
+Medidos após a autorização da rodada de fechamento. **Nenhum estado desconhecido foi promovido a PASS.**
+
+| Gate | Status | Evidência |
+|---|---|---|
+| **Build** | **PASS (local) / NÃO VERIFICADO (runner)** | `docker build -f Dockerfile .` (literal de `ci.yml:351`) → `RC=0`, imagem `bhub-v1.1-release:latest` (8.66GB), `import app.main` OK. A rodada anterior falhava por **disco** (VM a 98%, `No space left on device`); após o cleanup autorizado, a VM foi a **77%** (12.5G livres) e o build passou. |
+| **GitHub Actions** | **NOT VERIFIED** | **0 runs para o SHA do HEAD.** O workflow dispara em `push: branches: [main]` e em `pull_request:` — o push do branch **não gera run**. Leitura do YAML **não** é execução hospedada. |
+| **Staging** | **NOT VERIFIED** | Nenhum ambiente de staging existe/acessível. Não há compose de staging, nenhuma variável de staging no ambiente, e o único documento (`docs/deploy/DEPLOY_STAGING.md`) está marcado **HISTÓRICO** (era SQLite, exige VPS/SSH). Não simulado localmente: simular e chamar de staging real seria falso. |
+
+### 16.1 Cleanup de Docker (autorizado, lista explícita)
+
+- **Inventariado antes de remover**: 461 volumes dangling = **414 anônimos** (label `com.docker.volume.anonymous`, sem container associado) + **47 NOMEADOS**.
+- **Os 47 nomeados NÃO foram tocados** — incluem dados persistentes do projeto (`bhub_db_data`, `bhub_redis_data`, `bhub_backend_postgres_dev_data`), de outros projetos (`aba-clinic-system_*`, `infra_*`, `khoj_*`) e do `supabase` que está **rodando**.
+- **Removidos**: os **414 anônimos**, por lista explícita (sem `system prune`, sem `--all`, sem `-a`), com os containers ativos conferidos antes e a interseção com volumes em uso verificada como **vazia**. `rc=0`, 0 erros.
+- **Espaço**: VM **1.1G → 12.5G livres** (`98% → 77%`); `Local Volumes` **16.14GB → 3.76GB**. Dados do BHub conferidos como presentes depois.
+- **Não removido**: imagens dangling e build cache (não foram necessários ao build).
+
+### 16.2 Git
+
+- Push **normal** de `feat/v1.1-reliability` com upstream configurado. Sem force, sem merge em `main`, sem tag, sem release.
+- Remoto confirmado apontando para o HEAD local; `main` no `origin` segue em **`1d3177e`** (intocado).
+- Nenhum arquivo sensível nos commits enviados (`.env` não versionado; só `.env.example`).
+
+### 16.3 O que destrava o Actions
+
+**Não é o push — é um PR.** O workflow só dispara em `push` para `main` ou em `pull_request`. Criar o PR (ou mergear) é **ação de release** e não foi autorizada nesta rodada: está registrado como o próximo passo humano, e é o que falta para transformar o Actions de `NOT VERIFIED` em PASS/FAIL medido.
