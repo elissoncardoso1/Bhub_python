@@ -226,7 +226,7 @@ por omissão.
 
 | Condição | Situação | Evidência |
 |---|---|---|
-| CI verde | **PARCIAL — e o workflow NÃO pode rodar neste branch** | Os steps do `.github/workflows/ci.yml` foram **lidos** e executados **localmente**: lint/teste/type-check rc=0 (§1.1), `docker build` **PASS** após o cleanup (§5.6). **[MEDIDO]** o workflow dispara em `push: branches: [main]` e em `pull_request:` — e **nada mais**: o push de `feat/v1.1-reliability` **não gerou run** (`gh run list --branch feat/v1.1-reliability` vazio; 0 runs para o SHA do HEAD). Para haver execução hospedada é preciso um **PR** (ou push em `main`) — ver §16. **[NÃO VERIFICADO]** como execução hospedada. |
+| CI verde | **PARCIAL → PASS no runner (ver §17)** | Os steps do `.github/workflows/ci.yml` foram executados **localmente** (§1.1, rc=0) e depois no **GitHub-hosted runner** via PR #5: run `35638006832`, `conclusion=success`, os 14 steps verdes — incluindo `Run tests`, `Coverage floor`, `Testes de integração (PostgreSQL e Redis reais)` e `Build da imagem Docker`. **O que falta para o GO de release não é mais o CI.** |
 | staging verde | **NÃO — não executado** | §9 — nenhum item executado; fora do alcance de código/testes. |
 | migrações verificadas | **SIM** | §3.2, §3.3, §3.4, §3.5 — PostgreSQL 16 real, banco vazio, cadeia completa e reversível. |
 | fila persistente verificada | **SIM** | §4.3, §4.4, §2.2 — Redis 7 e worker ARQ reais; job persistido no Redis antes do consumo. |
@@ -261,10 +261,18 @@ Verificação de CÓDIGO — o que a Task 19 manda verificar:   GO
   TOTAL                          = 53 itens, todos com status e evidência
 
 Liberação da RELEASE v1.1:                                 NO-GO
-  - condição de GO "staging verde" NÃO satisfeita (não executada);
-  - GitHub Actions nunca executados — 0 runs para este HEAD: o workflow só
-    dispara em push de `main` e em `pull_request`, e o branch foi pushed sem PR (§10.1);
-  - staging inexistente (nenhum ambiente/credencial; §9).
+
+  Gates obrigatórios:
+    Build           PASS  (local RC=0 + build no runner do CI, §5.6/§17)
+    GitHub Actions  PASS  (run 35638006832, conclusion=success, §17)
+    Staging         NOT VERIFIED — o ambiente NÃO EXISTE (§9)
+
+  Razão única do NO-GO: o gate de staging não pode ser satisfeito, porque não
+  há ambiente de staging (nem compose, nem credenciais; o único documento é
+  HISTÓRICO e exige VPS/SSH). Não é "não executado por falta de tempo": é uma
+  LACUNA REAL do processo de release, que permanece registrada em vez de
+  contornada com um ambiente simulado.
+
 
 Critical aberto: 0     Important aberto: 0  (F1 corrigido — ver §11 e §15)
 ```
@@ -439,7 +447,7 @@ Medidos após a autorização da rodada de fechamento. **Nenhum estado desconhec
 | Gate | Status | Evidência |
 |---|---|---|
 | **Build** | **PASS (local) / NÃO VERIFICADO (runner)** | `docker build -f Dockerfile .` (literal de `ci.yml:351`) → `RC=0`, imagem `bhub-v1.1-release:latest` (8.66GB), `import app.main` OK. A rodada anterior falhava por **disco** (VM a 98%, `No space left on device`); após o cleanup autorizado, a VM foi a **77%** (12.5G livres) e o build passou. |
-| **GitHub Actions** | **NOT VERIFIED** | **0 runs para o SHA do HEAD.** O workflow dispara em `push: branches: [main]` e em `pull_request:` — o push do branch **não gera run**. Leitura do YAML **não** é execução hospedada. |
+| **GitHub Actions** | **PASS** | Run **`35638006832`** (`event=pull_request`, branch `feat/v1.1-reliability`), **`conclusion=success`**, job `Lint & Test (Python 3.12)` com os **14 steps verdes**. Detalhe em §17. |
 | **Staging** | **NOT VERIFIED** | Nenhum ambiente de staging existe/acessível. Não há compose de staging, nenhuma variável de staging no ambiente, e o único documento (`docs/deploy/DEPLOY_STAGING.md`) está marcado **HISTÓRICO** (era SQLite, exige VPS/SSH). Não simulado localmente: simular e chamar de staging real seria falso. |
 
 ### 16.1 Cleanup de Docker (autorizado, lista explícita)
@@ -456,6 +464,45 @@ Medidos após a autorização da rodada de fechamento. **Nenhum estado desconhec
 - Remoto confirmado apontando para o HEAD local; `main` no `origin` segue em **`1d3177e`** (intocado).
 - Nenhum arquivo sensível nos commits enviados (`.env` não versionado; só `.env.example`).
 
-### 16.3 O que destrava o Actions
+### 16.3 O Actions só rodava com PR — e rodou
 
-**Não é o push — é um PR.** O workflow só dispara em `push` para `main` ou em `pull_request`. Criar o PR (ou mergear) é **ação de release** e não foi autorizada nesta rodada: está registrado como o próximo passo humano, e é o que falta para transformar o Actions de `NOT VERIFIED` em PASS/FAIL medido.
+**Não era o push, era o evento.** O workflow declara apenas `push: branches: [main]` e `pull_request:`; push de branch **não gera run** (medido: 0 runs antes E depois do push). Confirmado pelos dois lados: o push sozinho deu 0 runs, e o **PR deu run imediatamente** (`pull_request`, `35638006832`).
+
+Ações de release que **não** foram executadas: merge, tag, publicação de release.
+
+---
+
+## 17. GitHub Actions executado (PR #5)
+
+O gate que permaneceu `NOT VERIFIED` durante toda a milestone foi fechado pelo **PR**, não pelo push.
+
+```text
+PR          #5  →  https://github.com/elissoncardoso1/Bhub_python/pull/5
+run         35638006832
+evento      pull_request          (o trigger que faltava)
+branch      feat/v1.1-reliability
+conclusion  success
+job         Lint & Test (Python 3.12)   — 14 steps, todos verdes
+```
+
+Steps verdes no runner hospedado, incluindo os que importam para este release:
+
+```text
+Lint (ruff check)                                   success
+Format check (ruff format --check)                  success
+Type check (mypy app)                               success
+Type check ratchet (mypy shadow, budget 127)        success
+Run ratchet step harness                            success
+Run tests                                           success
+Coverage floor (fail under 59.19%)                  success
+Testes de integração (PostgreSQL e Redis reais)     success
+Build da imagem Docker (Dockerfile do deploy)       success
+```
+
+**O que isso prova:** a bateria inteira passa em ambiente **limpo e hospedado**, sem os contornos locais — inclusive a suíte de integração com PostgreSQL 16 e Redis 7 reais e o `docker build` com cache de camada vazio. Também fecha o achado **M5** na parte que dependia do CI: o build **rodou** no runner.
+
+**O que isso não prova:** nada sobre staging (o ambiente não existe) e nada sobre a configuração de produção real — o CI não executa a imagem, apenas a constrói.
+
+### 17.1 Ações de release deliberadamente NÃO executadas
+
+`merge` em `main`, criação de **tag** e publicação de **release** não foram autorizadas nesta rodada e **não** foram feitas. O PR está **aberto e `MERGEABLE`** — a decisão de merge é humana.
