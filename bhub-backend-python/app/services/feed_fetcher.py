@@ -37,6 +37,7 @@ class FetchStatus(StrEnum):
     BLOCKED = "blocked"  # 403/429 mesmo após fallback impersonado
     GONE = "gone"  # 404/410 — URL precisa de redescoberta
     TRANSIENT_ERROR = "transient_error"  # 5xx / timeout / erro de rede
+    INVALID_CONTENT = "invalid_content"  # 2xx cujo corpo não é RSS/Atom (ex.: challenge anti-bot)
 
 
 @dataclass

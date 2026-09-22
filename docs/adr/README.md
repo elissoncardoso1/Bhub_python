@@ -15,6 +15,7 @@ inclusive as consequências negativas.
 | [0003](0003-busca-full-text.md) | Busca full-text em PostgreSQL com `TSVECTOR` + `pg_trgm` | Aceito e implementado |
 | [0004](0004-monolito-modular.md) | Monolito modular com `Protocol`s em `app/interfaces/` e DI por `Depends` | Aceito e implementado |
 | [0005](0005-estrategia-de-ia.md) | IA multi-provedor com degradação para ML local e heurística | Aceito e implementado |
+| [0006](0006-validacao-de-conteudo-de-feed.md) | HTTP 200 não basta: só conta sucesso se o corpo for RSS/Atom | Aceito e implementado |
 
 **Como escrever um ADR novo:** numere em sequência (`0006-...`), mantenha as cinco seções
 nessa ordem e cite `arquivo:linha` do código que sustenta a decisão. Uma decisão que muda

@@ -176,6 +176,30 @@ class FeedAggregatorService:
             # Parse do feed
             parsed = feedparser.parse(fetch_result.text)
 
+            # HTTP 200 não basta para declarar sucesso: endpoints de feed atrás de
+            # anti-bot (ex.: o "Client Challenge" da Fastly na Springer) respondem
+            # 200 com HTML. O feedparser só preenche `version` quando reconhece um
+            # RSS/Atom, então corpo não-feed (HTML, vazio, JSON) deixa `version`
+            # vazia — sem depender do Content-Type, que alguns servidores erram.
+            # Um feed VÁLIDO com 0 itens mantém `version` e segue sendo sucesso.
+            # `bozo` de propósito NÃO é critério: ele sinaliza "o parse teve avisos",
+            # e um RSS válido com problema menor vem bozo=True com version='rss20'.
+            # `.get`: com corpo vazio o feedparser nem cria a chave `version`, e o
+            # acesso por atributo levantaria AttributeError.
+            if not parsed.get("version"):
+                log.warning(
+                    f"Feed {feed.name} (id={feed.id}) respondeu 200 com conteúdo "
+                    f"que não é RSS/Atom: {feed.feed_url}"
+                )
+                return await self._record_fetch_failure(
+                    feed,
+                    FetchResult(
+                        status=FetchStatus.INVALID_CONTENT,
+                        error="Invalid feed response: conteúdo não é RSS/Atom",
+                    ),
+                    start_time,
+                )
+
             if parsed.bozo and parsed.bozo_exception:
                 log.warning(f"Feed malformado: {feed.name} - {parsed.bozo_exception}")
 
