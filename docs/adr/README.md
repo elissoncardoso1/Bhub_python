@@ -16,7 +16,8 @@ inclusive as consequências negativas.
 | [0004](0004-monolito-modular.md) | Monolito modular com `Protocol`s em `app/interfaces/` e DI por `Depends` | Aceito e implementado |
 | [0005](0005-estrategia-de-ia.md) | IA multi-provedor com degradação para ML local e heurística | Aceito e implementado |
 | [0006](0006-validacao-de-conteudo-de-feed.md) | HTTP 200 não basta: só conta sucesso se o corpo for RSS/Atom | Aceito e implementado |
+| [0007](0007-crossref-para-periodicos.md) | Periódicos científicos são ingeridos pela API do Crossref, não pelo RSS das editoras | Aceito e implementado |
 
-**Como escrever um ADR novo:** numere em sequência (`0006-...`), mantenha as cinco seções
+**Como escrever um ADR novo:** numere em sequência (`0007-...`), mantenha as cinco seções
 nessa ordem e cite `arquivo:linha` do código que sustenta a decisão. Uma decisão que muda
 não se reescreve: cria-se um ADR novo e o antigo passa a **Substituído por ADR-NNNN**.

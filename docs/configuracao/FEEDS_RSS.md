@@ -2,7 +2,55 @@
 
 Este documento contém a lista completa de feeds RSS utilizados no projeto Meridiano, organizados por categoria.
 
-## 📚 ABA (Análise do Comportamento Aplicada)
+## � Periódicos Científicos
+
+Periódicos têm cadastro e ingestão próprios (script `scripts/add_journal_feeds.py`), separados
+dos blogs e portais abaixo. Desde o ADR-0007 há **duas vias de ingestão**:
+
+- **`journal_source=CROSSREF`** — a fonte é a API REST do Crossref, consultada por ISSN.
+  Usada onde o RSS da editora está atrás de anti-bot, que é o caso de Wiley, Taylor &
+  Francis e Springer.
+- **`journal_source=RSS`** — o feed da editora funciona (OJS, WordPress).
+
+Para feeds do Crossref, `feed_url` guarda o endpoint da API que o sync usa e
+`website_url` aponta para a página do periódico.
+
+### Crossref (RSS bloqueado pela editora)
+
+| Periódico | ISSN (eletrônico) | Editora |
+| --- | --- | --- |
+| Journal of Applied Behavior Analysis (JABA) | 1938-3703 | Wiley |
+| Journal of the Experimental Analysis of Behavior (JEAB) | 1938-3711 | Wiley |
+| Journal of Organizational Behavior Management (JOBM) | 1540-8604 | Taylor & Francis |
+| Behavior Analysis in Practice (BAP) | 2196-8934 | Springer |
+| Perspectives on Behavior Science (PoBS) | 2520-8977 | Springer |
+| The Analysis of Verbal Behavior (TAVB) | 2196-8926 | Springer |
+| Behavior and Social Issues (BSI) | 2376-6786 | Springer |
+
+### RSS (feed da editora funcionando)
+
+| Periódico | Feed |
+| --- | --- |
+| Revista Perspectivas em Análise do Comportamento | `https://revistaperspectivas.org/perspectivas/gateway/plugin/WebFeedGatewayPlugin/rss2` |
+| Revista ESPECTRO (UFSCar) | `https://espectro.ufscar.br/index.php/1979/gateway/plugin/WebFeedGatewayPlugin/rss2` |
+| Boletim Contexto | `https://boletimcontexto.wordpress.com/feed` |
+| OBM Network News *(inativo — sem publicação desde 2024)* | `https://www.obmnetwork.com/news/news_rss.asp` |
+
+### Operação
+
+```bash
+# Cadastrar/corrigir os periódicos (idempotente)
+python -m scripts.add_journal_feeds
+
+# Validar ISSNs antes de cadastrar (confira o título devolvido!)
+python -m scripts.validate_journal_issn --all
+
+# Migrar os feeds já cadastrados em produção (dry-run por padrão)
+python -m scripts.migrate_journal_feeds_to_crossref
+python -m scripts.migrate_journal_feeds_to_crossref --apply
+```
+
+## �📚 ABA (Análise do Comportamento Aplicada)
 
 ### Fontes Internacionais
 

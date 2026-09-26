@@ -22,6 +22,7 @@ from app.models.feed import (
     SCRAPING_FEED_NAME,
     SCRAPING_FEED_URL,
     Feed,
+    FeedJournalSource,
     FeedType,
     SyncFrequency,
 )
@@ -44,6 +45,7 @@ __all__ = [
     # Feed
     "Feed",
     "FeedType",
+    "FeedJournalSource",
     "SyncFrequency",
     "PDF_FEED_URL",
     "PDF_FEED_NAME",

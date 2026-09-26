@@ -90,16 +90,20 @@ jobs:
           # FONTE ÚNICA DE VERDADE desta dupla (orçamento, escopo). Medição com
           # mypy==2.3.1, sobre app/:
           #   $ mypy app --config-file pyproject.ratchet.toml    # rc=1
-          #   Found 127 errors in 28 files (checked 105 source files)
+          #   Found 127 errors in 28 files (checked 106 source files)
           #   $ mypy app                                          # rc=0
-          #   Success: no issues found in 105 source files
-          # 105 é o TOTAL de arquivos que as duas configs checam. NÃO confunda com
+          #   Success: no issues found in 106 source files
+          # 106 é o TOTAL de arquivos que as duas configs checam. NÃO confunda com
           # o 56 do bloco de relaxamento de strict: 56 é a quantidade de MÓDULOS em
           # [[tool.mypy.overrides]], não o escopo checado.
+          # 105 → 106 no ADR-0007: `app/services/crossref_source.py`, o adaptador da
+          # API do Crossref para periódicos. Um arquivo novo em `app/` move o escopo;
+          # o orçamento de erros NÃO subiu (127 antes e depois — o arquivo novo
+          # nasce limpo).
           # BAIXE o orçamento ao corrigir erros legados (e atualize o nome deste
           # step); nunca suba sem justificar no mesmo PR o aumento da dívida.
           RATCHET_BUDGET=127
-          EXPECTED_SOURCE_FILES=105
+          EXPECTED_SOURCE_FILES=106
           # Caminho da config do ratchet numa variável (fonte única: é ELA que o mypy
           # lê e é ELA que o guard de `ignore_errors` abaixo inspeciona). O harness
           # (tests/ci/ratchet_step_harness.sh) substitui esta linha para apontar para
