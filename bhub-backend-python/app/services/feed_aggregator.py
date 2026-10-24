@@ -13,11 +13,17 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logging import log
-from app.models import Article, Author, Feed, SourceType
+from app.models import Article, Author, Feed, FeedJournalSource, SourceType
 from app.schemas.feed import FeedSyncAllResult, FeedSyncResult, FeedTestResult
 from app.services.article_parser import ArticleParserService
+from app.services.crossref_source import CrossrefSource
 from app.services.feed_fetcher import FeedFetcher, FetchResult, FetchStatus
 from app.services.task_dispatcher import dispatch_classify_article, dispatch_download_pdf
+
+# Prefixo aceito por ``test_feed`` para validar um ISSN antes de cadastrá-lo:
+# ``issn:1938-3703``. Evita que a curadoria precise saber de cor a URL do
+# endpoint do Crossref, e reaproveita o teste de feed que já existe no admin.
+CROSSREF_ISSN_SCHEME = "issn:"
 
 
 def _truncate(value: str | None, max_length: int) -> str | None:
@@ -42,6 +48,7 @@ class FeedAggregatorService:
         parser: ArticleParserService | None = None,
         fetcher: FeedFetcher | None = None,
         http_client: httpx.AsyncClient | None = None,
+        crossref: CrossrefSource | None = None,
     ):
         self.db = db
         self.ai_manager = ai_manager
@@ -58,22 +65,32 @@ class FeedAggregatorService:
             },
         )
         self.fetcher = fetcher or FeedFetcher()
+        # Fonte alternativa para periódicos, usada quando o RSS da editora está
+        # atrás de anti-bot (ADR-0007).
+        self.crossref = crossref or CrossrefSource()
 
     async def close(self):
         """Fecha o cliente HTTP (apenas se de propriedade do serviço)."""
         if self._owns_http_client:
             await self.http_client.aclose()
         await self.fetcher.close()
+        await self.crossref.close()
 
     async def sync_all_active_feeds(self) -> FeedSyncAllResult:
         """Sincroniza todos os feeds ativos."""
         start_time = time.time()
         log.bind(feed_sync=True).info("Iniciando sincronização de todos os feeds")
 
-        # Buscar feeds ativos que precisam sincronização
+        # Buscar feeds que precisam de sincronização.
+        #
+        # O filtro NÃO é ``is_active`` sozinho: um feed desativado por excesso
+        # de erro precisa continuar elegível à sonda de recuperação de
+        # ``Feed.needs_sync`` (ADR-0007). Sem a segunda condição, desativar o
+        # feed o excluía da consulta e a sonda semanal virava código morto —
+        # exatamente o defeito D2 do incidente de 2026-09-22.
         result = await self.db.execute(
             select(Feed).where(
-                Feed.is_active,
+                (Feed.is_active) | (Feed.error_count >= Feed.max_errors),
                 ~Feed.feed_url.startswith("internal://"),
             )
         )
@@ -142,16 +159,27 @@ class FeedAggregatorService:
         errors: list[str] = []
         new_articles = 0
 
-        fetch_result = await self._fetch_feed(feed)
+        is_crossref = feed.journal_source is FeedJournalSource.CROSSREF
 
-        # URL morta: tentar redescobrir o feed a partir do site antes de desistir
-        if fetch_result.status is FetchStatus.GONE:
-            new_url = await self._try_rediscover(feed)
-            if new_url:
-                feed.feed_url = new_url
-                feed.http_etag = None
-                feed.http_last_modified = None
-                fetch_result = await self._fetch_feed(feed)
+        if is_crossref:
+            # Periódico atrás de anti-bot no RSS: buscar pelo ISSN no Crossref
+            # (ADR-0007). Sem redescoberta nem conditional GET — o Crossref não
+            # usa ETag e a URL é derivada do ISSN.
+            fetch_result = await self.crossref.fetch_works(
+                feed.issn,
+                last_successful_sync_at=feed.last_successful_sync_at,
+            )
+        else:
+            fetch_result = await self._fetch_feed(feed)
+
+            # URL morta: tentar redescobrir o feed a partir do site antes de desistir
+            if fetch_result.status is FetchStatus.GONE:
+                new_url = await self._try_rediscover(feed)
+                if new_url:
+                    feed.feed_url = new_url
+                    feed.http_etag = None
+                    feed.http_last_modified = None
+                    fetch_result = await self._fetch_feed(feed)
 
         if fetch_result.status is FetchStatus.NOT_MODIFIED:
             feed.last_sync_at = datetime.utcnow()
@@ -172,17 +200,15 @@ class FeedAggregatorService:
         if fetch_result.status is not FetchStatus.OK:
             return await self._record_fetch_failure(feed, fetch_result, start_time)
 
+        entries, failure = self._extract_entries(feed, fetch_result, is_crossref=is_crossref)
+        if failure is not None:
+            return await self._record_fetch_failure(feed, failure, start_time)
+
         try:
-            # Parse do feed
-            parsed = feedparser.parse(fetch_result.text)
+            articles_to_classify: list[int] = []
+            articles_to_download_pdf: list[tuple[int, str]] = []
 
-            if parsed.bozo and parsed.bozo_exception:
-                log.warning(f"Feed malformado: {feed.name} - {parsed.bozo_exception}")
-
-            # Processar cada item
-            articles_to_classify = []
-            articles_to_download_pdf = []
-            for entry in parsed.entries:
+            for entry in entries:
                 try:
                     # Savepoint por entrada: se o flush de uma entrada falhar, só ela
                     # é revertida — a transação do feed continua válida e as demais
@@ -196,14 +222,9 @@ class FeedAggregatorService:
                         articles_to_classify.append(created_article_id)
 
                         # Verificar se é open access e tem PDF URL para download
-                        if (
-                            article_data
-                            and article_data.get("is_open_access")
-                            and article_data.get("pdf_url")
-                        ):
-                            articles_to_download_pdf.append(
-                                (created_article_id, article_data.get("pdf_url"))
-                            )
+                        pdf_url = article_data.get("pdf_url") if article_data else None
+                        if article_data and article_data.get("is_open_access") and pdf_url:
+                            articles_to_download_pdf.append((created_article_id, pdf_url))
                 except Exception as e:
                     log.error(f"Erro ao processar entrada: {e}")
                     errors.append(str(e))
@@ -219,6 +240,17 @@ class FeedAggregatorService:
             feed.last_error = None
             feed.articles_last_sync = new_articles
             feed.total_articles += new_articles
+
+            # Sonda de recuperação bem-sucedida devolve o feed à rotação. Só se
+            # aplica a desativação automática: um feed desligado pela curadoria
+            # tem `deactivated_by_errors=False` e permanece fora.
+            if not feed.is_active and feed.deactivated_by_errors:
+                feed.is_active = True
+                feed.deactivated_by_errors = False
+                log.warning(
+                    f"Feed {feed.name} (id={feed.id}) reativado: a sonda de "
+                    f"recuperação teve sucesso após a desativação por erros"
+                )
 
             await self.db.commit()
             from app.core.telemetry import record_feed_ingested
@@ -259,10 +291,21 @@ class FeedAggregatorService:
 
             record_feed_failed(feed.name)
 
-            # Atualizar contagem de erros
+            # Exceção inesperada no meio da ingestão é falha permanente do
+            # ponto de vista do feed — o mesmo tratamento de _record_fetch_failure,
+            # incluindo a desativação por max_errors (D2). Sem isso, um feed que
+            # sempre estoura exceção jamais sairia da rotação.
             feed.last_sync_at = datetime.utcnow()
             feed.error_count += 1
             feed.last_error = str(e)
+
+            if feed.is_active and feed.error_count >= feed.max_errors:
+                feed.is_active = False
+                feed.deactivated_by_errors = True
+                log.warning(
+                    f"Feed {feed.name} (id={feed.id}) desativado após "
+                    f"{feed.error_count} falhas (max_errors={feed.max_errors})"
+                )
 
             await self.db.commit()
 
@@ -288,7 +331,16 @@ class FeedAggregatorService:
         article_data = self.parser.parse_entry(entry, journal_name=feed.journal_name)
 
         # Fallback de autor: se não vier no feed, tentar buscar na página (específico para Springer/BAP)
-        if not article_data.get("authors") and article_data.get("url"):
+        #
+        # Não se aplica ao Crossref: ali os autores já vêm no payload, e o
+        # `original_url` aponta para doi.org -> editora, isto é, exatamente o
+        # host que responde 403. Buscar a página reintroduziria o bloqueio que
+        # o ADR-0007 tirou do caminho, agora gastando latência por artigo.
+        if (
+            feed.journal_source is not FeedJournalSource.CROSSREF
+            and not article_data.get("authors")
+            and article_data.get("url")
+        ):
             domain = ""
             try:
                 from urllib.parse import urlparse
@@ -424,6 +476,55 @@ class FeedAggregatorService:
             log.warning(f"custom_headers inválido no feed {feed.name}: {e}")
         return None
 
+    def _extract_entries(
+        self, feed: Feed, fetch_result: FetchResult, *, is_crossref: bool
+    ) -> tuple[list[dict], FetchResult | None]:
+        """Normaliza a resposta da fonte em uma lista de entradas para ingestão.
+
+        Duas origens, um mesmo formato de saída: o Crossref já entrega entradas
+        no formato do feedparser (``CrossrefSource``), o RSS é parseado aqui.
+        Retorna ``(entradas, None)`` em sucesso ou ``( [], falha )`` quando o
+        corpo não é um feed — caso que o chamador encaminha a
+        ``_record_fetch_failure``.
+        """
+        if is_crossref:
+            try:
+                payload = json.loads(fetch_result.text or "")
+                entries = payload.get("entries") or []
+            except (ValueError, TypeError) as e:
+                return [], FetchResult(
+                    status=FetchStatus.INVALID_CONTENT,
+                    error=f"Resposta do Crossref ilegível: {e}",
+                )
+            return entries, None
+
+        parsed = feedparser.parse(fetch_result.text)
+
+        # HTTP 200 não basta para declarar sucesso: endpoints de feed atrás de
+        # anti-bot (ex.: o "Client Challenge" da Fastly na Springer) respondem
+        # 200 com HTML. O feedparser só preenche `version` quando reconhece um
+        # RSS/Atom, então corpo não-feed (HTML, vazio, JSON) deixa `version`
+        # vazia — sem depender do Content-Type, que alguns servidores erram.
+        # Um feed VÁLIDO com 0 itens mantém `version` e segue sendo sucesso.
+        # `bozo` de propósito NÃO é critério: ele sinaliza "o parse teve avisos",
+        # e um RSS válido com problema menor vem bozo=True com version='rss20'.
+        # `.get`: com corpo vazio o feedparser nem cria a chave `version`, e o
+        # acesso por atributo levantaria AttributeError.
+        if not parsed.get("version"):
+            log.warning(
+                f"Feed {feed.name} (id={feed.id}) respondeu 200 com conteúdo "
+                f"que não é RSS/Atom: {feed.feed_url}"
+            )
+            return [], FetchResult(
+                status=FetchStatus.INVALID_CONTENT,
+                error="Invalid feed response: conteúdo não é RSS/Atom",
+            )
+
+        if parsed.bozo and parsed.bozo_exception:
+            log.warning(f"Feed malformado: {feed.name} - {parsed.bozo_exception}")
+
+        return list(parsed.entries), None
+
     async def _fetch_feed(self, feed: Feed) -> FetchResult:
         """Fetch resiliente usando os validadores de cache persistidos no feed."""
         return await self.fetcher.fetch(
@@ -446,6 +547,30 @@ class FeedAggregatorService:
         feed.last_error = error_msg
         if fetch_result.status is not FetchStatus.TRANSIENT_ERROR:
             feed.error_count += 1
+
+            # Desativação por excesso de erro (defeito D2 do incidente de
+            # 2026-09-22): até aqui o `max_errors` não surtia efeito nenhum, e
+            # feeds com error_count=16 contra max_errors=5 continuavam na
+            # rotação, gastando requisições inúteis contra hosts que já os
+            # bloqueiam.
+            #
+            # Só falha **permanente** desativa. Um 502 ou timeout não justifica
+            # tirar o feed da rotação: não é defeito da fonte, e a mensagem de
+            # log ("desativado após N falhas") ficaria falsa.
+            #
+            # Isto NÃO é morte permanente: `Feed.needs_sync` mantém a sonda de
+            # recuperação de 7 dias para feeds desativados por erro, e
+            # `sync_all_active_feeds` os inclui na consulta por isso. Um sync
+            # bem sucedido zera `error_count` — mas a reativação é decisão de
+            # curadoria, porque o padrão de falha que desativou o feed é dado
+            # útil.
+            if feed.is_active and feed.error_count >= feed.max_errors:
+                feed.is_active = False
+                feed.deactivated_by_errors = True
+                log.warning(
+                    f"Feed {feed.name} (id={feed.id}) desativado após "
+                    f"{feed.error_count} falhas (max_errors={feed.max_errors}): {error_msg}"
+                )
 
         await self.db.commit()
         log.warning(f"Falha ao sincronizar feed {feed.name}: {error_msg}")
@@ -505,8 +630,59 @@ class FeedAggregatorService:
 
         return None
 
+    async def _test_crossref_feed(self, feed_url: str) -> FeedTestResult:
+        """Valida um ISSN no Crossref e devolve uma amostra dos works recentes.
+
+        Cadastrar um ISSN errado (dígito trocado, ISSN impresso em vez do
+        eletrônico) produz um feed silenciosamente vazio — o modo de falha que
+        o ADR-0006 combate. Aqui o erro aparece na hora do cadastro.
+        """
+        issn = feed_url[len(CROSSREF_ISSN_SCHEME) :].strip()
+
+        exists, title_or_error = await self.crossref.validate_issn(issn)
+        if not exists:
+            return FeedTestResult(success=False, error=title_or_error)
+
+        fetch_result = await self.crossref.fetch_works(issn, last_successful_sync_at=None)
+        if fetch_result.status is not FetchStatus.OK:
+            return FeedTestResult(
+                success=False,
+                feed_title=title_or_error,
+                error=fetch_result.error or fetch_result.status.value,
+            )
+
+        entries, failure = self._extract_entries(
+            feed=Feed(name=issn, feed_url=feed_url),
+            fetch_result=fetch_result,
+            is_crossref=True,
+        )
+        if failure is not None:
+            return FeedTestResult(success=False, feed_title=title_or_error, error=failure.error)
+
+        sample_items = []
+        for entry in entries[:3]:
+            data = self.parser.parse_entry(entry)
+            sample_items.append(
+                {
+                    "title": (data.get("title") or "")[:100],
+                    "url": data.get("url") or "",
+                    "date": str(data.get("publication_date") or ""),
+                }
+            )
+
+        return FeedTestResult(
+            success=True,
+            feed_title=title_or_error,
+            feed_description=f"Crossref ISSN {issn}",
+            items_count=len(entries),
+            sample_items=sample_items,
+        )
+
     async def test_feed(self, feed_url: str) -> FeedTestResult:
         """Testa um feed sem salvar dados."""
+        if feed_url.startswith(CROSSREF_ISSN_SCHEME):
+            return await self._test_crossref_feed(feed_url)
+
         try:
             fetch_result = await self.fetcher.fetch(feed_url)
             if fetch_result.status is not FetchStatus.OK:

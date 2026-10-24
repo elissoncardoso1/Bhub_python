@@ -226,6 +226,76 @@ asyncio.run(cleanup())
 docker-compose restart backend
 ```
 
+### 3b. Periódicos Científicos Sem Artigos Novos
+
+**Sintomas**: blogs e portais ingerem normalmente, mas os **periódicos** (feeds com
+`journal_name` preenchido) param de receber artigos.
+
+**Contexto**: até 2026-09-22 o problema era invisível — as editoras servem o endpoint de
+RSS atrás de anti-bot e respondem HTTP 200 com HTML, o que a aplicação contava como
+sucesso (`error_count=0`, `last_successful_sync_at` de hoje). O ADR-0006 fez a falha
+aparecer; o ADR-0007 tirou o RSS do caminho.
+
+**Diagnóstico**:
+```bash
+# Estado de cada periódico: via de ingestão, ISSN e último sucesso real
+docker exec bhub-postgres psql -U bhub -d bhub -c "
+SELECT id, name, journal_source, issn, is_active, error_count,
+       last_error, last_successful_sync_at::date AS ultimo_sucesso,
+       articles_last_sync
+FROM feeds WHERE journal_name IS NOT NULL ORDER BY name;"
+```
+
+Leitura do resultado:
+
+| Sintoma no banco | Significado | Ação |
+| --- | --- | --- |
+| `journal_source=RSS` e `error_count>0` com 403/challenge | Editora bloqueou o RSS | Migrar para Crossref (`migrate_journal_feeds_to_crossref.py --apply`) |
+| `journal_source=CROSSREF` e `error_count>0` com "ISSN não encontrado" | ISSN errado | Validar com `validate_journal_issn.py` e corrigir o registro |
+| `journal_source=CROSSREF` e `error_count>0` com HTTP 400 | Parâmetro inválido na nossa consulta — **bug nosso**, não bloqueio | Ver `last_error`: o Crossref devolve a causa (ex.: campo `select` inválido) |
+| `error_count>0` e `is_active=false` | Desativado por `max_errors` | Curadoria decide reativar; a sonda de 7 dias já testa sozinha |
+| `last_successful_sync_at` antigo mas `error_count=0` | Falha silenciosa | Verificar `articles_last_sync` e o `last_error`; pode ser só um período sem publicações |
+
+**Verificar a fonte externamente** (não depende do BHUB):
+```bash
+# O ISSN existe e qual título ele devolve? Confira o título!
+docker run --rm -v "$PWD:/app" -w /app --entrypoint python \
+  bhub-backend-python-backend:latest -c "
+import asyncio
+from app.services.crossref_source import CrossrefSource
+async def main():
+    s = CrossrefSource()
+    ok, info = await s.validate_issn('2196-8934')
+    print(ok, info)
+    await s.close()
+asyncio.run(main())"
+```
+
+**Solução**:
+```bash
+# 1. Backup
+./scripts/vps/backup.sh
+
+# 2. Simular a conversão e conferir a saída
+docker exec bhub-backend python -m scripts.migrate_journal_feeds_to_crossref
+
+# 3. Aplicar
+docker exec bhub-backend python -m scripts.migrate_journal_feeds_to_crossref --apply
+
+# 4. Sincronizar um periódico específico e conferir
+docker exec bhub-backend python -c "
+import asyncio
+from app.database import get_session_context
+from app.services import FeedAggregatorService
+async def main():
+    async with get_session_context() as db:
+        svc = FeedAggregatorService(db)
+        r = await svc.sync_feed(36)  # id do feed
+        print(r.model_dump())
+        await svc.close()
+asyncio.run(main())"
+```
+
 ### 4. Rate Limit Excessivo
 
 **Sintomas**: Muitas requisições retornam 429

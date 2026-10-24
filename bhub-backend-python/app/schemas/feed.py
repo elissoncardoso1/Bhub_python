@@ -6,7 +6,7 @@ from datetime import datetime
 
 from pydantic import Field
 
-from app.models.feed import FeedType, SyncFrequency
+from app.models.feed import FeedJournalSource, FeedType, SyncFrequency
 from app.schemas.common import BaseSchema, TimestampSchema
 
 
@@ -18,6 +18,8 @@ class FeedBase(BaseSchema):
     description: str | None = None
     feed_url: str = Field(..., max_length=500)
     feed_type: FeedType = FeedType.RSS
+    journal_source: FeedJournalSource = FeedJournalSource.RSS
+    issn: str | None = Field(default=None, max_length=12)
     website_url: str | None = Field(default=None, max_length=500)
     logo_url: str | None = Field(default=None, max_length=500)
     is_active: bool = True
@@ -37,6 +39,8 @@ class FeedUpdate(BaseSchema):
     journal_name: str | None = None
     description: str | None = None
     feed_url: str | None = Field(default=None, max_length=500)
+    journal_source: FeedJournalSource | None = None
+    issn: str | None = Field(default=None, max_length=12)
     website_url: str | None = None
     logo_url: str | None = None
     is_active: bool | None = None

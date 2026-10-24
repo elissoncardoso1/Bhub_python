@@ -107,6 +107,16 @@ class Settings(BaseSettings):
     enable_scheduler: bool = True
     sync_interval_hours: int = 1
 
+    # Crossref — ingestão de periódicos científicos (ADR-0007)
+    # Identificação no pool "polite" (~3 req/s em vez de ~1 req/s anônimo).
+    # O mailto deve apontar para um endereço monitorado: o Crossref usa para
+    # avisar sobre problemas de cota.
+    crossref_mailto: str = "pontobhv@proton.me"
+    crossref_user_agent: str = "BHUB/1.1 (https://bhub.online; mailto:pontobhv@proton.me)"
+    crossref_timeout_seconds: float = 30.0
+    crossref_rows: int = 100
+    crossref_max_pages: int = 3
+
     # Scheduler Mode: "app" (rodar no app), "worker" (worker separado), "off" (desabilitado)
     scheduler_mode: Literal["app", "worker", "off"] = "app"
 
