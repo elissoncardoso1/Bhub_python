@@ -14,6 +14,8 @@ from app.core.logging import log
 
 # Constantes
 CONTENT_TYPE_JSON = "application/json"
+# Teto de saída do deepseek-chat; acima disso a API responde 400.
+MAX_OUTPUT_TOKENS = 8192
 
 
 class AIProvider(StrEnum):
@@ -297,7 +299,7 @@ Texto: {text}
                         {"role": "user", "content": self.TRANSLATE_PROMPT.format(text=text)}
                     ],
                     "temperature": 0.3,
-                    "max_tokens": len(text) * 2,
+                    "max_tokens": min(len(text) * 2, MAX_OUTPUT_TOKENS),
                 },
             )
             response.raise_for_status()
@@ -387,7 +389,7 @@ class OpenRouterService(BaseAIService):
                         }
                     ],
                     "temperature": 0.3,
-                    "max_tokens": len(text) * 2,
+                    "max_tokens": min(len(text) * 2, MAX_OUTPUT_TOKENS),
                 },
             )
             response.raise_for_status()

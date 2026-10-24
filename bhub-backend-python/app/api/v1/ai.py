@@ -176,6 +176,13 @@ async def translate_text(
         timeout=settings.ai_timeout_seconds,
     )
 
+    if provider is None:
+        # Todos os provedores falharam: `translated` é o texto original. Não cachear.
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Tradução indisponível no momento.",
+        )
+
     # Salvar no cache
     try:
         await TranslationCacheService.save_translation(
@@ -186,7 +193,7 @@ async def translate_text(
             source_language=request.source_lang,
             target_language=request.target_lang,
             model="deepseek-chat",
-            provider=provider.value if provider else None,
+            provider=provider.value,
         )
     except Exception as e:
         # Log mas não falha se não conseguir salvar no cache
@@ -195,7 +202,7 @@ async def translate_text(
     return TranslateResponse(
         original=request.text,
         translated=translated,
-        provider=provider.value if provider else None,
+        provider=provider.value,
         cached=False,
     )
 

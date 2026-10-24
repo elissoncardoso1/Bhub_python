@@ -1,3 +1,7 @@
+{% if error %}
+{% if original_text %}<div>{{ original_text }}</div>{% endif %}
+<div class="mt-4 text-sm text-error-700" role="alert">{{ error }}</div>
+{% else %}
 <!-- Translation Result -->
 <div class="text-slate-700 leading-relaxed prose prose-slate max-w-none" id="translated-content">
     <!-- Content will be rendered via JS -->
@@ -34,3 +38,4 @@
     <span class="translate-icon">{{ icon('check', 'w-4 h-4', aria_hidden=True) | safe }}</span>
     <span class="translate-label">Traduzido</span>
 </div>
+{% endif %}

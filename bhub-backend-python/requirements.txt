@@ -37,7 +37,7 @@ python-dateutil>=2.9.0
 
 # Web Scraping
 beautifulsoup4>=4.12.3
-selectolax>=0.3.27
+selectolax>=0.3.27,<1.0  # 1.0 removeu selectolax.parser (backend Modest); migrar para selectolax.lexbor antes de liberar
 lxml>=5.3.0
 
 # PDF Processing
