@@ -56,7 +56,7 @@ DOCKER_TIMEOUT_SECONDS = 120
 BACKEND_DIR = Path(__file__).resolve().parents[2]
 
 # Última revisão da cadeia hoje: prova que o upgrade caminhou do zero até o head.
-HEAD_REVISION = "009_feed_http_cache"
+HEAD_REVISION = "010_feed_journal_source"
 
 ALEMBIC_TIMEOUT_SECONDS = 300
 

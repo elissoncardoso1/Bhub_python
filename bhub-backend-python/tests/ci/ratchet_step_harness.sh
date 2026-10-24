@@ -120,23 +120,23 @@ fixture() {  # $1 = nome, $2.. = linhas
   printf '%s\n' "$@" > "$TMP/fixtures/$name"
 }
 
-fixture success_105.txt   "Success: no issues found in 105 source files"
+fixture success_106.txt   "Success: no issues found in 106 source files"
 fixture success_0.txt     "Success: no issues found in 0 source files"
 fixture found_127.txt     "app/main.py:134: error: dummy legado  [arg-type]" \
-                          "Found 127 errors in 28 files (checked 105 source files)"
+                          "Found 127 errors in 28 files (checked 106 source files)"
 fixture found_128.txt     "app/main.py:134: error: erro novo  [arg-type]" \
-                          "Found 128 errors in 28 files (checked 105 source files)"
+                          "Found 128 errors in 28 files (checked 106 source files)"
 fixture found_999.txt     "app/main.py:134: error: legado dobrado  [arg-type]" \
-                          "Found 999 errors in 28 files (checked 105 source files)"
-fixture found_0_105.txt   "Found 0 errors in 28 files (checked 105 source files)"
+                          "Found 999 errors in 28 files (checked 106 source files)"
+fixture found_0_106.txt   "Found 0 errors in 28 files (checked 106 source files)"
 fixture found_0_3.txt     "Found 0 errors in 3 source files"
 fixture found_0_3_wc.txt  "Found 0 errors in 3 files (checked 3 source files)"
 fixture found_nocount.txt "app/main.py:134: error: sem contagem  [arg-type]" \
                           "Found 127 errors in 28 files"
-fixture multi_last_200.txt "Found 3 errors in 1 file (checked 105 source files)" \
-                           "Found 200 errors in 28 files (checked 105 source files)"
-fixture multi_last_127.txt "Found 200 errors in 28 files (checked 105 source files)" \
-                           "Found 127 errors in 28 files (checked 105 source files)"
+fixture multi_last_200.txt "Found 3 errors in 1 file (checked 106 source files)" \
+                           "Found 200 errors in 28 files (checked 106 source files)"
+fixture multi_last_127.txt "Found 200 errors in 28 files (checked 106 source files)" \
+                           "Found 127 errors in 28 files (checked 106 source files)"
 fixture empty.txt
 fixture only_notes.txt     "app/ai/manager.py:35: note: By default the bodies of untyped functions are not checked  [annotation-unchecked]"
 # Cenário 17: formato REAL de resumo com erro bloqueante do mypy (`mypy/util.py`:
@@ -203,10 +203,10 @@ run_step() {  # $1 = nome, $2 = fixture, $3 = rc do stub, $4 = orçamento ("-" =
 
 echo "== Cenários do step 'Type check ratchet' (bloco run: verbatim de $CI_YML) =="
 # --- os 11 cenários mínimos do brief da rodada de correção 3 ---
-run_step "1  budget 127 + 127 erros + 105 arquivos"        found_127.txt     1 -     PASS
-run_step "2  budget 127 + 128 erros + 105 arquivos"        found_128.txt     1 -     FAIL
-run_step "3  budget 127, + 0 erros + 105 arquivos"         found_0_105.txt   1 "127," FAIL
-run_step "4  budget 127, + 999 erros + 105 arquivos"       found_999.txt     1 "127," FAIL
+run_step "1  budget 127 + 127 erros + 106 arquivos"        found_127.txt     1 -     PASS
+run_step "2  budget 127 + 128 erros + 106 arquivos"        found_128.txt     1 -     FAIL
+run_step "3  budget 127, + 0 erros + 106 arquivos"         found_0_106.txt   1 "127," FAIL
+run_step "4  budget 127, + 999 erros + 106 arquivos"       found_999.txt     1 "127," FAIL
 run_step "5  budget vazio"                                 found_127.txt     1 ""     FAIL
 run_step "6  budget não numérico (abc)"                    found_127.txt     1 "abc"  FAIL
 run_step "7  0 erros + 3 source files (sem contagem)"      found_0_3.txt     1 -     FAIL
@@ -215,7 +215,7 @@ run_step "9  múltiplas linhas Found (última = 200 erros)"  multi_last_200.txt 
 # --- regressões e casos de borda que a rodada 2 não cobria ---
 run_step "7b 0 erros + '(checked 3 source files)'"         found_0_3_wc.txt  1 -     FAIL
 run_step "9b múltiplas linhas Found (última = 127 erros)"  multi_last_127.txt 1 -    PASS
-run_step "12 Success em 105 source files (legado zerado)"  success_105.txt   0 -     PASS
+run_step "12 Success em 106 source files (legado zerado)"  success_106.txt   0 -     PASS
 run_step "13 Success em 0 source files (escopo colapsado)" success_0.txt     0 -     FAIL
 run_step "14 rc=2 do mypy (falha de execução)"             found_127.txt     2 -     FAIL
 run_step "15 saída vazia (rc=1)"                           empty.txt         1 -     FAIL
@@ -227,18 +227,18 @@ run_step "17 resumo com 'errors prevented further checking'"  blocking_summary.t
 # tamanho arbitrário e `[ … -gt/-ne … ]` estoura o int64 (limite 2^63): o `test`
 # devolve erro e, dentro de `if` sob `bash -e`, isso é condição falsa → o step saía
 # 0 imprimindo OK. Medido antes da correção: budget 99999999999999999999 com
-# `Found 999 errors in 28 files (checked 105 source files)` → rc=0.
+# `Found 999 errors in 28 files (checked 106 source files)` → rc=0.
 run_step "18 budget 99999999999999999999 + 999 erros"      found_999.txt     1 99999999999999999999 FAIL
 run_step "19 budget 9223372036854775808 (2^63) + 999"      found_999.txt     1 9223372036854775808 FAIL
 run_step "19b budget 9223372036854775807 (int64 max)"      found_999.txt     1 9223372036854775807 FAIL
 run_step "20 budget 999999999 (teto de 9 dígitos)"         found_127.txt     1 999999999 PASS
 run_step "20b budget 1000000000 (teto + 1) + 127 erros"    found_127.txt     1 1000000000 FAIL
 # 21-22: mesma classe no gate de ESCOPO, e controle do próprio mecanismo de override
-# (EXPECTED_SOURCE_FILES=105 é o valor real: prova que o override não quebra o verde).
+# (EXPECTED_SOURCE_FILES=106 é o valor real: prova que o override não quebra o verde).
 run_step "21 EXPECTED_SOURCE_FILES 99999999999999999999"   found_0_3_wc.txt  1 - FAIL "EXPECTED_SOURCE_FILES=99999999999999999999"
-run_step "22 EXPECTED_SOURCE_FILES=105 (controle)"         found_127.txt     1 - PASS "EXPECTED_SOURCE_FILES=105"
+run_step "22 EXPECTED_SOURCE_FILES=106 (controle)"         found_127.txt     1 - PASS "EXPECTED_SOURCE_FILES=106"
 # 23-24: `ignore_errors` ATIVO na config do ratchet (Important #2). `ignore_errors`
-# NÃO reduz `(checked N source files)` (segue 105), então o gate de ESCOPO passa e o
+# NÃO reduz `(checked N source files)` (segue 106), então o gate de ESCOPO passa e o
 # total vira 0: sem o guard o step sairia verde com o shadow ratchet anulado. O
 # cenário 23 usa uma cópia degradada em $TMP (árvore intocada); o 24 é o controle com
 # o arquivo REAL, que cita `ignore_errors` só em COMENTÁRIOS e tem de continuar verde.
@@ -255,14 +255,14 @@ module = [
 ]
 ignore_errors = true
 DEGRADED
-run_step "23 config do ratchet com ignore_errors ATIVO"    success_105.txt   0 - FAIL "RATCHET_CONFIG=$DEGRADED_CFG"
+run_step "23 config do ratchet com ignore_errors ATIVO"    success_106.txt   0 - FAIL "RATCHET_CONFIG=$DEGRADED_CFG"
 run_step "24 config real do ratchet (só comentários)"      found_127.txt     1 - PASS "RATCHET_CONFIG=pyproject.ratchet.toml"
 # 25: mesma chave em TOML de tabela inline (uma linha só) — o guard não pode depender
 # de a chave começar a linha.
 DEGRADED_INLINE_CFG="$TMP/degraded-inline.ratchet.toml"
 cp "$BACKEND/pyproject.ratchet.toml" "$DEGRADED_INLINE_CFG"
 printf '\n[tool.mypy]\noverrides = [{ module = ["app.web.routes"], ignore_errors = true }]\n' >> "$DEGRADED_INLINE_CFG"
-run_step "25 ignore_errors em tabela inline (1 linha)"     success_105.txt   0 - FAIL "RATCHET_CONFIG=$DEGRADED_INLINE_CFG"
+run_step "25 ignore_errors em tabela inline (1 linha)"     success_106.txt   0 - FAIL "RATCHET_CONFIG=$DEGRADED_INLINE_CFG"
 # 26: CONTROLE NEGATIVO do guard — config com módulo cujo NOME contém o texto
 # `ignore_errors` e com comentário citando a chave: isso NÃO é a chave ativa, e o
 # step tem de continuar verde (o guard não pode reprovar por substring).
@@ -300,7 +300,7 @@ module = [
 ]
 "ignore_errors" = true
 DQ
-run_step "27 ignore_errors com aspas duplas (ativo)"       success_105.txt   0 - FAIL "RATCHET_CONFIG=$DEGRADED_DQ_CFG"
+run_step "27 ignore_errors com aspas duplas (ativo)"       success_106.txt   0 - FAIL "RATCHET_CONFIG=$DEGRADED_DQ_CFG"
 
 DEGRADED_SQ_CFG="$TMP/degraded-singlequote.ratchet.toml"
 cp "$BACKEND/pyproject.ratchet.toml" "$DEGRADED_SQ_CFG"
@@ -313,13 +313,13 @@ module = [
 ]
 'ignore_errors' = true
 SQ
-run_step "28 ignore_errors com aspas simples (ativo)"      success_105.txt   0 - FAIL "RATCHET_CONFIG=$DEGRADED_SQ_CFG"
+run_step "28 ignore_errors com aspas simples (ativo)"      success_106.txt   0 - FAIL "RATCHET_CONFIG=$DEGRADED_SQ_CFG"
 
 # 29: o mesmo nome, citado, dentro de TOML de tabela inline (uma linha só).
 DEGRADED_INLINE_Q_CFG="$TMP/degraded-inline-quoted.ratchet.toml"
 cp "$BACKEND/pyproject.ratchet.toml" "$DEGRADED_INLINE_Q_CFG"
 printf '\n[tool.mypy]\noverrides = [{ module = ["app.web.routes"], "ignore_errors" = true }]\n' >> "$DEGRADED_INLINE_Q_CFG"
-run_step "29 chave citada em tabela inline (ativo)"        success_105.txt   0 - FAIL "RATCHET_CONFIG=$DEGRADED_INLINE_Q_CFG"
+run_step "29 chave citada em tabela inline (ativo)"        success_106.txt   0 - FAIL "RATCHET_CONFIG=$DEGRADED_INLINE_Q_CFG"
 
 # 30-31: CONTROLE DE VALOR (rodada de correção 5 / Important #2). `ignore_errors = false`
 # é o DEFAULT do mypy, não uma relaxação: medido com o mypy real do venv, a config com a

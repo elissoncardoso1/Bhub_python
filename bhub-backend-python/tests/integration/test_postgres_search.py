@@ -3,7 +3,7 @@
 Task 13 / T4.2. Diferente de ``tests/test_articles.py`` (SQLite em memória, onde o
 ``SearchService`` cai no ramo FTS5), aqui o serviço de PRODUÇÃO roda contra o
 PostgreSQL de verdade, no banco já migrado pelo caminho da Task 12
-(``alembic upgrade head`` -> ``009_feed_http_cache``) e com ``search_vector``
+(``alembic upgrade head`` -> ``010_feed_journal_source``) e com ``search_vector``
 preenchido pelo trigger da migração 008.
 
 Cobre os cinco cenários literais do plano (português, inglês, ranking, busca
