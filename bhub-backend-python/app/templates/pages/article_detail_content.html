@@ -206,7 +206,7 @@
                 class="action-secondary"
                 hx-post="/translate"
                 hx-ext="json-enc"
-                hx-vals="{{ {'text': article.abstract or '', 'source_lang': 'en', 'target_lang': 'pt', 'element_id': 'abstract-content', 'article_id': article.id} | tojson }}"
+                hx-vals='{{ {'element_id': 'abstract-content', 'article_id': article.id} | tojson }}'
                 hx-target="#abstract-content"
                 hx-swap="innerHTML"
                 hx-disabled-elt="this"

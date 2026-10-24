@@ -2,12 +2,17 @@
 Rotas para tradução de conteúdo via HTMX.
 """
 
+import logging
+
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
+from sqlalchemy import update
 
 from app.ai.manager import get_ai_manager
 from app.api.deps import DBSession
-from app.core.security import CurrentUserOptional
+from app.config import settings
+from app.core.limiter import limiter
+from app.models import Article
 from app.services.translation_cache_service import (
     TranslationCacheService,
     generate_cache_key,
@@ -16,83 +21,83 @@ from app.web.templating import get_templates
 
 router = APIRouter()
 
+SOURCE_LANG = "en"
+TARGET_LANG = "pt"
+MODEL_VERSION = "deepseek-translator-v2"
+
 
 class TranslationRequest(BaseModel):
-    text: str
-    source_lang: str = "en"
-    target_lang: str = "pt"
+    # O texto vem sempre do banco (abstract do artigo), nunca do cliente:
+    # aceitar texto do cliente permitia gravar qualquer coisa em qualquer artigo.
+    article_id: int
     element_id: str | None = None  # ID do elemento HTML para trocar (opcional)
-    article_id: int | None = None  # ID do artigo para persistência
 
 
 @router.post("/translate")
+@limiter.limit(settings.ai_rate_limit_daily)
+@limiter.limit("10/minute")
 async def translate_content(
+    # slowapi exige um parâmetro chamado `request` do tipo Request.
     request: Request,
     translation_req: TranslationRequest,
     db: DBSession,
-    _current_user: CurrentUserOptional = None,
 ):
     """
-    Endpoint HTMX para traduzir conteúdo sob demanda.
+    Endpoint HTMX para traduzir o resumo de um artigo sob demanda.
     Retorna o HTML traduzido do conteúdo.
     """
     templates = get_templates()
+    error_context = {"request": request, "element_id": translation_req.element_id}
 
-    if not translation_req.text:
-        return ""
+    article = await db.get(Article, translation_req.article_id)
+    if not article or not article.abstract:
+        return templates.TemplateResponse(
+            "partials/translation_result.html",
+            {**error_context, "error": "Resumo não disponível para tradução."},
+        )
+    text = article.abstract
+    # Em caso de erro, o resumo original continua visível acima da mensagem.
+    error_context["original_text"] = text
 
     try:
-        # 1. Gerar chave de cache
-        model_version = "deepseek-translator-v2"
-        cache_key = generate_cache_key(
-            translation_req.text,
-            translation_req.source_lang,
-            translation_req.target_lang,
-            model_version,
-        )
+        cache_key = generate_cache_key(text, SOURCE_LANG, TARGET_LANG, MODEL_VERSION)
 
-        # 2. Verificar cache
         cached = await TranslationCacheService.get_cached_translation(db, cache_key)
         if cached:
             await TranslationCacheService.update_access_time(db, cache_key)
             translated_text = cached.translated_text
             is_cached = True
         else:
-            # 3. Se não tiver no cache, chamar IA
-            ai_manager = get_ai_manager()
-            translated_text, provider = await ai_manager.translate(
-                translation_req.text, translation_req.target_lang
-            )
-
-            # 4. Salvar no cache
+            translated_text, provider = await get_ai_manager().translate(text, TARGET_LANG)
+            # Sem provedor = todos falharam e o "resultado" é o texto original.
+            # Não gravar: senão o original vira tradução permanente e o botão some.
+            if provider is None:
+                return templates.TemplateResponse(
+                    "partials/translation_result.html",
+                    {
+                        **error_context,
+                        "error": "Tradução indisponível no momento. Tente novamente.",
+                    },
+                )
             await TranslationCacheService.save_translation(
                 db,
                 cache_key,
-                translation_req.text,
+                text,
                 translated_text,
-                translation_req.source_lang,
-                translation_req.target_lang,
-                model_version,
-                provider.value if provider else "unknown",
+                SOURCE_LANG,
+                TARGET_LANG,
+                MODEL_VERSION,
+                provider.value,
             )
             is_cached = False
 
-        # 5. Persistir no Artigo se article_id for fornecido
-        if translation_req.article_id:
-            from sqlalchemy import update
+        await db.execute(
+            update(Article)
+            .where(Article.id == article.id)
+            .values(abstract_translated=translated_text)
+        )
+        await db.commit()
 
-            from app.models import Article
-
-            # Atualiza o abstract_translated do artigo
-            stmt = (
-                update(Article)
-                .where(Article.id == translation_req.article_id)
-                .values(abstract_translated=translated_text)
-            )
-            await db.execute(stmt)
-            await db.commit()
-
-        # 6. Renderizar resposta (Success)
         return templates.TemplateResponse(
             "partials/translation_result.html",
             {
@@ -103,15 +108,8 @@ async def translate_content(
             },
         )
     except Exception as e:
-        import logging
-
-        logging.error(f"Erro na tradução: {e}")
+        logging.error(f"Erro na tradução do artigo {article.id}: {e}")
         return templates.TemplateResponse(
             "partials/translation_result.html",
-            {
-                "request": request,
-                "error": str(e),
-                "element_id": translation_req.element_id,
-                "original_text": translation_req.text,
-            },
+            {**error_context, "error": "Tradução indisponível no momento. Tente novamente."},
         )
